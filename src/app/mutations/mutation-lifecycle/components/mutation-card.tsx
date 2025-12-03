@@ -74,3 +74,5 @@ export function MutationCard({ mutation }: { mutation: Mutation }) {
     </Card>
   );
 }
+
+    
