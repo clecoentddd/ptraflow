@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { AppState, AppEvent, MutationStatus, TodoStatus } from '../mutation-lifecycle/cqrs';
+import type { AppState, BaseEvent, TodoStatus } from '../mutation-lifecycle/cqrs';
 
 // Command
 export interface SuspendPaiementsCommand {
@@ -12,35 +12,11 @@ export interface SuspendPaiementsCommand {
 }
 
 // Event
-export interface PaiementsSuspendusEvent extends AppEvent {
+export interface PaiementsSuspendusEvent extends BaseEvent {
     type: 'PAIEMENTS_SUSPENDUS';
     payload: {
         userEmail: string;
     }
-}
-
-// Projection
-function applyPaiementsSuspendus(state: AppState, event: PaiementsSuspendusEvent): AppState {
-    const newState = { ...state };
-    
-    newState.mutations = newState.mutations.map(m =>
-        m.id === event.mutationId ? { ...m, history: [...m.history, event], status: 'EN_COURS' as MutationStatus } : m
-    );
-
-    newState.todos = newState.todos.map(t => {
-        if (t.mutationId === event.mutationId) {
-            if (t.description === "Suspendre les paiements") {
-                 return { ...t, status: 'fait' as TodoStatus };
-            }
-            if (t.description === "Analyser les droits") {
-                return { ...t, status: 'à faire' as TodoStatus };
-            }
-        }
-        return t;
-    });
-
-    newState.eventStream = [event, ...newState.eventStream];
-    return newState;
 }
 
 // Command Handler
@@ -63,5 +39,5 @@ export function suspendPaiementsReducer(state: AppState, command: SuspendPaiemen
     }
   };
 
-  return applyPaiementsSuspendus(state, event);
+  return { ...state, eventStream: [event, ...state.eventStream] };
 }

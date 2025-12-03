@@ -5,14 +5,22 @@ import React, { createContext, useContext, useReducer, type Dispatch } from 'rea
 import { createDroitsMutationReducer } from '../create-mutation/handler';
 import { type CreateDroitsMutationCommand } from '../create-mutation/command';
 import type { DroitsMutationCreatedEvent } from '../create-mutation/event';
-import { suspendPaiementsReducer, type SuspendPaiementsCommand } from '../suspend-paiements/cqrs';
-import { analyzeDroitsReducer, type AnalyzeDroitsCommand } from '../analyze-droits/cqrs';
+import { suspendPaiementsReducer, type SuspendPaiementsCommand, type PaiementsSuspendusEvent } from '../suspend-paiements/cqrs';
+import { analyzeDroitsReducer, type AnalyzeDroitsCommand, type DroitsAnalysesEvent } from '../analyze-droits/cqrs';
 
 // 1. TYPES
 // ===========
 
+// Base Event Interface
+export interface BaseEvent {
+    id: string;
+    mutationId: string;
+    timestamp: string;
+    type: string;
+}
+
 // Event Union
-export type AppEvent = DroitsMutationCreatedEvent | import('../suspend-paiements/cqrs').PaiementsSuspendusEvent | import('../analyze-droits/cqrs').DroitsAnalysesEvent;
+export type AppEvent = DroitsMutationCreatedEvent | PaiementsSuspendusEvent | DroitsAnalysesEvent;
 
 // Command Union
 export type AppCommand = CreateDroitsMutationCommand | SuspendPaiementsCommand | AnalyzeDroitsCommand;
@@ -92,10 +100,55 @@ function applyDroitsMutationCreated(state: AppState, event: DroitsMutationCreate
     return newState;
 }
 
+function applyPaiementsSuspendus(state: AppState, event: PaiementsSuspendusEvent): AppState {
+    const newState = { ...state };
+    
+    newState.mutations = newState.mutations.map(m =>
+        m.id === event.mutationId ? { ...m, history: [...m.history, event], status: 'EN_COURS' as MutationStatus } : m
+    );
+
+    newState.todos = newState.todos.map(t => {
+        if (t.mutationId === event.mutationId) {
+            if (t.description === "Suspendre les paiements") {
+                 return { ...t, status: 'fait' as TodoStatus };
+            }
+            if (t.description === "Analyser les droits") {
+                return { ...t, status: 'à faire' as TodoStatus };
+            }
+        }
+        return t;
+    });
+
+    return newState;
+}
+
+function applyDroitsAnalyses(state: AppState, event: DroitsAnalysesEvent): AppState {
+    const newState = { ...state };
+    
+    newState.mutations = newState.mutations.map(m =>
+        m.id === event.mutationId ? { ...m, history: [...m.history, event] } : m
+    );
+
+    newState.todos = newState.todos.map(t => {
+        if (t.mutationId === event.mutationId) {
+            if (t.description === "Analyser les droits") {
+                 return { ...t, status: 'fait' as TodoStatus };
+            }
+             if (t.description === "Valider la mutation") {
+                return { ...t, status: 'à faire' as TodoStatus };
+            }
+        }
+        return t;
+    });
+
+    return newState;
+}
+
+
 // This function will rebuild the state from the event stream.
 // It's the core of the event sourcing pattern.
-function rebuildStateFromEvents(events: AppEvent[]): AppState {
-    let state = initialState;
+function rebuildStateFromEvents(events: AppState['eventStream']): AppState {
+    let state: AppState = { ...initialState, eventStream: events };
     // We reverse the events to apply them in chronological order
     const sortedEvents = [...events].reverse();
 
@@ -104,11 +157,14 @@ function rebuildStateFromEvents(events: AppEvent[]): AppState {
             case 'DROITS_MUTATION_CREATED':
                 state = applyDroitsMutationCreated(state, event);
                 break;
-            // other event cases will go here
+            case 'PAIEMENTS_SUSPENDUS':
+                state = applyPaiementsSuspendus(state, event);
+                break;
+            case 'DROITS_ANALYSES':
+                state = applyDroitsAnalyses(state, event);
+                break;
         }
     }
-    // We keep the eventStream in reverse chronological order for display
-    state.eventStream = events;
     return state;
 }
 

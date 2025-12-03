@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { AppState, AppEvent, MutationStatus, TodoStatus } from '../mutation-lifecycle/cqrs';
+import type { AppState, BaseEvent, TodoStatus } from '../mutation-lifecycle/cqrs';
 
 // Command
 export interface AnalyzeDroitsCommand {
@@ -12,35 +12,11 @@ export interface AnalyzeDroitsCommand {
 }
 
 // Event
-export interface DroitsAnalysesEvent extends AppEvent {
+export interface DroitsAnalysesEvent extends BaseEvent {
     type: 'DROITS_ANALYSES';
     payload: {
         userEmail: string;
     }
-}
-
-// Projection
-function applyDroitsAnalyses(state: AppState, event: DroitsAnalysesEvent): AppState {
-    const newState = { ...state };
-    
-    newState.mutations = newState.mutations.map(m =>
-        m.id === event.mutationId ? { ...m, history: [...m.history, event] } : m
-    );
-
-    newState.todos = newState.todos.map(t => {
-        if (t.mutationId === event.mutationId) {
-            if (t.description === "Analyser les droits") {
-                 return { ...t, status: 'fait' as TodoStatus };
-            }
-             if (t.description === "Valider la mutation") {
-                return { ...t, status: 'à faire' as TodoStatus };
-            }
-        }
-        return t;
-    });
-
-    newState.eventStream = [event, ...newState.eventStream];
-    return newState;
 }
 
 // Command Handler
@@ -60,5 +36,5 @@ export function analyzeDroitsReducer(state: AppState, command: AnalyzeDroitsComm
     }
   };
 
-  return applyDroitsAnalyses(state, event);
+  return { ...state, eventStream: [event, ...state.eventStream] };
 }
