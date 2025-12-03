@@ -9,5 +9,3 @@ export interface ModificationAutoriseeEvent extends BaseEvent {
         userEmail: string;
     }
 }
-
-    

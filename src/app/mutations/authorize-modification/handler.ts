@@ -20,5 +20,3 @@ export function authorizeModificationCommandHandler(state: AppState, command: Au
 
   return { ...state, eventStream: [event, ...state.eventStream] };
 }
-
-    
