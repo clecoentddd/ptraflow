@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { AppState } from '../mutation-lifecycle/cqrs';
+import type { AppState } from '../mutation-lifecycle/domain';
 import type { CreateDroitsMutationCommand } from './command';
 import type { DroitsMutationCreatedEvent } from './event';
 import { toast as realToast } from 'react-hot-toast';

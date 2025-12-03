@@ -1,6 +1,6 @@
 "use client";
 
-import type { AppState } from '../mutation-lifecycle/cqrs';
+import type { AppState } from '../mutation-lifecycle/domain';
 import type { SuspendPaiementsCommand } from './command';
 import type { PaiementsSuspendusEvent } from './event';
 

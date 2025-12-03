@@ -10,7 +10,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Mutation, MutationStatus, MutationType } from "@/app/mutations/mutation-lifecycle/cqrs";
+import type { Mutation, MutationStatus, MutationType } from "@/app/mutations/mutation-lifecycle/domain";
 import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
 import { Users, Gem } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -75,5 +75,3 @@ export function MutationCard({ mutation }: { mutation: Mutation }) {
     </Card>
   );
 }
-
-    

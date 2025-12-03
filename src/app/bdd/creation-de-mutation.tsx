@@ -2,7 +2,7 @@
 "use client";
 
 import React from 'react';
-import type { AppEvent } from '../mutations/mutation-lifecycle/cqrs';
+import type { AppEvent } from '../mutations/mutation-lifecycle/domain';
 import { createDroitsMutationCommandHandler } from '../mutations/create-mutation/handler';
 import { TestComponent, mockToast } from './test-harness';
 

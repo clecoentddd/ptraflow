@@ -1,6 +1,6 @@
 "use client";
 
-import type { AppState } from '../mutation-lifecycle/cqrs';
+import type { AppState } from '../mutation-lifecycle/domain';
 import type { AutoriserModificationDroitsCommand } from './command';
 import type { ModificationDroitsAutoriseeEvent } from './event';
 
@@ -20,5 +20,3 @@ export function autoriserModificationDroitsCommandHandler(state: AppState, comma
 
   return { ...state, eventStream: [event, ...state.eventStream] };
 }
-
-    

@@ -2,75 +2,34 @@
 "use client";
 
 import React, { createContext, useContext, useReducer, type Dispatch } from 'react';
+
+// Importation des types de commandes, événements et état depuis le domaine
+import type { AppCommand, AppEvent, AppState, Mutation } from './domain';
+
+// Importation des command handlers
 import { createDroitsMutationCommandHandler } from '../create-mutation/handler';
-import { type CreateDroitsMutationCommand } from '../create-mutation/command';
-import type { DroitsMutationCreatedEvent } from '../create-mutation/event';
 import { suspendPaiementsCommandHandler } from '../suspend-paiements/handler';
-import { type SuspendPaiementsCommand } from '../suspend-paiements/command';
-import type { PaiementsSuspendusEvent } from '../suspend-paiements/event';
 import { analyzeDroitsCommandHandler } from '../analyze-droits/handler';
-import { type AnalyzeDroitsCommand } from '../analyze-droits/command';
-import type { DroitsAnalysesEvent } from '../analyze-droits/event';
 import { validateMutationCommandHandler } from '../validate-mutation/handler';
-import { type ValidateMutationCommand } from '../validate-mutation/command';
-import type { MutationValidatedEvent } from '../validate-mutation/event';
 import { createRessourcesMutationCommandHandler } from '../create-ressources-mutation/handler';
-import { type CreateRessourcesMutationCommand } from '../create-ressources-mutation/command';
-import type { RessourcesMutationCreatedEvent } from '../create-ressources-mutation/event';
-import { validatedPeriodsProjectionReducer, type ValidatedPeriodsState, initialValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
-import { type AutoriserModificationDroitsCommand } from '../autoriser-modification-des-droits/command';
-import { type ModificationDroitsAutoriseeEvent } from '../autoriser-modification-des-droits/event';
 import { autoriserModificationDroitsCommandHandler } from '../autoriser-modification-des-droits/handler';
-import { type AutoriserModificationRessourcesCommand } from '../autoriser-modification-des-ressources/command';
-import { type ModificationRessourcesAutoriseeEvent } from '../autoriser-modification-des-ressources/event';
 import { autoriserModificationRessourcesCommandHandler } from '../autoriser-modification-des-ressources/handler';
 
-// 1. TYPES
-// ===========
+// Importation des types d'événements pour la projection
+import type { DroitsMutationCreatedEvent } from '../create-mutation/event';
+import type { PaiementsSuspendusEvent } from '../suspend-paiements/event';
+import type { DroitsAnalysesEvent } from '../analyze-droits/event';
+import type { MutationValidatedEvent } from '../validate-mutation/event';
+import type { RessourcesMutationCreatedEvent } from '../create-ressources-mutation/event';
+import type { ModificationDroitsAutoriseeEvent } from '../autoriser-modification-des-droits/event';
+import type { ModificationRessourcesAutoriseeEvent } from '../autoriser-modification-des-ressources/event';
 
-// Base Event Interface
-export interface BaseEvent {
-    id: string;
-    mutationId: string;
-    timestamp: string;
-    type: string;
-}
-
-// Event Union
-export type AppEvent = DroitsMutationCreatedEvent | PaiementsSuspendusEvent | DroitsAnalysesEvent | MutationValidatedEvent | RessourcesMutationCreatedEvent | ModificationDroitsAutoriseeEvent | ModificationRessourcesAutoriseeEvent;
-
-// Command Union
-export type AppCommand = CreateDroitsMutationCommand | SuspendPaiementsCommand | AnalyzeDroitsCommand | ValidateMutationCommand | CreateRessourcesMutationCommand | AutoriserModificationDroitsCommand | AutoriserModificationRessourcesCommand | { type: 'REPLAY', event: AppEvent } | { type: 'REPLAY_COMPLETE' };
+// Importation des logiques de projection
+import { validatedPeriodsProjectionReducer, initialValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
+import { Todo } from './domain';
 
 
-// Projections (Read Model)
-export type MutationType = 'DROITS' | 'RESSOURCES';
-export type MutationStatus = 'OUVERTE' | 'EN_COURS' | 'COMPLETEE' | 'REJETEE';
-
-export interface Mutation {
-  id: string;
-  type: MutationType;
-  status: MutationStatus;
-  history: AppEvent[];
-}
-
-export type TodoStatus = 'à faire' | 'fait' | 'en attente';
-
-export interface Todo {
-    id: string;
-    mutationId: string;
-    description: string;
-    status: TodoStatus;
-}
-
-export interface AppState extends ValidatedPeriodsState {
-  mutations: Mutation[];
-  todos: Todo[];
-  eventStream: AppEvent[];
-}
-
-
-// 2. INITIAL STATE
+// 1. INITIAL STATE
 // ==================
 export const initialState: AppState = {
   mutations: [],
@@ -79,7 +38,7 @@ export const initialState: AppState = {
   ...initialValidatedPeriodsState,
 };
 
-// 3. PROJECTION LOGIC
+// 2. PROJECTION LOGIC
 // ======================
 
 function applyDroitsMutationCreated(state: AppState, event: DroitsMutationCreatedEvent): AppState {
@@ -161,22 +120,22 @@ function applyPaiementsSuspendus(state: AppState, event: PaiementsSuspendusEvent
     const newState = { ...state };
     
     newState.mutations = newState.mutations.map(m =>
-        m.id === event.mutationId ? { ...m, history: [...m.history, event], status: 'EN_COURS' as MutationStatus } : m
+        m.id === event.mutationId ? { ...m, history: [...m.history, event], status: 'EN_COURS' as const } : m
     );
 
     newState.todos = newState.todos.map(t => {
         if (t.mutationId === event.mutationId) {
             if (t.description === "Suspendre les paiements") {
-                 return { ...t, status: 'fait' as TodoStatus };
+                 return { ...t, status: 'fait' as const };
             }
             
             const mutation = newState.mutations.find(m => m.id === event.mutationId);
             if (mutation?.type === 'DROITS' && t.description === "Autoriser la modification") {
-                return { ...t, status: 'à faire' as TodoStatus };
+                return { ...t, status: 'à faire' as const };
             }
             
             if (mutation?.type === 'RESSOURCES' && t.description === "Valider la mutation") {
-                return { ...t, status: 'à faire' as TodoStatus };
+                return { ...t, status: 'à faire' as const };
             }
         }
         return t;
@@ -195,10 +154,10 @@ function applyModificationDroitsAutorisee(state: AppState, event: ModificationDr
     newState.todos = newState.todos.map(t => {
         if (t.mutationId === event.mutationId) {
             if (t.description === "Autoriser la modification") {
-                 return { ...t, status: 'fait' as TodoStatus };
+                 return { ...t, status: 'fait' as const };
             }
              if (t.description === "Analyser les droits") {
-                return { ...t, status: 'à faire' as TodoStatus };
+                return { ...t, status: 'à faire' as const };
             }
         }
         return t;
@@ -218,10 +177,10 @@ function applyDroitsAnalyses(state: AppState, event: DroitsAnalysesEvent): AppSt
     newState.todos = newState.todos.map(t => {
         if (t.mutationId === event.mutationId) {
             if (t.description === "Analyser les droits") {
-                 return { ...t, status: 'fait' as TodoStatus };
+                 return { ...t, status: 'fait' as const };
             }
              if (t.description === "Valider la mutation") {
-                return { ...t, status: 'à faire' as TodoStatus };
+                return { ...t, status: 'à faire'as const };
             }
         }
         return t;
@@ -234,12 +193,12 @@ function applyMutationValidated(state: AppState, event: MutationValidatedEvent):
     let newState = { ...state };
     
     newState.mutations = newState.mutations.map(m =>
-        m.id === event.mutationId ? { ...m, history: [...m.history, event], status: 'COMPLETEE' as MutationStatus } : m
+        m.id === event.mutationId ? { ...m, history: [...m.history, event], status: 'COMPLETEE' as const } : m
     );
 
     newState.todos = newState.todos.map(t => {
         if (t.mutationId === event.mutationId && t.description === "Valider la mutation") {
-            return { ...t, status: 'fait' as TodoStatus };
+            return { ...t, status: 'fait' as const };
         }
         return t;
     });
@@ -258,10 +217,10 @@ function applyModificationRessourcesAutorisee(state: AppState, event: Modificati
     newState.todos = newState.todos.map(t => {
         if (t.mutationId === event.mutationId) {
             if (t.description === "Autoriser la modification") {
-                 return { ...t, status: 'fait' as TodoStatus };
+                 return { ...t, status: 'fait' as const };
             }
              if (t.description === "Valider la mutation") {
-                return { ...t, status: 'à faire' as TodoStatus };
+                return { ...t, status: 'à faire' as const };
             }
         }
         return t;
@@ -315,7 +274,7 @@ function applyEvent(state: AppState, event: AppEvent): AppState {
 }
 
 
-// 4. AGGREGATE REDUCER (COMMAND DISPATCHER)
+// 3. AGGREGATE REDUCER (COMMAND DISPATCHER)
 // ======================================
 
 export function cqrsReducer(state: AppState, command: AppCommand): AppState {
@@ -371,7 +330,7 @@ export function cqrsReducer(state: AppState, command: AppCommand): AppState {
 }
 
 
-// 5. CONTEXT & PROVIDER
+// 4. CONTEXT & PROVIDER
 // =======================
 const CqrsContext = createContext<{ state: AppState; dispatch: Dispatch<AppCommand> } | undefined>(undefined);
 
@@ -385,7 +344,7 @@ export function CqrsProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// 6. HOOK
+// 5. HOOK
 // =========
 export function useCqrs() {
   const context = useContext(CqrsContext);
@@ -394,5 +353,3 @@ export function useCqrs() {
   }
   return context;
 }
-
-    

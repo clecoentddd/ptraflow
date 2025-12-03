@@ -1,0 +1,86 @@
+import type { DroitsMutationCreatedEvent } from '../create-mutation/event';
+import type { PaiementsSuspendusEvent } from '../suspend-paiements/event';
+import type { DroitsAnalysesEvent } from '../analyze-droits/event';
+import type { MutationValidatedEvent } from '../validate-mutation/event';
+import type { RessourcesMutationCreatedEvent } from '../create-ressources-mutation/event';
+import type { ModificationDroitsAutoriseeEvent } from '../autoriser-modification-des-droits/event';
+import type { ModificationRessourcesAutoriseeEvent } from '../autoriser-modification-des-ressources/event';
+
+import type { CreateDroitsMutationCommand } from '../create-mutation/command';
+import type { SuspendPaiementsCommand } from '../suspend-paiements/command';
+import type { AnalyzeDroitsCommand } from '../analyze-droits/command';
+import type { ValidateMutationCommand } from '../validate-mutation/command';
+import type { CreateRessourcesMutationCommand } from '../create-ressources-mutation/command';
+import type { AutoriserModificationDroitsCommand } from '../autoriser-modification-des-droits/command';
+import type { AutoriserModificationRessourcesCommand } from '../autoriser-modification-des-ressources/command';
+
+import type { ValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
+
+// =================================
+// 1. DÉFINITIONS DU DOMAINE (ÉVÉNEMENTS & COMMANDES)
+// =================================
+
+// Base Event Interface
+export interface BaseEvent {
+    id: string;
+    mutationId: string;
+    timestamp: string;
+    type: string;
+}
+
+// Event Union (Le "registre central" des événements)
+export type AppEvent = 
+    | DroitsMutationCreatedEvent 
+    | PaiementsSuspendusEvent 
+    | DroitsAnalysesEvent 
+    | MutationValidatedEvent 
+    | RessourcesMutationCreatedEvent 
+    | ModificationDroitsAutoriseeEvent
+    | ModificationRessourcesAutoriseeEvent;
+
+// Command Union (Le "registre central" des commandes)
+export type AppCommand = 
+    | CreateDroitsMutationCommand 
+    | SuspendPaiementsCommand 
+    | AnalyzeDroitsCommand 
+    | ValidateMutationCommand 
+    | CreateRessourcesMutationCommand
+    | AutoriserModificationDroitsCommand
+    | AutoriserModificationRessourcesCommand
+    | { type: 'REPLAY', event: AppEvent } 
+    | { type: 'REPLAY_COMPLETE' };
+
+
+// =================================
+// 2. MODÈLES DE LECTURE (PROJECTIONS)
+// =================================
+
+export type MutationType = 'DROITS' | 'RESSOURCES';
+export type MutationStatus = 'OUVERTE' | 'EN_COURS' | 'COMPLETEE' | 'REJETEE';
+
+export interface Mutation {
+  id: string;
+  type: MutationType;
+  status: MutationStatus;
+  history: AppEvent[];
+}
+
+export type TodoStatus = 'à faire' | 'fait' | 'en attente';
+
+export interface Todo {
+    id: string;
+    mutationId: string;
+    description: string;
+    status: TodoStatus;
+}
+
+// =================================
+// 3. ÉTAT GLOBAL DE L'APPLICATION (STATE)
+// =================================
+
+// L'état global est la somme de toutes les projections.
+export interface AppState extends ValidatedPeriodsState {
+  mutations: Mutation[];
+  todos: Todo[];
+  eventStream: AppEvent[];
+}

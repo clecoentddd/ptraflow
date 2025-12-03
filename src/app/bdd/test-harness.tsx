@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import type { AppState, AppEvent, AppCommand } from '../mutations/mutation-lifecycle/cqrs';
+import type { AppState, AppEvent, AppCommand } from '../mutations/mutation-lifecycle/domain';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, XCircle } from 'lucide-react';

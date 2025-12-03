@@ -1,6 +1,6 @@
 "use client";
 
-import type { AppState } from '../mutation-lifecycle/cqrs';
+import type { AppState } from '../mutation-lifecycle/domain';
 import type { ValidateMutationCommand } from './command';
 import type { MutationValidatedEvent } from './event';
 import type { DroitsAnalysesEvent } from '../analyze-droits/event';

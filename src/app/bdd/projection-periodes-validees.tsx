@@ -2,7 +2,7 @@
 "use client";
 
 import React from 'react';
-import type { AppState, AppEvent } from '../mutations/mutation-lifecycle/cqrs';
+import type { AppState, AppEvent } from '../mutations/mutation-lifecycle/domain';
 import { TestComponent } from './test-harness';
 
 // Import event types for correct test data creation

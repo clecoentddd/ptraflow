@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { AppEvent, AppCommand, AppState } from '../mutation-lifecycle/cqrs';
+import type { AppEvent, AppCommand, AppState } from '../mutation-lifecycle/domain';
 import type { MutationValidatedEvent } from '../validate-mutation/event';
 
 // 1. State Slice and Initial State
