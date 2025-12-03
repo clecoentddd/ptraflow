@@ -1,7 +1,7 @@
 
 "use client";
 
-import type { AppEvent, AppCommand } from '../mutation-lifecycle/cqrs';
+import type { AppEvent, AppCommand, AppState } from '../mutation-lifecycle/cqrs';
 import type { MutationValidatedEvent } from '../validate-mutation/event';
 
 // 1. State Slice and Initial State
@@ -28,8 +28,7 @@ function applyMutationValidated(state: ValidatedPeriodsState, event: MutationVal
             dateDebut: event.payload.dateDebut,
             dateFin: event.payload.dateFin,
         };
-        // Business rule: always overwrite with the latest validated period based on timestamp.
-        // We expect events to be replayed in chronological order, so the last one wins.
+        // Business rule: always overwrite with the latest validated period.
         return { ...state, validatedPeriods: [newValidatedPeriod] };
     }
     return state;
@@ -40,17 +39,21 @@ export function validatedPeriodsProjectionReducer<T extends ValidatedPeriodsStat
     state: T, 
     eventOrCommand: AppEvent | AppCommand
 ): T {
-    // This reducer only cares about events.
-    if ('payload' in eventOrCommand) {
-        const event = eventOrCommand;
-        switch (event.type) {
-            case 'MUTATION_VALIDATED':
-                // Pass the event to the dedicated projection logic function
-                // It's crucial that this function receives only its relevant state slice,
-                // but for simplicity in the main reducer, we pass the whole state and trust this function.
-                return applyMutationValidated(state, event) as T;
+    if ('type' in eventOrCommand) {
+        // This reducer only cares about events.
+        if ('payload' in eventOrCommand) {
+            const event = eventOrCommand;
+            switch (event.type) {
+                case 'MUTATION_VALIDATED':
+                    return applyMutationValidated(state, event) as T;
+            }
         }
     }
     
     return state;
+}
+
+// 4. Query (Selector)
+export function selectValidatedPeriods(state: AppState): ValidatedPeriod[] {
+    return state.validatedPeriods;
 }

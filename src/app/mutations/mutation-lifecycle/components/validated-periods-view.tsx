@@ -11,10 +11,12 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Card } from "@/components/ui/card";
+import { selectValidatedPeriods } from "../../projection-periodes-de-droits/projection";
 
 export function ValidatedPeriodsView() {
     const { state } = useCqrs();
-    const { validatedPeriods } = state;
+    // Use the selector to get the data
+    const validatedPeriods = selectValidatedPeriods(state);
 
     if (validatedPeriods.length === 0) {
         return (
