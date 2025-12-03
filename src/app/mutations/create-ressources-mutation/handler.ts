@@ -5,6 +5,7 @@ import type { AppState } from '../mutation-lifecycle/cqrs';
 import type { CreateRessourcesMutationCommand } from './command';
 import type { RessourcesMutationCreatedEvent } from './event';
 import { toast as realToast } from 'react-hot-toast';
+import { queryValidatedPeriods } from '../projection-periodes-de-droits/projection';
 
 type HandlerDependencies = {
   toast: { error: (message: string) => void };
@@ -20,6 +21,12 @@ export function createRessourcesMutationCommandHandler(
   const existingMutation = state.mutations.find(m => m.status === 'OUVERTE' || m.status === 'EN_COURS');
   if (existingMutation) {
     dependencies.toast.error(`La mutation ${existingMutation.id} est déjà en cours.`);
+    return state;
+  }
+
+  const validatedPeriods = queryValidatedPeriods(state);
+  if (validatedPeriods.length === 0) {
+    dependencies.toast.error("Il n'y a pas de périodes de droits validées.");
     return state;
   }
   
