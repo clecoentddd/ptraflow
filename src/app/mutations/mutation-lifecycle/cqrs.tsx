@@ -64,7 +64,7 @@ export interface AppState {
 
 // 2. INITIAL STATE
 // ==================
-const initialState: AppState = {
+export const initialState: AppState = {
   mutations: [],
   todos: [],
   eventStream: [],
@@ -240,7 +240,7 @@ function rebuildStateFromEvents(events: AppState['eventStream']): AppState {
 // 4. AGGREGATE REDUCER (COMMAND DISPATCHER)
 // ======================================
 
-function cqrsReducer(state: AppState, command: AppCommand): AppState {
+export function cqrsReducer(state: AppState, command: AppCommand): AppState {
     let newState = state;
 
     // The command handlers only produce events and add them to the stream.
