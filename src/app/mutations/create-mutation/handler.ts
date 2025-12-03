@@ -1,20 +1,9 @@
 
 "use client";
 
-import type { AppState, AppEvent, Mutation, Todo } from '../mutation-lifecycle/cqrs';
-
-// Command
-export interface CreateDroitsMutationCommand {
-  type: 'CREATE_DROITS_MUTATION';
-}
-
-// Event
-export interface DroitsMutationCreatedEvent extends AppEvent {
-  type: 'DROITS_MUTATION_CREATED';
-  payload: {
-    mutationType: 'DROITS';
-  };
-}
+import type { AppState, Mutation, Todo } from '../mutation-lifecycle/cqrs';
+import type { CreateDroitsMutationCommand } from './command';
+import type { DroitsMutationCreatedEvent } from './event';
 
 // Projection
 function applyDroitsMutationCreated(state: AppState, event: DroitsMutationCreatedEvent): AppState {

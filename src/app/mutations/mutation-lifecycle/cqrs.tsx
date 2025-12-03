@@ -1,7 +1,10 @@
+
 "use client";
 
 import React, { createContext, useContext, useReducer, type Dispatch } from 'react';
-import { createDroitsMutationReducer, type CreateDroitsMutationCommand } from '../create-mutation/cqrs';
+import { createDroitsMutationReducer } from '../create-mutation/handler';
+import { type CreateDroitsMutationCommand } from '../create-mutation/command';
+import type { DroitsMutationCreatedEvent } from '../create-mutation/event';
 import { suspendPaiementsReducer, type SuspendPaiementsCommand } from '../suspend-paiements/cqrs';
 import { analyzeDroitsReducer, type AnalyzeDroitsCommand } from '../analyze-droits/cqrs';
 
@@ -9,7 +12,7 @@ import { analyzeDroitsReducer, type AnalyzeDroitsCommand } from '../analyze-droi
 // ===========
 
 // Event Union
-export type AppEvent = import('../create-mutation/cqrs').DroitsMutationCreatedEvent | import('../suspend-paiements/cqrs').PaiementsSuspendusEvent | import('../analyze-droits/cqrs').DroitsAnalysesEvent;
+export type AppEvent = DroitsMutationCreatedEvent | import('../suspend-paiements/cqrs').PaiementsSuspendusEvent | import('../analyze-droits/cqrs').DroitsAnalysesEvent;
 
 // Command Union
 export type AppCommand = CreateDroitsMutationCommand | SuspendPaiementsCommand | AnalyzeDroitsCommand;
