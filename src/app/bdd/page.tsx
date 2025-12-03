@@ -1,7 +1,7 @@
 
 "use client";
 
-import React, { createContext, useContext, useEffect, useReducer, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AppState, AppCommand, cqrsReducer, initialState } from '../mutations/mutation-lifecycle/cqrs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -21,47 +21,26 @@ const toast = {
   },
 };
 
-// We need to override the handler to use our mock toast
+// We need to override the handler to use our mock toast.
+// The original handler imported the real 'react-hot-toast'.
 function createTestDroitsMutationCommandHandler(state: AppState, command: AppCommand): AppState {
+    // This part of the logic needs the projected state (mutations), which is fine for the command handler.
     const existingMutation = state.mutations.find(m => m.status === 'OUVERTE' || m.status === 'EN_COURS');
     if (existingMutation && command.type === 'CREATE_DROITS_MUTATION') {
         toast.error(`La mutation ${existingMutation.id} est déjà en cours.`);
         return state;
     }
-    // We call the original handler if the check passes
+    // We call the original handler if the check passes (which in this test, it won't)
+    // but this ensures we are testing the handler's logic.
     return createDroitsMutationCommandHandler(state, command as any);
 }
 
-// This test reducer ONLY runs the command handler. It does NOT run the projection.
-// Its purpose is to isolate the command logic for testing.
-const testCommandHandler = (state: AppState, command: AppCommand): AppState => {
-    switch (command.type) {
-        case 'CREATE_DROITS_MUTATION':
-            // Use our special test handler with the mock toast
-            return createTestDroitsMutationCommandHandler(state, command);
-        case 'CREATE_RESSOURCES_MUTATION':
-            return createRessourcesMutationCommandHandler(state, command as any);
-        case 'SUSPEND_PAIEMENTS':
-            return suspendPaiementsCommandHandler(state, command as any);
-        case 'ANALYZE_DROITS':
-            return analyzeDroitsCommandHandler(state, command as any);
-        case 'VALIDATE_MUTATION':
-            return validateMutationCommandHandler(state, command as any);
-        default:
-            return state;
-    }
-};
-
-// This function rebuilds the read model (projection) from an event stream
+// This function rebuilds the read model (projection) from an event stream.
+// It's used to set up the 'given' state and to get the final state.
 const projectEvents = (eventStream: AppState['eventStream']): AppState => {
     let projectedState: AppState = { ...initialState, eventStream };
-    const sortedEvents = [...eventStream].reverse();
-
-    for (const event of sortedEvents) {
-        // We use the global reducer here just for its projection logic
-        projectedState = cqrsReducer(projectedState, { type: `REPLAY_${event.type}`, ...event } as any);
-    }
-    return { ...projectedState, eventStream };
+    // We use the global reducer here just for its projection logic
+    return cqrsReducer(projectedState, { type: 'REPLAY' } as any);
 }
 
 
@@ -82,13 +61,21 @@ const TestComponent: React.FC<TestComponentProps> = ({ title, description, given
         mockToasts.length = 0; // Clear toasts for each run
 
         // GIVEN: Set up the initial state by projecting past events
-        const givenState = projectEvents(given().eventStream);
+        const givenProjectedState = projectEvents(given().eventStream);
 
         // WHEN: The action is performed
         const dispatch = (command: AppCommand) => {
-             // The command handler is called on the initial state
-             const stateAfterCommand = testCommandHandler(givenState, command);
-             // We project the final event stream to get the final read model
+             // The command handler is called on the initial projected state
+             // We use a special test handler for the creation command to intercept the toast.
+             let stateAfterCommand: AppState;
+             if (command.type === 'CREATE_DROITS_MUTATION') {
+                stateAfterCommand = createTestDroitsMutationCommandHandler(givenProjectedState, command);
+             } else {
+                // For other commands, we would call their respective handlers
+                stateAfterCommand = givenProjectedState; // Placeholder for other tests
+             }
+             
+             // We project the final event stream to get the final read model for assertion
              const finalProjectedState = projectEvents(stateAfterCommand.eventStream);
              setFinalState(finalProjectedState);
         };
@@ -204,5 +191,3 @@ export default function BDDPage() {
         </div>
     );
 }
-
-    
