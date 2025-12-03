@@ -7,10 +7,10 @@ import { type CreateDroitsMutationCommand } from '../create-mutation/command';
 import type { DroitsMutationCreatedEvent } from '../create-mutation/event';
 import { suspendPaiementsCommandHandler } from '../suspend-paiements/handler';
 import { type SuspendPaiementsCommand } from '../suspend-paiements/command';
-import { type PaiementsSuspendusEvent } from '../suspend-paiements/event';
+import type { PaiementsSuspendusEvent } from '../suspend-paiements/event';
 import { analyzeDroitsCommandHandler } from '../analyze-droits/handler';
 import { type AnalyzeDroitsCommand } from '../analyze-droits/command';
-import { type DroitsAnalysesEvent } from '../analyze-droits/event';
+import type { DroitsAnalysesEvent } from '../analyze-droits/event';
 
 // 1. TYPES
 // ===========
@@ -173,7 +173,7 @@ function rebuildStateFromEvents(events: AppState['eventStream']): AppState {
 }
 
 
-// 4. AGGREGATE REDUCER (COMMAND HANDLER)
+// 4. AGGREGATE REDUCER (COMMAND DISPATCHER)
 // ======================================
 
 function cqrsReducer(state: AppState, command: AppCommand): AppState {
