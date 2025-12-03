@@ -28,9 +28,12 @@ function DashboardContent() {
               </Card>
             ) : (
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                {state.mutations.map((mutation) => (
-                  <MutationCard key={mutation.id} mutation={mutation} />
-                ))}
+                {state.mutations.map((mutation) => {
+                  const todo = state.todos.find(t => t.mutationId === mutation.id);
+                  return (
+                    <MutationCard key={mutation.id} mutation={mutation} todo={todo} />
+                  )
+                })}
               </div>
             )}
           </div>

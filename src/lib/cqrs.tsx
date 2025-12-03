@@ -24,21 +24,17 @@ export interface DroitsMutationCreatedEvent extends BaseEvent {
   };
 }
 
-export interface DroitsMutationStepAdvancedEvent extends BaseEvent {
-  type: 'DROITS_MUTATION_STEP_ADVANCED';
-  payload: {
-    newStep: number;
-  };
+export interface PaiementsSuspendusEvent extends BaseEvent {
+    type: 'PAIEMENTS_SUSPENDUS';
+    payload: {
+        userEmail: string;
+    }
 }
 
-export interface DroitsMutationCompletedEvent extends BaseEvent {
-  type: 'DROITS_MUTATION_COMPLETED';
-}
 
 export type AppEvent =
   | DroitsMutationCreatedEvent
-  | DroitsMutationStepAdvancedEvent
-  | DroitsMutationCompletedEvent;
+  | PaiementsSuspendusEvent;
 
 // Commands
 interface BaseCommand {
@@ -49,14 +45,14 @@ export interface CreateDroitsMutationCommand extends BaseCommand {
   type: 'CREATE_DROITS_MUTATION';
 }
 
-export interface AdvanceMutationStepCommand extends BaseCommand {
-  type: 'ADVANCE_MUTATION_STEP';
+export interface SuspendPaiementsCommand extends BaseCommand {
+  type: 'SUSPEND_PAIEMENTS';
   payload: {
     mutationId: string;
   };
 }
 
-export type AppCommand = CreateDroitsMutationCommand | AdvanceMutationStepCommand;
+export type AppCommand = CreateDroitsMutationCommand | SuspendPaiementsCommand;
 
 // Projections (Read Model)
 export interface Mutation {
@@ -64,8 +60,6 @@ export interface Mutation {
   type: MutationType;
   status: MutationStatus;
   history: AppEvent[];
-  currentStep: number;
-  totalSteps: number;
 }
 
 export interface Todo {
@@ -73,6 +67,8 @@ export interface Todo {
     mutationId: string;
     description: string;
     status: TodoStatus;
+    // We could add more specific todos based on events
+    isPaiementsSuspendus: boolean;
 }
 
 export interface AppState {
@@ -81,14 +77,7 @@ export interface AppState {
   eventStream: AppEvent[];
 }
 
-// 2. WORKFLOW DEFINITION
-// ======================
-export const DROITS_MUTATION_WORKFLOW = {
-  steps: ['Création', 'Analyse de droits', 'Validation', 'Finalisation'],
-  totalSteps: 4,
-};
-
-// 3. INITIAL STATE
+// 2. INITIAL STATE
 // ==================
 const initialState: AppState = {
   mutations: [],
@@ -96,9 +85,48 @@ const initialState: AppState = {
   eventStream: [],
 };
 
-// 4. REDUCER (COMMAND HANDLER + PROJECTION)
+// 3. REDUCER (COMMAND HANDLER + PROJECTION)
 // ===========================================
-// In a real CQRS system, this would be split. For this UI prototype, we combine them.
+function applyEvents(state: AppState, events: AppEvent[]): AppState {
+    return events.reduce((newState, event) => {
+        newState.eventStream = [event, ...newState.eventStream];
+
+        switch(event.type) {
+            case 'DROITS_MUTATION_CREATED': {
+                const newMutation: Mutation = {
+                    id: event.mutationId,
+                    type: 'DROITS',
+                    status: 'OUVERTE',
+                    history: [event],
+                };
+                 const newTodo: Todo = {
+                    id: crypto.randomUUID(),
+                    mutationId: event.mutationId,
+                    description: "Paiements à suspendre",
+                    status: 'à faire',
+                    isPaiementsSuspendus: false,
+                };
+                newState.mutations = [newMutation, ...newState.mutations];
+                newState.todos = [newTodo, ...newState.todos];
+                break;
+            }
+            case 'PAIEMENTS_SUSPENDUS': {
+                 newState.mutations = newState.mutations.map(m =>
+                    m.id === event.mutationId ? { ...m, history: [...m.history, event], status: 'COMPLETEE' as MutationStatus } : m
+                );
+                newState.todos = newState.todos.map(t =>
+                    t.mutationId === event.mutationId
+                    ? { ...t, status: 'fait' as TodoStatus, isPaiementsSuspendus: true }
+                    : t
+                );
+                break;
+            }
+        }
+        return newState;
+    }, { ...state });
+}
+
+
 function cqrsReducer(state: AppState, command: AppCommand): AppState {
   switch (command.type) {
     case 'CREATE_DROITS_MUTATION': {
@@ -111,83 +139,25 @@ function cqrsReducer(state: AppState, command: AppCommand): AppState {
         payload: { mutationType: 'DROITS' },
       };
 
-      // Apply event to create new projection
-      const newMutation: Mutation = {
-        id: mutationId,
-        type: 'DROITS',
-        status: 'OUVERTE',
-        history: [event],
-        currentStep: 0,
-        totalSteps: DROITS_MUTATION_WORKFLOW.totalSteps,
-      };
-
-      const newTodo: Todo = {
-          id: crypto.randomUUID(),
-          mutationId,
-          description: "Paiements à suspendre",
-          status: 'à faire',
-      };
-
-      return {
-        ...state,
-        eventStream: [event, ...state.eventStream],
-        mutations: [newMutation, ...state.mutations],
-        todos: [newTodo, ...state.todos],
-      };
+      return applyEvents(state, [event]);
     }
 
-    case 'ADVANCE_MUTATION_STEP': {
+    case 'SUSPEND_PAIEMENTS': {
       const { mutationId } = command.payload;
-      const mutationIndex = state.mutations.findIndex((m) => m.id === mutationId);
-      if (mutationIndex === -1) return state;
+      const mutation = state.mutations.find((m) => m.id === mutationId);
+      if (!mutation || mutation.status === 'COMPLETEE') return state;
 
-      const mutationToUpdate = state.mutations[mutationIndex];
-      if (mutationToUpdate.status === 'COMPLETEE' || mutationToUpdate.status === 'REJETEE') {
-        return state;
-      }
-
-      const newStep = mutationToUpdate.currentStep + 1;
-      const isCompleted = newStep >= mutationToUpdate.totalSteps -1;
-
-      const event: AppEvent = isCompleted
-        ? {
-            id: crypto.randomUUID(),
-            type: 'DROITS_MUTATION_COMPLETED',
-            mutationId,
-            timestamp: new Date().toISOString(),
-          }
-        : {
-            id: crypto.randomUUID(),
-            type: 'DROITS_MUTATION_STEP_ADVANCED',
-            mutationId,
-            timestamp: new Date().toISOString(),
-            payload: { newStep },
-          };
-
-      // Apply event to update projection
-      const updatedMutation: Mutation = {
-        ...mutationToUpdate,
-        history: [event, ...mutationToUpdate.history],
-        currentStep: isCompleted ? mutationToUpdate.totalSteps - 1 : newStep,
-        status: isCompleted ? 'COMPLETEE' : 'EN_COURS',
+      const event: PaiementsSuspendusEvent = {
+        id: crypto.randomUUID(),
+        type: 'PAIEMENTS_SUSPENDUS',
+        mutationId,
+        timestamp: new Date().toISOString(),
+        payload: {
+            userEmail: 'anonymous' // In a real app, this would come from auth
+        }
       };
-      
-      const newMutations = [...state.mutations];
-      newMutations[mutationIndex] = updatedMutation;
 
-      const newTodos = state.todos.map(todo => {
-          if (todo.mutationId === mutationId && event.type === 'DROITS_MUTATION_STEP_ADVANCED' && event.payload.newStep === 1) {
-              return {...todo, status: 'fait' as TodoStatus};
-          }
-          return todo;
-      });
-
-      return {
-        ...state,
-        eventStream: [event, ...state.eventStream],
-        mutations: newMutations,
-        todos: newTodos,
-      };
+      return applyEvents(state, [event]);
     }
 
     default:
@@ -195,7 +165,7 @@ function cqrsReducer(state: AppState, command: AppCommand): AppState {
   }
 }
 
-// 5. CONTEXT & PROVIDER
+// 4. CONTEXT & PROVIDER
 // =======================
 const CqrsContext = createContext<{ state: AppState; dispatch: Dispatch<AppCommand> } | undefined>(undefined);
 
@@ -209,7 +179,7 @@ export function CqrsProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// 6. HOOK
+// 5. HOOK
 // =========
 export function useCqrs() {
   const context = useContext(CqrsContext);

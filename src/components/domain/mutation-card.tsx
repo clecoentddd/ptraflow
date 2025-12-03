@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -10,8 +11,8 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import type { Mutation, MutationStatus } from "@/lib/cqrs.tsx";
-import { useCqrs, DROITS_MUTATION_WORKFLOW } from "@/lib/cqrs.tsx";
+import type { Mutation, MutationStatus, Todo } from "@/lib/cqrs.tsx";
+import { useCqrs } from "@/lib/cqrs.tsx";
 import { Users, ArrowRight, CheckCircle2, Circle, ArrowRightCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -22,13 +23,14 @@ const statusStyles: Record<MutationStatus, string> = {
   REJETEE: "bg-destructive text-destructive-foreground",
 };
 
-export function MutationCard({ mutation }: { mutation: Mutation }) {
+export function MutationCard({ mutation, todo }: { mutation: Mutation, todo?: Todo }) {
   const { dispatch } = useCqrs();
 
-  const handleAdvance = () => {
-    dispatch({ type: 'ADVANCE_MUTATION_STEP', payload: { mutationId: mutation.id } });
+  const handleSuspendPaiements = () => {
+    dispatch({ type: 'SUSPEND_PAIEMENTS', payload: { mutationId: mutation.id } });
   };
-
+  
+  const isPaiementsSuspendus = todo?.isPaiementsSuspendus ?? false;
   const isCompleted = mutation.status === 'COMPLETEE' || mutation.status === 'REJETEE';
 
   return (
@@ -48,30 +50,30 @@ export function MutationCard({ mutation }: { mutation: Mutation }) {
         </div>
       </CardHeader>
       <CardContent>
-        <div className="space-y-3">
-          <p className="text-sm font-medium">Progression:</p>
+         <div className="space-y-3">
+          <p className="text-sm font-medium">Tâches:</p>
           <ul className="space-y-2.5">
-            {DROITS_MUTATION_WORKFLOW.steps.map((step, index) => {
-              const isWorkflowCompleted = mutation.status === 'COMPLETEE';
-              const isCurrent = index === mutation.currentStep && !isCompleted;
-              const isDone = index < mutation.currentStep || isWorkflowCompleted;
-
-              return (
-                <li key={step} className={cn("flex items-center gap-3 text-sm transition-colors",
-                  isDone ? "text-foreground" : "text-muted-foreground",
-                  isCurrent && "font-semibold text-primary"
+             <li className={cn("flex items-center gap-3 text-sm transition-colors",
+                  isPaiementsSuspendus ? "text-foreground" : "text-muted-foreground",
+                  !isPaiementsSuspendus && "font-semibold text-primary"
                 )}>
-                  {isDone ? <CheckCircle2 className="h-5 w-5 text-green-600" /> : isCurrent ? <ArrowRightCircle className="h-5 w-5 text-primary animate-pulse" /> : <Circle className="h-5 w-5" />}
-                  <span>{step}</span>
+                  {isPaiementsSuspendus ? <CheckCircle2 className="h-5 w-5 text-green-600" /> : <ArrowRightCircle className="h-5 w-5 text-primary animate-pulse" />}
+                  <span>Suspendre les paiements</span>
                 </li>
-              );
-            })}
+                 <li className={cn("flex items-center gap-3 text-sm transition-colors text-muted-foreground")}>
+                  <Circle className="h-5 w-5" />
+                  <span>Analyser les droits</span>
+                </li>
+                 <li className={cn("flex items-center gap-3 text-sm transition-colors text-muted-foreground")}>
+                  <Circle className="h-5 w-5" />
+                  <span>Valider la mutation</span>
+                </li>
           </ul>
         </div>
       </CardContent>
       <CardFooter>
-        <Button onClick={handleAdvance} disabled={isCompleted} className="w-full">
-          Avancer l'étape
+        <Button onClick={handleSuspendPaiements} disabled={isCompleted || isPaiementsSuspendus} className="w-full">
+          Suspendre les paiements
           <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
       </CardFooter>
