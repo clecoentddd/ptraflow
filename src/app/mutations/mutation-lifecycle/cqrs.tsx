@@ -99,13 +99,13 @@ function applyDroitsMutationCreated(state: AppState, event: DroitsMutationCreate
         {
             id: crypto.randomUUID(),
             mutationId: event.mutationId,
-            description: "Analyser les droits",
+            description: "Autoriser la modification",
             status: 'en attente',
         },
         {
             id: crypto.randomUUID(),
             mutationId: event.mutationId,
-            description: "Autoriser la modification",
+            description: "Analyser les droits",
             status: 'en attente',
         },
          {
@@ -172,13 +172,8 @@ function applyPaiementsSuspendus(state: AppState, event: PaiementsSuspendusEvent
             if (t.description === "Suspendre les paiements") {
                  return { ...t, status: 'fait' as TodoStatus };
             }
-
-            const mutation = newState.mutations.find(m => m.id === event.mutationId);
-            if (mutation?.type === 'DROITS' && t.description === "Analyser les droits") {
-                return { ...t, status: 'à faire' as TodoStatus };
-            }
-            
-            if (mutation?.type === 'RESSOURCES' && t.description === "Autoriser la modification") {
+            // For both mutation types, the next step is to authorize modification
+            if (t.description === "Autoriser la modification") {
                 return { ...t, status: 'à faire' as TodoStatus };
             }
         }
@@ -200,7 +195,13 @@ function applyModificationAutorisee(state: AppState, event: ModificationAutorise
             if (t.description === "Autoriser la modification") {
                  return { ...t, status: 'fait' as TodoStatus };
             }
-             if (t.description === "Valider la mutation") {
+
+            const mutation = newState.mutations.find(m => m.id === event.mutationId);
+            if (mutation?.type === 'DROITS' && t.description === "Analyser les droits") {
+                return { ...t, status: 'à faire' as TodoStatus };
+            }
+
+            if (mutation?.type === 'RESSOURCES' && t.description === "Valider la mutation") {
                 return { ...t, status: 'à faire' as TodoStatus };
             }
         }
@@ -223,7 +224,7 @@ function applyDroitsAnalyses(state: AppState, event: DroitsAnalysesEvent): AppSt
             if (t.description === "Analyser les droits") {
                  return { ...t, status: 'fait' as TodoStatus };
             }
-             if (t.description === "Autoriser la modification") {
+             if (t.description === "Valider la mutation") {
                 return { ...t, status: 'à faire' as TodoStatus };
             }
         }
