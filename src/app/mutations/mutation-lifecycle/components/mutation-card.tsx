@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { SuspendPaiementsButton, SuspendPaiementsTodoItem } from "@/app/mutations/suspend-paiements/components/suspend-paiements-ui";
 import { AnalyzeDroitsButton, AnalyzeDroitsTodoItem } from "@/app/mutations/analyze-droits/components/analyze-droits-ui";
 import { ValidateMutationButton, ValidateMutationTodoItem } from "@/app/mutations/validate-mutation/components/validate-mutation-ui";
-import { AuthorizeModificationButton, AuthorizeModificationTodoItem } from "@/app/mutations/authorize-modification/components/authorize-modification-ui";
+import { AutoriserModificationDroitsButton, AutoriserModificationDroitsTodoItem } from "@/app/mutations/autoriser-modification-des-droits/components/autoriser-modification-des-droits-ui";
 
 
 const statusStyles: Record<MutationStatus, string> = {
@@ -60,7 +60,7 @@ export function MutationCard({ mutation }: { mutation: Mutation }) {
           <ul className="space-y-2.5">
               <SuspendPaiementsTodoItem mutationId={mutation.id} />
               <AnalyzeDroitsTodoItem mutationId={mutation.id} />
-              <AuthorizeModificationTodoItem mutationId={mutation.id} />
+              <AutoriserModificationDroitsTodoItem mutationId={mutation.id} />
               <ValidateMutationTodoItem mutationId={mutation.id} />
           </ul>
         </div>
@@ -68,9 +68,11 @@ export function MutationCard({ mutation }: { mutation: Mutation }) {
       <CardFooter className="flex flex-col items-stretch gap-2">
          <SuspendPaiementsButton mutationId={mutation.id} />
          <AnalyzeDroitsButton mutationId={mutation.id} />
-         <AuthorizeModificationButton mutationId={mutation.id} />
+         <AutoriserModificationDroitsButton mutationId={mutation.id} />
          <ValidateMutationButton mutationId={mutation.id} />
       </CardFooter>
     </Card>
   );
 }
+
+    

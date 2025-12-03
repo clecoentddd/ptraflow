@@ -16,9 +16,9 @@ import type { MutationValidatedEvent } from '../validate-mutation/event';
 import { createRessourcesMutationCommandHandler } from '../create-ressources-mutation/handler';
 import { type CreateRessourcesMutationCommand } from '../create-ressources-mutation/command';
 import type { RessourcesMutationCreatedEvent } from '../create-ressources-mutation/event';
-import { authorizeModificationCommandHandler } from '../authorize-modification/handler';
-import { type AuthorizeModificationCommand } from '../authorize-modification/command';
-import type { ModificationAutoriseeEvent } from '../authorize-modification/event';
+import { autoriserModificationDroitsCommandHandler } from '../autoriser-modification-des-droits/handler';
+import { type AutoriserModificationDroitsCommand } from '../autoriser-modification-des-droits/command';
+import type { ModificationAutoriseeEvent } from '../autoriser-modification-des-droits/event';
 import { validatedPeriodsProjectionReducer, type ValidatedPeriodsState, initialValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
 
 // 1. TYPES
@@ -36,7 +36,7 @@ export interface BaseEvent {
 export type AppEvent = DroitsMutationCreatedEvent | PaiementsSuspendusEvent | DroitsAnalysesEvent | MutationValidatedEvent | RessourcesMutationCreatedEvent | ModificationAutoriseeEvent;
 
 // Command Union
-export type AppCommand = CreateDroitsMutationCommand | SuspendPaiementsCommand | AnalyzeDroitsCommand | ValidateMutationCommand | CreateRessourcesMutationCommand | AuthorizeModificationCommand | { type: 'REPLAY', event: AppEvent } | { type: 'REPLAY_COMPLETE' };
+export type AppCommand = CreateDroitsMutationCommand | SuspendPaiementsCommand | AnalyzeDroitsCommand | ValidateMutationCommand | CreateRessourcesMutationCommand | AutoriserModificationDroitsCommand | { type: 'REPLAY', event: AppEvent } | { type: 'REPLAY_COMPLETE' };
 
 
 // Projections (Read Model)
@@ -322,8 +322,8 @@ export function cqrsReducer(state: AppState, command: AppCommand): AppState {
         case 'SUSPEND_PAIEMENTS':
             newState = suspendPaiementsCommandHandler(state, command);
             break;
-        case 'AUTHORIZE_MODIFICATION':
-            newState = authorizeModificationCommandHandler(state, command);
+        case 'AUTORISER_MODIFICATION_DROITS':
+            newState = autoriserModificationDroitsCommandHandler(state, command);
             break;
         case 'ANALYZE_DROITS':
             newState = analyzeDroitsCommandHandler(state, command);
@@ -366,3 +366,5 @@ export function useCqrs() {
   }
   return context;
 }
+
+    
