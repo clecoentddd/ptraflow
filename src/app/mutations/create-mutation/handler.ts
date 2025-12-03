@@ -55,8 +55,5 @@ export function createDroitsMutationReducer(state: AppState, command: CreateDroi
     payload: { mutationType: 'DROITS' },
   };
 
-  // The command handler's job is to validate and produce the event.
-  // The projection's job is to update the state.
-  // In this simple in-memory setup, we do both, but we keep the logic separate.
   return applyDroitsMutationCreated(state, event);
 }
