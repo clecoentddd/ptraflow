@@ -6,7 +6,7 @@ import type { CreateDroitsMutationCommand } from './command';
 import type { DroitsMutationCreatedEvent } from './event';
 
 // Projection
-function applyDroitsMutationCreated(state: AppState, event: DroitsMutationCreatedEvent): AppState {
+export function applyDroitsMutationCreated(state: AppState, event: DroitsMutationCreatedEvent): AppState {
     const newState = { ...state };
 
     const newMutation: Mutation = {
@@ -55,5 +55,8 @@ export function createDroitsMutationReducer(state: AppState, command: CreateDroi
     payload: { mutationType: 'DROITS' },
   };
 
+  // The command handler's job is to validate and produce the event.
+  // The projection's job is to update the state.
+  // In this simple in-memory setup, we do both, but we keep the logic separate.
   return applyDroitsMutationCreated(state, event);
 }

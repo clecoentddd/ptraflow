@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useReducer, type Dispatch } from 'react';
-import { createDroitsMutationReducer } from '../create-mutation/handler';
+import { createDroitsMutationReducer, applyDroitsMutationCreated } from '../create-mutation/handler';
 import { type CreateDroitsMutationCommand } from '../create-mutation/command';
 import type { DroitsMutationCreatedEvent } from '../create-mutation/event';
 import { suspendPaiementsReducer, type SuspendPaiementsCommand } from '../suspend-paiements/cqrs';
