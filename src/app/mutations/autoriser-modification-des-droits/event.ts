@@ -3,8 +3,8 @@
 import type { BaseEvent } from '../mutation-lifecycle/cqrs';
 
 // Event
-export interface ModificationAutoriseeEvent extends BaseEvent {
-    type: 'MODIFICATION_AUTORISEE';
+export interface ModificationDroitsAutoriseeEvent extends BaseEvent {
+    type: 'MODIFICATION_RESSOURCES_AUTORISEE';
     payload: {
         userEmail: string;
     }
