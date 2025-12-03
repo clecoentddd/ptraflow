@@ -18,6 +18,9 @@ import { createRessourcesMutationCommandHandler } from '../create-ressources-mut
 import { type CreateRessourcesMutationCommand } from '../create-ressources-mutation/command';
 import type { RessourcesMutationCreatedEvent } from '../create-ressources-mutation/event';
 import { validatedPeriodsProjectionReducer, type ValidatedPeriodsState, initialValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
+import { type AutoriserModificationDroitsCommand } from '../autoriser-modification-des-droits/command';
+import { type ModificationDroitsAutoriseeEvent } from '../autoriser-modification-des-droits/event';
+import { autoriserModificationDroitsCommandHandler } from '../autoriser-modification-des-droits/handler';
 
 // 1. TYPES
 // ===========
@@ -31,10 +34,10 @@ export interface BaseEvent {
 }
 
 // Event Union
-export type AppEvent = DroitsMutationCreatedEvent | PaiementsSuspendusEvent | DroitsAnalysesEvent | MutationValidatedEvent | RessourcesMutationCreatedEvent;
+export type AppEvent = DroitsMutationCreatedEvent | PaiementsSuspendusEvent | DroitsAnalysesEvent | MutationValidatedEvent | RessourcesMutationCreatedEvent | ModificationDroitsAutoriseeEvent;
 
 // Command Union
-export type AppCommand = CreateDroitsMutationCommand | SuspendPaiementsCommand | AnalyzeDroitsCommand | ValidateMutationCommand | CreateRessourcesMutationCommand | { type: 'REPLAY', event: AppEvent } | { type: 'REPLAY_COMPLETE' };
+export type AppCommand = CreateDroitsMutationCommand | SuspendPaiementsCommand | AnalyzeDroitsCommand | ValidateMutationCommand | CreateRessourcesMutationCommand | AutoriserModificationDroitsCommand | { type: 'REPLAY', event: AppEvent } | { type: 'REPLAY_COMPLETE' };
 
 
 // Projections (Read Model)
@@ -92,6 +95,12 @@ function applyDroitsMutationCreated(state: AppState, event: DroitsMutationCreate
             mutationId: event.mutationId,
             description: "Suspendre les paiements",
             status: 'à faire',
+        },
+        {
+            id: crypto.randomUUID(),
+            mutationId: event.mutationId,
+            description: 'Autoriser la modification',
+            status: 'en attente'
         },
         {
             id: crypto.randomUUID(),
@@ -159,11 +168,33 @@ function applyPaiementsSuspendus(state: AppState, event: PaiementsSuspendusEvent
             }
             
             const mutation = newState.mutations.find(m => m.id === event.mutationId);
-            if (mutation?.type === 'DROITS' && t.description === "Analyser les droits") {
+            if (mutation?.type === 'DROITS' && t.description === "Autoriser la modification") {
                 return { ...t, status: 'à faire' as TodoStatus };
             }
             
             if (mutation?.type === 'RESSOURCES' && t.description === "Valider la mutation") {
+                return { ...t, status: 'à faire' as TodoStatus };
+            }
+        }
+        return t;
+    });
+
+    return newState;
+}
+
+function applyModificationDroitsAutorisee(state: AppState, event: ModificationDroitsAutoriseeEvent): AppState {
+    const newState = { ...state };
+
+    newState.mutations = newState.mutations.map(m =>
+        m.id === event.mutationId ? { ...m, history: [...m.history, event] } : m
+    );
+
+    newState.todos = newState.todos.map(t => {
+        if (t.mutationId === event.mutationId) {
+            if (t.description === "Autoriser la modification") {
+                 return { ...t, status: 'fait' as TodoStatus };
+            }
+             if (t.description === "Analyser les droits") {
                 return { ...t, status: 'à faire' as TodoStatus };
             }
         }
@@ -237,6 +268,9 @@ function applyEvent(state: AppState, event: AppEvent): AppState {
         case 'PAIEMENTS_SUSPENDUS':
             nextState = applyPaiementsSuspendus(nextState, event);
             break;
+        case 'MODIFICATION_DROITS_AUTORISEE':
+            nextState = applyModificationDroitsAutorisee(nextState, event);
+            break;
         case 'DROITS_ANALYSES':
             nextState = applyDroitsAnalyses(nextState, event);
             break;
@@ -282,6 +316,9 @@ export function cqrsReducer(state: AppState, command: AppCommand): AppState {
             break;
         case 'SUSPEND_PAIEMENTS':
             newState = suspendPaiementsCommandHandler(state, command);
+            break;
+        case 'AUTORISER_MODIFICATION_DROITS':
+            newState = autoriserModificationDroitsCommandHandler(state, command);
             break;
         case 'ANALYZE_DROITS':
             newState = analyzeDroitsCommandHandler(state, command);
