@@ -16,7 +16,7 @@ export function ValidatedPeriodsView() {
     const { state } = useCqrs();
     const { validatedPeriods } = state;
 
-    // Afficher les 5 périodes les plus récentes, de la plus récente à la plus ancienne.
+    // Affiche les 5 périodes les plus récentes, de la plus récente à la plus ancienne.
     const recentValidatedPeriods = [...validatedPeriods].reverse().slice(0, 5);
 
     if (recentValidatedPeriods.length === 0) {
