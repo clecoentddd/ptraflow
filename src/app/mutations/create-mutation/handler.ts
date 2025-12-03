@@ -55,5 +55,7 @@ export function createDroitsMutationReducer(state: AppState, command: CreateDroi
     payload: { mutationType: 'DROITS' },
   };
 
+  // The command handler's job is to produce an event, 
+  // then apply it to get the new state.
   return applyDroitsMutationCreated(state, event);
 }
