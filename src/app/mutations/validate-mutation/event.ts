@@ -7,5 +7,7 @@ export interface MutationValidatedEvent extends BaseEvent {
     type: 'MUTATION_VALIDATED';
     payload: {
         userEmail: string;
+        dateDebut?: string;
+        dateFin?: string;
     }
 }
