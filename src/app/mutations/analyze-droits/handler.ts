@@ -5,6 +5,7 @@ import type { AppState } from '../mutation-lifecycle/cqrs';
 import type { AnalyzeDroitsCommand } from './command';
 import type { DroitsAnalysesEvent } from './event';
 import { toast as realToast } from 'react-hot-toast';
+import { format } from 'date-fns';
 
 type HandlerDependencies = {
   toast: { error: (message: string) => void };
@@ -31,8 +32,8 @@ export function analyzeDroitsCommandHandler(
     timestamp: new Date().toISOString(),
     payload: {
         userEmail: 'anonymous',
-        dateDebut,
-        dateFin,
+        dateDebut: format(new Date(dateDebut), 'MM-yyyy'),
+        dateFin: format(new Date(dateFin), 'MM-yyyy'),
     }
   };
 
