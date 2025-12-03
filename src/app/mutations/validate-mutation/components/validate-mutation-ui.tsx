@@ -5,7 +5,7 @@ import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ArrowRight, ArrowRightCircle, Check, CheckCircle2, Circle } from "lucide-react";
-import { queryTodos } from "../../../projection-todolist/projection";
+import { queryTodos } from "../../projection-todolist/projection";
 
 export function ValidateMutationTodoItem({ mutationId }: { mutationId: string }) {
     const { state } = useCqrs();
