@@ -13,7 +13,7 @@ import type { ValidatedPeriodsState } from '../mutations/projection-periodes-de-
 export const mockToasts: { message: string; type: 'error' | 'success' }[] = [];
 export const mockToast = {
   error: (message: string) => {
-    console.error("MOCK TOAST (Error):", message);
+    console.log("MOCK TOAST (Error):", message);
     mockToasts.push({ message, type: 'error' });
   },
 };
