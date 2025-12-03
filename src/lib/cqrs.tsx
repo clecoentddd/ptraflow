@@ -7,6 +7,7 @@ import React, { createContext, useContext, useReducer, type Dispatch } from 'rea
 // ===========
 export type MutationType = 'DROITS';
 export type MutationStatus = 'OUVERTE' | 'EN_COURS' | 'COMPLETEE' | 'REJETEE';
+export type TodoStatus = 'à faire' | 'fait';
 
 // Events
 interface BaseEvent {
@@ -67,8 +68,16 @@ export interface Mutation {
   totalSteps: number;
 }
 
+export interface Todo {
+    id: string;
+    mutationId: string;
+    description: string;
+    status: TodoStatus;
+}
+
 export interface AppState {
   mutations: Mutation[];
+  todos: Todo[];
   eventStream: AppEvent[];
 }
 
@@ -83,6 +92,7 @@ export const DROITS_MUTATION_WORKFLOW = {
 // ==================
 const initialState: AppState = {
   mutations: [],
+  todos: [],
   eventStream: [],
 };
 
@@ -111,10 +121,18 @@ function cqrsReducer(state: AppState, command: AppCommand): AppState {
         totalSteps: DROITS_MUTATION_WORKFLOW.totalSteps,
       };
 
+      const newTodo: Todo = {
+          id: crypto.randomUUID(),
+          mutationId,
+          description: "Paiements à suspendre",
+          status: 'à faire',
+      };
+
       return {
         ...state,
         eventStream: [event, ...state.eventStream],
         mutations: [newMutation, ...state.mutations],
+        todos: [newTodo, ...state.todos],
       };
     }
 
@@ -157,10 +175,18 @@ function cqrsReducer(state: AppState, command: AppCommand): AppState {
       const newMutations = [...state.mutations];
       newMutations[mutationIndex] = updatedMutation;
 
+      const newTodos = state.todos.map(todo => {
+          if (todo.mutationId === mutationId && event.type === 'DROITS_MUTATION_STEP_ADVANCED' && event.payload.newStep === 1) {
+              return {...todo, status: 'fait' as TodoStatus};
+          }
+          return todo;
+      });
+
       return {
         ...state,
         eventStream: [event, ...state.eventStream],
         mutations: newMutations,
+        todos: newTodos,
       };
     }
 
