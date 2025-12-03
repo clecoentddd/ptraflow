@@ -8,9 +8,6 @@ import type { PaiementsSuspendusEvent } from './event';
 export function suspendPaiementsCommandHandler(state: AppState, command: SuspendPaiementsCommand): AppState {
   const { mutationId } = command.payload;
 
-  const todo = state.todos.find(t => t.mutationId === mutationId && t.description === 'Suspendre les paiements');
-  if (!todo || todo.status !== 'à faire') return state;
-
   const event: PaiementsSuspendusEvent = {
     id: crypto.randomUUID(),
     type: 'PAIEMENTS_SUSPENDUS',

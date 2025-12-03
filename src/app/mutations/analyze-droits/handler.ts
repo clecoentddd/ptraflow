@@ -8,9 +8,6 @@ import type { DroitsAnalysesEvent } from './event';
 export function analyzeDroitsCommandHandler(state: AppState, command: AnalyzeDroitsCommand): AppState {
   const { mutationId } = command.payload;
   
-  const todo = state.todos.find(t => t.mutationId === mutationId && t.description === 'Analyser les droits');
-  if (!todo || todo.status !== 'à faire') return state;
-
   const event: DroitsAnalysesEvent = {
     id: crypto.randomUUID(),
     type: 'DROITS_ANALYSES',
