@@ -13,10 +13,9 @@ import type { MutationValidatedEvent } from '../mutations/validate-mutation/even
 export const BDDTestProjectionPeriodes: React.FC = () => (
     <TestComponent
         title="Test Projection Périodes Validées"
-        description="Etant donné que plusieurs mutations ont été validées avec des périodes de droits, quand on consulte la projection, alors les périodes sont disponibles et la plus récente est bien la première retournée par la requête de la vue."
+        description="Etant donné que plusieurs mutations ont été validées, quand on consulte la projection, alors seule la période de la dernière mutation validée est conservée."
         given={() => {
             const events: AppEvent[] = [
-                // The events are in reverse chronological order (as in the real app state)
                  {
                     id: "78b8ad33-31cb-4428-9c57-3652e6412a7c",
                     type: "MUTATION_VALIDATED",
@@ -40,6 +39,8 @@ export const BDDTestProjectionPeriodes: React.FC = () => (
                     }
                 } as MutationValidatedEvent,
             ];
+            // We provide the events in reverse chronological order to simulate the event stream
+            // But the projection logic will sort them correctly.
             return { eventStream: events };
         }}
         when={(initialState) => {
@@ -51,22 +52,19 @@ export const BDDTestProjectionPeriodes: React.FC = () => (
             // THEN: we check the projection state.
             const { validatedPeriods } = state;
             
-            // The view component reverses the array, so we do the same for the test
-            const displayedPeriods = [...validatedPeriods].reverse();
-
-            const isLengthCorrect = displayedPeriods.length === 2;
-            const mostRecentPeriod = displayedPeriods[0];
-            const isOrderCorrect = mostRecentPeriod?.mutationId === "6cce8359-c6b5-4497-8c88-7356230c544f"
-                                  && mostRecentPeriod?.dateDebut === "01-2025"
-                                  && mostRecentPeriod?.dateFin === "08-2025";
+            const isLengthCorrect = validatedPeriods.length === 1;
+            const singlePeriod = validatedPeriods[0];
+            const isContentCorrect = singlePeriod?.mutationId === "6cce8359-c6b5-4497-8c88-7356230c544f"
+                                  && singlePeriod?.dateDebut === "01-2025"
+                                  && singlePeriod?.dateFin === "08-2025";
             
-            const pass = isLengthCorrect && isOrderCorrect;
+            const pass = isLengthCorrect && isContentCorrect;
 
             return {
                 pass,
                 message: pass 
-                    ? 'Succès: La projection contient les bonnes périodes et la requête de la vue les trie correctement (la plus récente en premier).' 
-                    : `Échec: L'ordre ou le contenu des périodes projetées est incorrect. Période la plus récente attendue : 6cce... avec dates 01-2025/08-2025. Reçu: ${JSON.stringify(mostRecentPeriod)}`,
+                    ? `Succès: La projection ne contient que la dernière période validée (ID: ${singlePeriod?.mutationId}).` 
+                    : `Échec: La projection devrait contenir 1 seule période, mais en contient ${validatedPeriods.length}. Reçu: ${JSON.stringify(validatedPeriods)}`,
             };
         }}
     />

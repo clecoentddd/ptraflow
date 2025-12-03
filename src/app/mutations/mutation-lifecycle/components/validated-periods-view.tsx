@@ -16,10 +16,7 @@ export function ValidatedPeriodsView() {
     const { state } = useCqrs();
     const { validatedPeriods } = state;
 
-    // Affiche les 5 périodes les plus récentes, de la plus récente à la plus ancienne.
-    const recentValidatedPeriods = [...validatedPeriods].reverse().slice(0, 5);
-
-    if (recentValidatedPeriods.length === 0) {
+    if (validatedPeriods.length === 0) {
         return (
             <Card className="flex items-center justify-center h-48 border-dashed">
                 <p className="text-muted-foreground">Aucune période de droits n'a été validée.</p>
@@ -32,12 +29,12 @@ export function ValidatedPeriodsView() {
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Période</TableHead>
+                        <TableHead>Dernière Période Validée</TableHead>
                         <TableHead>ID de la Mutation</TableHead>
                     </TableRow>
                 </TableHeader>
                 <TableBody>
-                    {recentValidatedPeriods.map((period, index) => (
+                    {validatedPeriods.map((period, index) => (
                         <TableRow key={index}>
                             <TableCell className="font-medium">{period.dateDebut} au {period.dateFin}</TableCell>
                             <TableCell className="font-mono text-xs">{period.mutationId}</TableCell>

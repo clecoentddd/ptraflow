@@ -249,13 +249,15 @@ function applyMutationValidated(state: AppState, event: MutationValidatedEvent):
         return t;
     });
 
+    // The projection now only keeps the LATEST validated period.
     if (event.payload.dateDebut && event.payload.dateFin) {
         const newValidatedPeriod: ValidatedPeriod = {
             mutationId: event.mutationId,
             dateDebut: event.payload.dateDebut,
             dateFin: event.payload.dateFin,
         };
-        newState.validatedPeriods = [...newState.validatedPeriods, newValidatedPeriod];
+        // It overwrites the previous state instead of adding to it.
+        newState.validatedPeriods = [newValidatedPeriod];
     }
 
     return newState;
