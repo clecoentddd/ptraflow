@@ -1,3 +1,4 @@
+
 "use client";
 
 import {
@@ -9,9 +10,9 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Mutation, MutationStatus } from "@/app/mutations/mutation-lifecycle/cqrs";
+import type { Mutation, MutationStatus, MutationType } from "@/app/mutations/mutation-lifecycle/cqrs";
 import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
-import { Users } from "lucide-react";
+import { Users, Gem } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SuspendPaiementsButton, SuspendPaiementsTodoItem } from "@/app/mutations/suspend-paiements/components/suspend-paiements-ui";
 import { AnalyzeDroitsButton, AnalyzeDroitsTodoItem } from "@/app/mutations/analyze-droits/components/analyze-droits-ui";
@@ -25,10 +26,17 @@ const statusStyles: Record<MutationStatus, string> = {
   REJETEE: "bg-destructive text-destructive-foreground",
 };
 
+const typeDetails: Record<MutationType, { title: string, icon: React.ElementType }> = {
+    DROITS: { title: "Mutation de droits", icon: Users },
+    RESSOURCES: { title: "Mutation de ressources", icon: Gem }
+}
+
 export function MutationCard({ mutation }: { mutation: Mutation }) {
   const { state } = useCqrs();
   const todos = state.todos.filter(t => t.mutationId === mutation.id);
   const isCompleted = mutation.status === 'COMPLETEE' || mutation.status === 'REJETEE';
+  const details = typeDetails[mutation.type] || { title: "Mutation", icon: Users };
+  const Icon = details.icon;
 
   return (
     <Card className="flex flex-col justify-between transition-shadow duration-300 hover:shadow-xl">
@@ -36,8 +44,8 @@ export function MutationCard({ mutation }: { mutation: Mutation }) {
         <div className="flex justify-between items-start">
             <div>
                 <CardTitle className="flex items-center gap-2 mb-1">
-                    <Users className="text-muted-foreground" />
-                    <span>Mutation de droits</span>
+                    <Icon className="text-muted-foreground" />
+                    <span>{details.title}</span>
                 </CardTitle>
                 <CardDescription className="font-mono text-xs">{mutation.id}</CardDescription>
             </div>

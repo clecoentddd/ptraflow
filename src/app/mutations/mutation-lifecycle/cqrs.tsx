@@ -14,6 +14,9 @@ import type { DroitsAnalysesEvent } from '../analyze-droits/event';
 import { validateMutationCommandHandler } from '../validate-mutation/handler';
 import { type ValidateMutationCommand } from '../validate-mutation/command';
 import type { MutationValidatedEvent } from '../validate-mutation/event';
+import { createRessourcesMutationCommandHandler } from '../create-ressources-mutation/handler';
+import { type CreateRessourcesMutationCommand } from '../create-ressources-mutation/command';
+import type { RessourcesMutationCreatedEvent } from '../create-ressources-mutation/event';
 
 // 1. TYPES
 // ===========
@@ -27,13 +30,13 @@ export interface BaseEvent {
 }
 
 // Event Union
-export type AppEvent = DroitsMutationCreatedEvent | PaiementsSuspendusEvent | DroitsAnalysesEvent | MutationValidatedEvent;
+export type AppEvent = DroitsMutationCreatedEvent | PaiementsSuspendusEvent | DroitsAnalysesEvent | MutationValidatedEvent | RessourcesMutationCreatedEvent;
 
 // Command Union
-export type AppCommand = CreateDroitsMutationCommand | SuspendPaiementsCommand | AnalyzeDroitsCommand | ValidateMutationCommand;
+export type AppCommand = CreateDroitsMutationCommand | SuspendPaiementsCommand | AnalyzeDroitsCommand | ValidateMutationCommand | CreateRessourcesMutationCommand;
 
 // Projections (Read Model)
-export type MutationType = 'DROITS';
+export type MutationType = 'DROITS' | 'RESSOURCES';
 export type MutationStatus = 'OUVERTE' | 'EN_COURS' | 'COMPLETEE' | 'REJETEE';
 
 export interface Mutation {
@@ -107,6 +110,38 @@ function applyDroitsMutationCreated(state: AppState, event: DroitsMutationCreate
     return newState;
 }
 
+function applyRessourcesMutationCreated(state: AppState, event: RessourcesMutationCreatedEvent): AppState {
+    const newState = { ...state };
+
+    const newMutation: Mutation = {
+        id: event.mutationId,
+        type: 'RESSOURCES',
+        status: 'OUVERTE',
+        history: [event],
+    };
+
+    const newTodos: Todo[] = [
+        {
+            id: crypto.randomUUID(),
+            mutationId: event.mutationId,
+            description: "Suspendre les paiements",
+            status: 'à faire',
+        },
+         {
+            id: crypto.randomUUID(),
+            mutationId: event.mutationId,
+            description: "Valider la mutation",
+            status: 'en attente',
+        },
+    ];
+
+    newState.mutations = [newMutation, ...newState.mutations];
+    newState.todos = [...newState.todos, ...newTodos];
+
+    return newState;
+}
+
+
 function applyPaiementsSuspendus(state: AppState, event: PaiementsSuspendusEvent): AppState {
     const newState = { ...state };
     
@@ -120,6 +155,9 @@ function applyPaiementsSuspendus(state: AppState, event: PaiementsSuspendusEvent
                  return { ...t, status: 'fait' as TodoStatus };
             }
             if (t.description === "Analyser les droits") {
+                return { ...t, status: 'à faire' as TodoStatus };
+            }
+             if (t.description === "Valider la mutation" && !newState.todos.some(todo => todo.mutationId === event.mutationId && todo.description === "Analyser les droits")) {
                 return { ...t, status: 'à faire' as TodoStatus };
             }
         }
@@ -181,6 +219,9 @@ function rebuildStateFromEvents(events: AppState['eventStream']): AppState {
             case 'DROITS_MUTATION_CREATED':
                 state = applyDroitsMutationCreated(state, event);
                 break;
+            case 'RESSOURCES_MUTATION_CREATED':
+                state = applyRessourcesMutationCreated(state, event);
+                break;
             case 'PAIEMENTS_SUSPENDUS':
                 state = applyPaiementsSuspendus(state, event);
                 break;
@@ -207,6 +248,9 @@ function cqrsReducer(state: AppState, command: AppCommand): AppState {
     switch (command.type) {
         case 'CREATE_DROITS_MUTATION':
             newState = createDroitsMutationCommandHandler(state, command);
+            break;
+        case 'CREATE_RESSOURCES_MUTATION':
+            newState = createRessourcesMutationCommandHandler(state, command);
             break;
         case 'SUSPEND_PAIEMENTS':
             newState = suspendPaiementsCommandHandler(state, command);

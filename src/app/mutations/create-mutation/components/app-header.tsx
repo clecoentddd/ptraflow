@@ -1,3 +1,4 @@
+
 "use client";
 
 import { Button } from "@/components/ui/button";
@@ -7,8 +8,12 @@ import { CircleDotDashed, Plus } from "lucide-react";
 export function AppHeader() {
   const { dispatch } = useCqrs();
 
-  const handleCreateMutation = () => {
+  const handleCreateDroitsMutation = () => {
     dispatch({ type: 'CREATE_DROITS_MUTATION' });
+  };
+
+  const handleCreateRessourcesMutation = () => {
+    dispatch({ type: 'CREATE_RESSOURCES_MUTATION' });
   };
 
   return (
@@ -17,10 +22,16 @@ export function AppHeader() {
         <CircleDotDashed className="h-8 w-8 text-primary" />
         <h1 className="text-2xl font-bold text-foreground">MutationFlow</h1>
       </div>
-      <Button onClick={handleCreateMutation}>
-        <Plus className="mr-2 h-4 w-4" />
-        Créer une mutation
-      </Button>
+      <div className="flex gap-2">
+        <Button onClick={handleCreateDroitsMutation}>
+          <Plus className="mr-2 h-4 w-4" />
+          Créer mutation de droits
+        </Button>
+         <Button onClick={handleCreateRessourcesMutation} variant="secondary">
+          <Plus className="mr-2 h-4 w-4" />
+          Créer mutation de ressources
+        </Button>
+      </div>
     </header>
   );
 }
