@@ -15,6 +15,8 @@ import type { AutoriserModificationDroitsCommand } from '../autoriser-modificati
 import type { AutoriserModificationRessourcesCommand } from '../autoriser-modification-des-ressources/command';
 
 import type { ValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
+import type { MutationsState } from '../projection-mutations/projection';
+import type { TodolistState } from '../projection-todolist/projection';
 
 // =================================
 // 1. DÉFINITIONS DU DOMAINE (ÉVÉNEMENTS & COMMANDES)
@@ -79,8 +81,6 @@ export interface Todo {
 // =================================
 
 // L'état global est la somme de toutes les projections.
-export interface AppState extends ValidatedPeriodsState {
-  mutations: Mutation[];
-  todos: Todo[];
+export interface AppState extends ValidatedPeriodsState, MutationsState, TodolistState {
   eventStream: AppEvent[];
 }

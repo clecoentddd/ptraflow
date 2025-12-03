@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Mutation, MutationStatus, MutationType } from "@/app/mutations/mutation-lifecycle/domain";
-import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
 import { Users, Gem } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SuspendPaiementsButton, SuspendPaiementsTodoItem } from "@/app/mutations/suspend-paiements/components/suspend-paiements-ui";
@@ -33,8 +32,6 @@ const typeDetails: Record<MutationType, { title: string, icon: React.ElementType
 }
 
 export function MutationCard({ mutation }: { mutation: Mutation }) {
-  const { state } = useCqrs();
-  const todos = state.todos.filter(t => t.mutationId === mutation.id);
   const isCompleted = mutation.status === 'COMPLETEE' || mutation.status === 'REJETEE';
   const details = typeDetails[mutation.type] || { title: "Mutation", icon: Users };
   const Icon = details.icon;

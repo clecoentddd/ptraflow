@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useReducer, type Dispatch } from 'react';
 
 // Importation des types de commandes, événements et état depuis le domaine
-import type { AppCommand, AppEvent, AppState, Mutation } from './domain';
+import type { AppCommand, AppEvent, AppState } from './domain';
 
 // Importation des command handlers
 import { createDroitsMutationCommandHandler } from '../create-mutation/handler';
@@ -15,225 +15,40 @@ import { createRessourcesMutationCommandHandler } from '../create-ressources-mut
 import { autoriserModificationDroitsCommandHandler } from '../autoriser-modification-des-droits/handler';
 import { autoriserModificationRessourcesCommandHandler } from '../autoriser-modification-des-ressources/handler';
 
-// Importation des types d'événements pour la projection
-import type { DroitsMutationCreatedEvent } from '../create-mutation/event';
-import type { PaiementsSuspendusEvent } from '../suspend-paiements/event';
-import type { DroitsAnalysesEvent } from '../analyze-droits/event';
-import type { MutationValidatedEvent } from '../validate-mutation/event';
-import type { RessourcesMutationCreatedEvent } from '../create-ressources-mutation/event';
-import type { ModificationDroitsAutoriseeEvent } from '../autoriser-modification-des-droits/event';
-import type { ModificationRessourcesAutoriseeEvent } from '../autoriser-modification-des-ressources/event';
-
 // Importation des logiques de projection
 import { validatedPeriodsProjectionReducer, initialValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
-import { Todo } from './domain';
+import { mutationsProjectionReducer, initialMutationsState } from '../projection-mutations/projection';
+import { todolistProjectionReducer, initialTodolistState } from '../projection-todolist/projection';
 
 
 // 1. INITIAL STATE
 // ==================
 export const initialState: AppState = {
-  mutations: [],
-  todos: [],
   eventStream: [],
   ...initialValidatedPeriodsState,
+  ...initialMutationsState,
+  ...initialTodolistState,
 };
 
 // 2. PROJECTION LOGIC
 // ======================
 
-function applyDroitsMutationCreated(state: AppState, event: DroitsMutationCreatedEvent): AppState {
-    const newState = { ...state };
-
-    const newMutation: Mutation = {
-        id: event.mutationId,
-        type: 'DROITS',
-        status: 'OUVERTE',
-        history: [event],
-    };
-
-    const newTodos: Todo[] = [
-        {
-            id: crypto.randomUUID(),
-            mutationId: event.mutationId,
-            description: "Suspendre les paiements",
-            status: 'à faire',
-        },
-        {
-            id: crypto.randomUUID(),
-            mutationId: event.mutationId,
-            description: 'Autoriser la modification',
-            status: 'en attente'
-        },
-        {
-            id: crypto.randomUUID(),
-            mutationId: event.mutationId,
-            description: "Analyser les droits",
-            status: 'en attente',
-        },
-         {
-            id: crypto.randomUUID(),
-            mutationId: event.mutationId,
-            description: "Valider la mutation",
-            status: 'en attente',
-        },
-    ];
-
-    newState.mutations = [newMutation, ...newState.mutations.filter(m => m.id !== newMutation.id)];
-    newState.todos = [...newState.todos.filter(t => t.mutationId !== newMutation.id), ...newTodos];
-
-    return newState;
-}
-
-function applyRessourcesMutationCreated(state: AppState, event: RessourcesMutationCreatedEvent): AppState {
-    const newState = { ...state };
-
-    const newMutation: Mutation = {
-        id: event.mutationId,
-        type: 'RESSOURCES',
-        status: 'OUVERTE',
-        history: [event],
-    };
-
-    const newTodos: Todo[] = [
-        {
-            id: crypto.randomUUID(),
-            mutationId: event.mutationId,
-            description: "Suspendre les paiements",
-            status: 'à faire',
-        },
-         {
-            id: crypto.randomUUID(),
-            mutationId: event.mutationId,
-            description: "Valider la mutation",
-            status: 'en attente',
-        },
-    ];
-
-    newState.mutations = [newMutation, ...newState.mutations.filter(m => m.id !== newMutation.id)];
-    newState.todos = [...newState.todos.filter(t => t.mutationId !== newMutation.id), ...newTodos];
-
-    return newState;
-}
-
-
-function applyPaiementsSuspendus(state: AppState, event: PaiementsSuspendusEvent): AppState {
-    const newState = { ...state };
+// This function applies a single event to all projection reducers.
+function applyEvent(state: AppState, event: AppEvent): AppState {
+    let nextState = state;
     
-    newState.mutations = newState.mutations.map(m =>
-        m.id === event.mutationId ? { ...m, history: [...m.history, event], status: 'EN_COURS' as const } : m
-    );
-
-    newState.todos = newState.todos.map(t => {
-        if (t.mutationId === event.mutationId) {
-            if (t.description === "Suspendre les paiements") {
-                 return { ...t, status: 'fait' as const };
-            }
-            
-            const mutation = newState.mutations.find(m => m.id === event.mutationId);
-            if (mutation?.type === 'DROITS' && t.description === "Autoriser la modification") {
-                return { ...t, status: 'à faire' as const };
-            }
-            
-            if (mutation?.type === 'RESSOURCES' && t.description === "Valider la mutation") {
-                return { ...t, status: 'à faire' as const };
-            }
-        }
-        return t;
-    });
-
-    return newState;
-}
-
-function applyModificationDroitsAutorisee(state: AppState, event: ModificationDroitsAutoriseeEvent): AppState {
-    const newState = { ...state };
-
-    newState.mutations = newState.mutations.map(m =>
-        m.id === event.mutationId ? { ...m, history: [...m.history, event] } : m
-    );
-
-    newState.todos = newState.todos.map(t => {
-        if (t.mutationId === event.mutationId) {
-            if (t.description === "Autoriser la modification") {
-                 return { ...t, status: 'fait' as const };
-            }
-             if (t.description === "Analyser les droits") {
-                return { ...t, status: 'à faire' as const };
-            }
-        }
-        return t;
-    });
-
-    return newState;
-}
-
-
-function applyDroitsAnalyses(state: AppState, event: DroitsAnalysesEvent): AppState {
-    const newState = { ...state };
+    // Each projection slice reducer is called in order.
+    nextState = mutationsProjectionReducer(nextState, event);
+    nextState = todolistProjectionReducer(nextState, event);
+    nextState = validatedPeriodsProjectionReducer(nextState, event);
     
-    newState.mutations = newState.mutations.map(m =>
-        m.id === event.mutationId ? { ...m, history: [...m.history, event] } : m
-    );
-
-    newState.todos = newState.todos.map(t => {
-        if (t.mutationId === event.mutationId) {
-            if (t.description === "Analyser les droits") {
-                 return { ...t, status: 'fait' as const };
-            }
-             if (t.description === "Valider la mutation") {
-                return { ...t, status: 'à faire'as const };
-            }
-        }
-        return t;
-    });
-
-    return newState;
+    return nextState;
 }
-
-function applyMutationValidated(state: AppState, event: MutationValidatedEvent): AppState {
-    let newState = { ...state };
-    
-    newState.mutations = newState.mutations.map(m =>
-        m.id === event.mutationId ? { ...m, history: [...m.history, event], status: 'COMPLETEE' as const } : m
-    );
-
-    newState.todos = newState.todos.map(t => {
-        if (t.mutationId === event.mutationId && t.description === "Valider la mutation") {
-            return { ...t, status: 'fait' as const };
-        }
-        return t;
-    });
-
-    return newState;
-}
-
-
-function applyModificationRessourcesAutorisee(state: AppState, event: ModificationRessourcesAutoriseeEvent): AppState {
-    const newState = { ...state };
-
-    newState.mutations = newState.mutations.map(m =>
-        m.id === event.mutationId ? { ...m, history: [...m.history, event] } : m
-    );
-
-    newState.todos = newState.todos.map(t => {
-        if (t.mutationId === event.mutationId) {
-            if (t.description === "Autoriser la modification") {
-                 return { ...t, status: 'fait' as const };
-            }
-             if (t.description === "Valider la mutation") {
-                return { ...t, status: 'à faire' as const };
-            }
-        }
-        return t;
-    });
-
-    return newState;
-}
-
-
 
 // This function will rebuild the state from the event stream for the main application.
 function rebuildStateFromEvents(events: AppState['eventStream']): AppState {
     let state: AppState = { ...initialState, eventStream: events };
+    // Events must be processed in chronological order (oldest first)
     const sortedEvents = [...events].reverse();
 
     for (const event of sortedEvents) {
@@ -241,38 +56,6 @@ function rebuildStateFromEvents(events: AppState['eventStream']): AppState {
     }
     return state;
 }
-
-function applyEvent(state: AppState, event: AppEvent): AppState {
-    let nextState = state;
-    switch (event.type) {
-        case 'DROITS_MUTATION_CREATED':
-            nextState = applyDroitsMutationCreated(nextState, event);
-            break;
-        case 'RESSOURCES_MUTATION_CREATED':
-            nextState = applyRessourcesMutationCreated(nextState, event);
-            break;
-        case 'PAIEMENTS_SUSPENDUS':
-            nextState = applyPaiementsSuspendus(nextState, event);
-            break;
-        case 'MODIFICATION_DROITS_AUTORISEE':
-            nextState = applyModificationDroitsAutorisee(nextState, event);
-            break;
-        case 'MODIFICATION_RESSOURCES_AUTORISEE':
-            nextState = applyModificationRessourcesAutorisee(nextState, event);
-            break;
-        case 'DROITS_ANALYSES':
-            nextState = applyDroitsAnalyses(nextState, event);
-            break;
-        case 'MUTATION_VALIDATED':
-            nextState = applyMutationValidated(nextState, event);
-            break;
-    }
-    // After applying the main logic, we pass the state and event to the projection slice reducers
-    nextState = validatedPeriodsProjectionReducer(nextState, event);
-    
-    return nextState;
-}
-
 
 // 3. AGGREGATE REDUCER (COMMAND DISPATCHER)
 // ======================================
@@ -288,6 +71,8 @@ export function cqrsReducer(state: AppState, command: AppCommand): AppState {
        let finalState = { ...state, mutations: state.mutations.filter(m => m.status === 'OUVERTE' || m.status === 'EN_COURS') };
        // Call projection reducers one last time after replay to finalize their state if needed
        finalState = validatedPeriodsProjectionReducer(finalState, command);
+       finalState = mutationsProjectionReducer(finalState, command);
+       finalState = todolistProjectionReducer(finalState, command);
        return finalState;
     }
 

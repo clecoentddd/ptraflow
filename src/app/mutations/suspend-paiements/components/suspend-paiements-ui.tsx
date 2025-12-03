@@ -5,10 +5,12 @@ import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ArrowRight, ArrowRightCircle, Check, CheckCircle2, Circle } from "lucide-react";
+import { queryTodos } from "../../projection-todolist/projection";
 
 export function SuspendPaiementsTodoItem({ mutationId }: { mutationId: string }) {
     const { state } = useCqrs();
-    const todo = state.todos.find(t => t.mutationId === mutationId && t.description === 'Suspendre les paiements');
+    const todos = queryTodos(state);
+    const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Suspendre les paiements');
 
     if (!todo) return null;
 
@@ -33,7 +35,8 @@ export function SuspendPaiementsTodoItem({ mutationId }: { mutationId: string })
 
 export function SuspendPaiementsButton({ mutationId }: { mutationId: string }) {
     const { state, dispatch } = useCqrs();
-    const todo = state.todos.find(t => t.mutationId === mutationId && t.description === 'Suspendre les paiements');
+    const todos = queryTodos(state);
+    const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Suspendre les paiements');
     
     const handleClick = () => {
         dispatch({ type: 'SUSPEND_PAIEMENTS', payload: { mutationId } });

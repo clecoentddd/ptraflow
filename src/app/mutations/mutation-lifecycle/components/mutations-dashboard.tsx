@@ -8,9 +8,11 @@ import { TodoListView } from '@/app/mutations/mutation-lifecycle/components/todo
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { ValidatedPeriodsView } from './validated-periods-view';
+import { queryMutations } from '../../projection-mutations/projection';
 
 function DashboardContent() {
   const { state } = useCqrs();
+  const mutations = queryMutations(state);
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -19,7 +21,7 @@ function DashboardContent() {
         <div className="lg:col-span-2 grid gap-8">
           <div>
             <h2 className="text-2xl font-bold mb-4 text-foreground">Mutations en cours</h2>
-            {state.mutations.length === 0 ? (
+            {mutations.length === 0 ? (
               <Card className="flex items-center justify-center h-64 border-dashed">
                   <div className="text-center">
                       <p className="text-muted-foreground">Aucune mutation.</p>
@@ -28,7 +30,7 @@ function DashboardContent() {
               </Card>
             ) : (
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                {state.mutations.map((mutation) => (
+                {mutations.map((mutation) => (
                     <MutationCard key={mutation.id} mutation={mutation} />
                 ))}
               </div>

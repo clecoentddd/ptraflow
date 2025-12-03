@@ -5,10 +5,12 @@ import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ArrowRight, ArrowRightCircle, Check, CheckCircle2, Circle } from "lucide-react";
+import { queryTodos } from "../../../projection-todolist/projection";
 
 export function ValidateMutationTodoItem({ mutationId }: { mutationId: string }) {
     const { state } = useCqrs();
-    const todo = state.todos.find(t => t.mutationId === mutationId && t.description === 'Valider la mutation');
+    const todos = queryTodos(state);
+    const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Valider la mutation');
 
     if (!todo) return null;
 
@@ -33,7 +35,8 @@ export function ValidateMutationTodoItem({ mutationId }: { mutationId: string })
 
 export function ValidateMutationButton({ mutationId }: { mutationId: string }) {
     const { state, dispatch } = useCqrs();
-    const todo = state.todos.find(t => t.mutationId === mutationId && t.description === 'Valider la mutation');
+    const todos = queryTodos(state);
+    const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Valider la mutation');
     
     const handleClick = () => {
         dispatch({ type: 'VALIDATE_MUTATION', payload: { mutationId } });

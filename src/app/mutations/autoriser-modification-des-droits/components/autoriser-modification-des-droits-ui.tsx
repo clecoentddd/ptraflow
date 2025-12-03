@@ -4,10 +4,12 @@ import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ArrowRight, ArrowRightCircle, Check, CheckCircle2, Circle } from "lucide-react";
+import { queryTodos } from "../../projection-todolist/projection";
 
 export function AutoriserModificationDroitsTodoItem({ mutationId }: { mutationId: string }) {
     const { state } = useCqrs();
-    const todo = state.todos.find(t => t.mutationId === mutationId && t.description === 'Autoriser la modification');
+    const todos = queryTodos(state);
+    const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Autoriser la modification');
 
     if (!todo) return null;
 
@@ -32,7 +34,8 @@ export function AutoriserModificationDroitsTodoItem({ mutationId }: { mutationId
 
 export function AutoriserModificationDroitsButton({ mutationId }: { mutationId: string }) {
     const { state, dispatch } = useCqrs();
-    const todo = state.todos.find(t => t.mutationId === mutationId && t.description === 'Autoriser la modification');
+    const todos = queryTodos(state);
+    const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Autoriser la modification');
     
     const handleClick = () => {
         dispatch({ type: 'AUTORISER_MODIFICATION_DROITS', payload: { mutationId } });

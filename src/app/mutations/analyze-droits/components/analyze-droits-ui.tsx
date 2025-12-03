@@ -11,10 +11,12 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { MonthPicker } from '@/components/ui/month-picker';
+import { queryTodos } from '../../projection-todolist/projection';
 
 export function AnalyzeDroitsTodoItem({ mutationId }: { mutationId: string }) {
     const { state } = useCqrs();
-    const todo = state.todos.find(t => t.mutationId === mutationId && t.description === 'Analyser les droits');
+    const todos = queryTodos(state);
+    const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Analyser les droits');
 
     if (!todo) return null;
 
@@ -43,7 +45,8 @@ export function AnalyzeDroitsButton({ mutationId }: { mutationId: string }) {
     const [dateDebut, setDateDebut] = useState<Date | undefined>();
     const [dateFin, setDateFin] = useState<Date | undefined>();
 
-    const todo = state.todos.find(t => t.mutationId === mutationId && t.description === 'Analyser les droits');
+    const todos = queryTodos(state);
+    const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Analyser les droits');
     
     const handleSubmit = () => {
         if (!dateDebut || !dateFin) return;

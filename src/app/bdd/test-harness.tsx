@@ -8,6 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { CheckCircle, XCircle } from 'lucide-react';
 import { initialState, cqrsReducer } from '../mutations/mutation-lifecycle/cqrs';
 import type { ValidatedPeriodsState } from '../mutations/projection-periodes-de-droits/projection';
+import type { MutationsState } from '../mutations/projection-mutations/projection';
+import type { TodolistState } from '../mutations/projection-todolist/projection';
+
 
 // Mocked toast for testing purposes
 export const mockToasts: { message: string; type: 'error' | 'success' }[] = [];
@@ -18,12 +21,16 @@ export const mockToast = {
   },
 };
 
+type FullProjectionState = AppState & ValidatedPeriodsState & MutationsState & TodolistState;
+
 // This function rebuilds the read model (projection) from an event stream.
 // It's used to set up the 'given' state and to get the final state for assertions.
-const projectEvents = (eventStream: AppEvent[]): AppState => {
+const projectEvents = (eventStream: AppEvent[]): FullProjectionState => {
     let projectedState: AppState = { ...initialState, eventStream };
     // We use a simple reducer to apply projection logic.
-    const sortedEvents = [...eventStream].reverse();
+    // The events must be processed in chronological order for the projection to be correct
+    const sortedEvents = [...eventStream].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
     // This is a simplified version of the full cqrsReducer, focusing only on projection.
     for (const event of sortedEvents) {
         projectedState = cqrsReducer(projectedState, { type: 'REPLAY', event } as any);
@@ -36,8 +43,8 @@ interface TestComponentProps {
     title: string;
     description: string;
     given: () => { eventStream: AppEvent[] };
-    when: (initialState: AppState & ValidatedPeriodsState) => AppState & ValidatedPeriodsState;
-    then: (finalState: AppState & ValidatedPeriodsState, toasts: typeof mockToasts) => { pass: boolean; message: string };
+    when: (initialState: FullProjectionState) => FullProjectionState;
+    then: (finalState: FullProjectionState, toasts: typeof mockToasts) => { pass: boolean; message: string };
 }
 
 export const TestComponent: React.FC<TestComponentProps> = ({ title, description, given, when, then }) => {
@@ -49,14 +56,17 @@ export const TestComponent: React.FC<TestComponentProps> = ({ title, description
 
         // GIVEN: Set up the initial state by projecting past events
         const initialSetup = given();
-        const givenState = projectEvents(initialSetup.eventStream);
+        // The events must be processed in chronological order.
+        const sortedGivenEvents = [...initialSetup.eventStream].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        const givenState = projectEvents(sortedGivenEvents);
 
         // WHEN: The command handler or projection logic is called
         const stateAfterWhen = when(givenState);
         
         // We project the final event stream to get the final read model for assertion
         const finalProjectedState = projectEvents(stateAfterWhen.eventStream);
-        // Special case for projection tests: merge the manually projected state
+        
+        // Special case for projection tests: merge the manually projected state from 'when' block
         const finalStateForAssertion = { ...finalProjectedState, ...stateAfterWhen };
 
         setFinalEventStreamForDisplay(finalStateForAssertion.eventStream);

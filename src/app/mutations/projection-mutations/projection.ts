@@ -1,0 +1,100 @@
+"use client";
+
+import type { AppEvent, AppCommand, AppState, Mutation } from '../mutation-lifecycle/domain';
+import type { DroitsMutationCreatedEvent } from '../create-mutation/event';
+import type { PaiementsSuspendusEvent } from '../suspend-paiements/event';
+import type { MutationValidatedEvent } from '../validate-mutation/event';
+import type { RessourcesMutationCreatedEvent } from '../create-ressources-mutation/event';
+
+// 1. State Slice and Initial State
+export interface MutationsState {
+  mutations: Mutation[];
+}
+
+export const initialMutationsState: MutationsState = {
+  mutations: [],
+};
+
+
+// 2. Projection Logic for this Slice
+
+function applyDroitsMutationCreated(state: MutationsState, event: DroitsMutationCreatedEvent): MutationsState {
+    const newMutation: Mutation = {
+        id: event.mutationId,
+        type: 'DROITS',
+        status: 'OUVERTE',
+        history: [event],
+    };
+    return { ...state, mutations: [newMutation, ...state.mutations.filter(m => m.id !== newMutation.id)] };
+}
+
+function applyRessourcesMutationCreated(state: MutationsState, event: RessourcesMutationCreatedEvent): MutationsState {
+    const newMutation: Mutation = {
+        id: event.mutationId,
+        type: 'RESSOURCES',
+        status: 'OUVERTE',
+        history: [event],
+    };
+    return { ...state, mutations: [newMutation, ...state.mutations.filter(m => m.id !== newMutation.id)] };
+}
+
+function applyPaiementsSuspendus(state: MutationsState, event: PaiementsSuspendusEvent): MutationsState {
+    return {
+        ...state,
+        mutations: state.mutations.map(m =>
+            m.id === event.mutationId ? { ...m, history: [...m.history, event], status: 'EN_COURS' as const } : m
+        ),
+    };
+}
+
+function applyMutationValidated(state: MutationsState, event: MutationValidatedEvent): MutationsState {
+    return {
+        ...state,
+        mutations: state.mutations.map(m =>
+            m.id === event.mutationId ? { ...m, history: [...m.history, event], status: 'COMPLETEE' as const } : m
+        ),
+    };
+}
+
+function addEventToHistory<T extends { id: string, history: AppEvent[] }>(items: T[], event: AppEvent): T[] {
+    return items.map(item => 
+        item.id === event.mutationId 
+            ? { ...item, history: [...item.history, event] } 
+            : item
+    );
+}
+
+
+// 3. Slice Reducer
+export function mutationsProjectionReducer<T extends MutationsState>(
+    state: T, 
+    eventOrCommand: AppEvent | AppCommand
+): T {
+    if ('type' in eventOrCommand) {
+        if ('payload' in eventOrCommand) { // It's an event
+            const event = eventOrCommand;
+             // First, just add the event to the history of the relevant mutation
+            let nextState = { ...state, mutations: addEventToHistory(state.mutations, event) };
+
+            switch (event.type) {
+                case 'DROITS_MUTATION_CREATED':
+                    return applyDroitsMutationCreated(nextState, event) as T;
+                case 'RESSOURCES_MUTATION_CREATED':
+                    return applyRessourcesMutationCreated(nextState, event) as T;
+                case 'PAIEMENTS_SUSPENDUS':
+                    return applyPaiementsSuspendus(nextState, event) as T;
+                case 'MUTATION_VALIDATED':
+                    return applyMutationValidated(nextState, event) as T;
+                default:
+                    return nextState as T;
+            }
+        }
+    }
+    return state;
+}
+
+
+// 4. Query (Selector)
+export function queryMutations(state: AppState): Mutation[] {
+    return state.mutations;
+}

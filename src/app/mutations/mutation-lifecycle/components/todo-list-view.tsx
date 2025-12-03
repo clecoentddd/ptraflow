@@ -13,6 +13,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import { queryTodos } from "../../projection-todolist/projection";
 
 const statusStyles: Record<TodoStatus, string> = {
     'à faire': 'bg-yellow-500 text-black animate-pulse',
@@ -35,8 +36,9 @@ const statusOrder: Record<TodoStatus, number> = {
 
 export function TodoListView() {
     const { state } = useCqrs();
+    const todos = queryTodos(state);
 
-    const sortedTodos = [...state.todos].sort((a, b) => {
+    const sortedTodos = [...todos].sort((a, b) => {
         const orderA = taskOrder[a.description] ?? 99;
         const orderB = taskOrder[b.description] ?? 99;
         
@@ -50,7 +52,7 @@ export function TodoListView() {
         return statusOrderA - statusOrderB;
     });
 
-    if (state.todos.length === 0) {
+    if (todos.length === 0) {
         return (
             <Card className="flex items-center justify-center h-48 border-dashed">
                 <p className="text-muted-foreground">Aucune tâche à faire.</p>
