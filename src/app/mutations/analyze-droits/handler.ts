@@ -18,9 +18,10 @@ export function analyzeDroitsCommandHandler(
 ): AppState {
   const { mutationId, dateDebut, dateFin } = command.payload;
   
+  // This is the business rule validation
   if (new Date(dateDebut) > new Date(dateFin)) {
     dependencies.toast.error('La date de début doit être antérieure ou égale à la date de fin.');
-    return state;
+    return state; // Return current state without creating an event
   }
 
   const event: DroitsAnalysesEvent = {

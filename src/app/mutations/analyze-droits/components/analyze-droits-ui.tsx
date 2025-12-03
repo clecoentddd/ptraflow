@@ -47,7 +47,8 @@ export function AnalyzeDroitsButton({ mutationId }: { mutationId: string }) {
     
     const handleSubmit = () => {
         if (!dateDebut || !dateFin) return;
-        if (dateDebut > dateFin) return;
+        // This is a client-side check for better UX, the real business rule is in the handler
+        if (dateDebut > dateFin) return; 
         dispatch({
             type: 'ANALYZE_DROITS',
             payload: { mutationId, dateDebut: dateDebut.toISOString(), dateFin: dateFin.toISOString() }
@@ -58,6 +59,7 @@ export function AnalyzeDroitsButton({ mutationId }: { mutationId: string }) {
     const isTodo = todo?.status === 'à faire';
     const isDone = todo?.status === 'fait';
     
+    // Client-side validation to disable the button
     const isDateRangeValid = dateDebut && dateFin && dateDebut <= dateFin;
 
     const getVariant = () => {
