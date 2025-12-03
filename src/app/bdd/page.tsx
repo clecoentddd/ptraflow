@@ -7,10 +7,6 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, XCircle } from 'lucide-react';
 import { createDroitsMutationCommandHandler } from '../mutations/create-mutation/handler';
-import { createRessourcesMutationCommandHandler } from '../mutations/create-ressources-mutation/handler';
-import { suspendPaiementsCommandHandler } from '../mutations/suspend-paiements/handler';
-import { analyzeDroitsCommandHandler } from '../mutations/analyze-droits/handler';
-import { validateMutationCommandHandler } from '../mutations/validate-mutation/handler';
 
 // Import event types for correct test data creation
 import type { DroitsMutationCreatedEvent } from '../mutations/create-mutation/event';
@@ -29,13 +25,13 @@ const toast = {
 // We need to override the handler to use our mock toast.
 // The original handler imported the real 'react-hot-toast'.
 function createTestDroitsMutationCommandHandler(state: AppState, command: AppCommand): AppState {
+    if (command.type !== 'CREATE_DROITS_MUTATION') return state;
+
     const existingMutation = state.mutations.find(m => m.status === 'OUVERTE' || m.status === 'EN_COURS');
-    if (existingMutation && command.type === 'CREATE_DROITS_MUTATION') {
+    if (existingMutation) {
         toast.error(`La mutation ${existingMutation.id} est déjà en cours.`);
         return state;
     }
-    // We call the original handler logic here but with our mocked toast.
-    // This is a simplified version of the real handler.
     const mutationId = crypto.randomUUID();
     const event: DroitsMutationCreatedEvent = {
         id: crypto.randomUUID(),
@@ -48,60 +44,49 @@ function createTestDroitsMutationCommandHandler(state: AppState, command: AppCom
 }
 
 // This function rebuilds the read model (projection) from an event stream.
-// It's used to set up the 'given' state and to get the final state.
+// It's used to set up the 'given' state and to get the final state for assertions.
 const projectEvents = (eventStream: AppEvent[]): AppState => {
     let projectedState: AppState = { ...initialState, eventStream };
-    // We use the global reducer here just for its projection logic
-    return cqrsReducer(projectedState, { type: 'REPLAY' } as any);
+    // We use a simple reducer to apply projection logic.
+    const sortedEvents = [...eventStream].reverse();
+    // This is a simplified version of the full cqrsReducer, focusing only on projection.
+    for (const event of sortedEvents) {
+        projectedState = cqrsReducer(projectedState, { type: 'REPLAY', event } as any);
+    }
+    const finalProjection = cqrsReducer(projectedState, { type: 'REPLAY_COMPLETE' } as any);
+    return { ...finalProjection, eventStream }; // Ensure eventStream is the original one
 }
 
 interface TestComponentProps {
     title: string;
     description: string;
     given: () => { eventStream: AppEvent[] };
-    when: (dispatch: (command: AppCommand) => void, initialState: AppState) => void;
+    when: (initialState: AppState) => AppState;
     then: (finalState: AppState, toasts: typeof mockToasts) => { pass: boolean; message: string };
 }
 
 const TestComponent: React.FC<TestComponentProps> = ({ title, description, given, when, then }) => {
-    const [finalState, setFinalState] = useState<AppState | null>(null);
-    const [hasRun, setHasRun] = useState(false);
     const [result, setResult] = useState<{ pass: boolean; message: string } | null>(null);
+    const [finalEventStreamForDisplay, setFinalEventStreamForDisplay] = useState<AppEvent[] | null>(null);
 
     const runTest = () => {
         mockToasts.length = 0; // Clear toasts for each run
 
         // GIVEN: Set up the initial state by projecting past events
         const initialEventStream = given().eventStream;
-        const givenProjectedState = projectEvents(initialEventStream);
+        const givenState = projectEvents(initialEventStream);
 
-        // WHEN: The action is performed
-        const dispatch = (command: AppCommand, state: AppState) => {
-             // The command handler is called on the initial projected state
-             let stateAfterCommand: AppState;
-             if (command.type === 'CREATE_DROITS_MUTATION') {
-                stateAfterCommand = createTestDroitsMutationCommandHandler(state, command);
-             } else {
-                // For other commands, we would call their respective handlers
-                stateAfterCommand = state; // Placeholder for other tests
-             }
-             
-             // We project the final event stream to get the final read model for assertion
-             const finalProjectedState = projectEvents(stateAfterCommand.eventStream);
-             setFinalState(finalProjectedState);
-        };
+        // WHEN: The command handler is called on the initial state
+        const stateAfterCommand = when(givenState);
         
-        when(dispatch, givenProjectedState);
-        setHasRun(true);
-    };
+        // We project the final event stream to get the final read model for assertion
+        const finalProjectedState = projectEvents(stateAfterCommand.eventStream);
+        setFinalEventStreamForDisplay(finalProjectedState.eventStream);
 
-    useEffect(() => {
-        if (hasRun && finalState) {
-            // THEN: The result is checked
-            const testResult = then(finalState, mockToasts);
-            setResult(testResult);
-        }
-    }, [finalState, hasRun, then]);
+        // THEN: The result is checked
+        const testResult = then(finalProjectedState, mockToasts);
+        setResult(testResult);
+    };
 
     return (
         <Card className={result ? (result.pass ? 'border-green-500' : 'border-red-500') : ''}>
@@ -113,14 +98,14 @@ const TestComponent: React.FC<TestComponentProps> = ({ title, description, given
                 <CardDescription>{description}</CardDescription>
             </CardHeader>
             <CardContent>
-                {!hasRun && <Button onClick={runTest}>Exécuter le test</Button>}
+                {result === null && <Button onClick={runTest}>Exécuter le test</Button>}
                 {result && (
                     <div>
                         <p className={result.pass ? 'text-green-700' : 'text-red-700'}>{result.message}</p>
-                        {finalState && (
+                        {finalEventStreamForDisplay && (
                              <details className="mt-4 text-xs text-muted-foreground">
                                 <summary>Voir le flux d'événements final</summary>
-                                <pre className="mt-2 p-2 bg-muted rounded-md overflow-x-auto">{JSON.stringify(finalState.eventStream, null, 2)}</pre>
+                                <pre className="mt-2 p-2 bg-muted rounded-md overflow-x-auto">{JSON.stringify(finalEventStreamForDisplay, null, 2)}</pre>
                             </details>
                         )}
                     </div>
@@ -139,15 +124,14 @@ const BDDTest1: React.FC = () => (
         given={() => {
             const mutationId = 'mut-1';
             const event: DroitsMutationCreatedEvent = { id: 'evt-1', mutationId, type: 'DROITS_MUTATION_CREATED', timestamp: new Date().toISOString(), payload: { mutationType: 'DROITS' } };
-            // The initial state has one event in its stream.
             return { eventStream: [event] };
         }}
-        when={(dispatch, initialState) => {
-            // WHEN a new mutation is created
-            dispatch({ type: 'CREATE_DROITS_MUTATION' }, initialState);
+        when={(initialState) => {
+            // WHEN: we call the command handler directly with the command
+            return createTestDroitsMutationCommandHandler(initialState, { type: 'CREATE_DROITS_MUTATION' });
         }}
         then={(state, toasts) => {
-            // THEN we check that NO new event was created and a toast was shown.
+            // THEN: we check that NO new event was created and a toast was shown.
             const pass = state.eventStream.length === 1 && toasts.some(t => t.message.includes('est déjà en cours'));
             return {
                 pass,
@@ -172,9 +156,9 @@ const BDDTest2: React.FC = () => (
             ];
             return { eventStream: events };
         }}
-        when={(dispatch, initialState) => {
-            // WHEN a new mutation is created
-            dispatch({ type: 'CREATE_DROITS_MUTATION' }, initialState);
+        when={(initialState) => {
+             // WHEN: we call the command handler directly with the command
+            return createDroitsMutationCommandHandler(initialState, { type: 'CREATE_DROITS_MUTATION' });
         }}
         then={(state) => {
              // THEN we check that a new event has been added to the stream.

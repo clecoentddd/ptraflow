@@ -33,7 +33,8 @@ export interface BaseEvent {
 export type AppEvent = DroitsMutationCreatedEvent | PaiementsSuspendusEvent | DroitsAnalysesEvent | MutationValidatedEvent | RessourcesMutationCreatedEvent;
 
 // Command Union
-export type AppCommand = CreateDroitsMutationCommand | SuspendPaiementsCommand | AnalyzeDroitsCommand | ValidateMutationCommand | CreateRessourcesMutationCommand;
+export type AppCommand = CreateDroitsMutationCommand | SuspendPaiementsCommand | AnalyzeDroitsCommand | ValidateMutationCommand | CreateRessourcesMutationCommand | { type: 'REPLAY', event: AppEvent } | { type: 'REPLAY_COMPLETE' };
+
 
 // Projections (Read Model)
 export type MutationType = 'DROITS' | 'RESSOURCES';
@@ -104,8 +105,8 @@ function applyDroitsMutationCreated(state: AppState, event: DroitsMutationCreate
         },
     ];
 
-    newState.mutations = [newMutation, ...newState.mutations];
-    newState.todos = [...newState.todos, ...newTodos];
+    newState.mutations = [newMutation, ...newState.mutations.filter(m => m.id !== newMutation.id)];
+    newState.todos = [...newState.todos.filter(t => t.mutationId !== newMutation.id), ...newTodos];
 
     return newState;
 }
@@ -135,8 +136,8 @@ function applyRessourcesMutationCreated(state: AppState, event: RessourcesMutati
         },
     ];
 
-    newState.mutations = [newMutation, ...newState.mutations];
-    newState.todos = [...newState.todos, ...newTodos];
+    newState.mutations = [newMutation, ...newState.mutations.filter(m => m.id !== newMutation.id)];
+    newState.todos = [...newState.todos.filter(t => t.mutationId !== newMutation.id), ...newTodos];
 
     return newState;
 }
@@ -207,33 +208,32 @@ function applyMutationValidated(state: AppState, event: MutationValidatedEvent):
 }
 
 
-// This function will rebuild the state from the event stream.
-// It's the core of the event sourcing pattern.
+// This function will rebuild the state from the event stream for the main application.
 function rebuildStateFromEvents(events: AppState['eventStream']): AppState {
     let state: AppState = { ...initialState, eventStream: events };
-    // We reverse the events to apply them in chronological order
     const sortedEvents = [...events].reverse();
 
     for (const event of sortedEvents) {
-        switch (event.type) {
-            case 'DROITS_MUTATION_CREATED':
-                state = applyDroitsMutationCreated(state, event);
-                break;
-            case 'RESSOURCES_MUTATION_CREATED':
-                state = applyRessourcesMutationCreated(state, event);
-                break;
-            case 'PAIEMENTS_SUSPENDUS':
-                state = applyPaiementsSuspendus(state, event);
-                break;
-            case 'DROITS_ANALYSES':
-                state = applyDroitsAnalyses(state, event);
-                break;
-            case 'MUTATION_VALIDATED':
-                state = applyMutationValidated(state, event);
-                break;
-        }
+        state = applyEvent(state, event);
     }
     return state;
+}
+
+function applyEvent(state: AppState, event: AppEvent): AppState {
+    switch (event.type) {
+        case 'DROITS_MUTATION_CREATED':
+            return applyDroitsMutationCreated(state, event);
+        case 'RESSOURCES_MUTATION_CREATED':
+            return applyRessourcesMutationCreated(state, event);
+        case 'PAIEMENTS_SUSPENDUS':
+            return applyPaiementsSuspendus(state, event);
+        case 'DROITS_ANALYSES':
+            return applyDroitsAnalyses(state, event);
+        case 'MUTATION_VALIDATED':
+            return applyMutationValidated(state, event);
+        default:
+            return state;
+    }
 }
 
 
@@ -241,6 +241,17 @@ function rebuildStateFromEvents(events: AppState['eventStream']): AppState {
 // ======================================
 
 export function cqrsReducer(state: AppState, command: AppCommand): AppState {
+
+    // For BDD tests: projection is handled separately.
+    if (command.type === 'REPLAY') {
+       return applyEvent(state, command.event);
+    }
+    if (command.type === 'REPLAY_COMPLETE') {
+       // Filter out completed/rejected mutations from view
+       return { ...state, mutations: state.mutations.filter(m => m.status === 'OUVERTE' || m.status === 'EN_COURS') };
+    }
+
+
     let newState = state;
 
     // The command handlers only produce events and add them to the stream.
