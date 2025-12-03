@@ -84,7 +84,7 @@ export function AnalyzeDroitsButton({ mutationId }: { mutationId: string }) {
                     <DialogHeader>
                         <DialogTitle>Analyser les droits</DialogTitle>
                         <DialogDescription>
-                            Veuillez sélectionner la période (début et fin de mois) pour l'analyse des droits.
+                            Veuillez sélectionner le mois de début et le mois de fin de droits.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
