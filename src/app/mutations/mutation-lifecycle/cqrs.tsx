@@ -21,6 +21,9 @@ import { validatedPeriodsProjectionReducer, type ValidatedPeriodsState, initialV
 import { type AutoriserModificationDroitsCommand } from '../autoriser-modification-des-droits/command';
 import { type ModificationDroitsAutoriseeEvent } from '../autoriser-modification-des-droits/event';
 import { autoriserModificationDroitsCommandHandler } from '../autoriser-modification-des-droits/handler';
+import { type AutoriserModificationRessourcesCommand } from '../autoriser-modification-des-ressources/command';
+import { type ModificationRessourcesAutoriseeEvent } from '../autoriser-modification-des-ressources/event';
+import { autoriserModificationRessourcesCommandHandler } from '../autoriser-modification-des-ressources/handler';
 
 // 1. TYPES
 // ===========
@@ -34,10 +37,10 @@ export interface BaseEvent {
 }
 
 // Event Union
-export type AppEvent = DroitsMutationCreatedEvent | PaiementsSuspendusEvent | DroitsAnalysesEvent | MutationValidatedEvent | RessourcesMutationCreatedEvent | ModificationDroitsAutoriseeEvent;
+export type AppEvent = DroitsMutationCreatedEvent | PaiementsSuspendusEvent | DroitsAnalysesEvent | MutationValidatedEvent | RessourcesMutationCreatedEvent | ModificationDroitsAutoriseeEvent | ModificationRessourcesAutoriseeEvent;
 
 // Command Union
-export type AppCommand = CreateDroitsMutationCommand | SuspendPaiementsCommand | AnalyzeDroitsCommand | ValidateMutationCommand | CreateRessourcesMutationCommand | AutoriserModificationDroitsCommand | { type: 'REPLAY', event: AppEvent } | { type: 'REPLAY_COMPLETE' };
+export type AppCommand = CreateDroitsMutationCommand | SuspendPaiementsCommand | AnalyzeDroitsCommand | ValidateMutationCommand | CreateRessourcesMutationCommand | AutoriserModificationDroitsCommand | AutoriserModificationRessourcesCommand | { type: 'REPLAY', event: AppEvent } | { type: 'REPLAY_COMPLETE' };
 
 
 // Projections (Read Model)
@@ -245,6 +248,30 @@ function applyMutationValidated(state: AppState, event: MutationValidatedEvent):
 }
 
 
+function applyModificationRessourcesAutorisee(state: AppState, event: ModificationRessourcesAutoriseeEvent): AppState {
+    const newState = { ...state };
+
+    newState.mutations = newState.mutations.map(m =>
+        m.id === event.mutationId ? { ...m, history: [...m.history, event] } : m
+    );
+
+    newState.todos = newState.todos.map(t => {
+        if (t.mutationId === event.mutationId) {
+            if (t.description === "Autoriser la modification") {
+                 return { ...t, status: 'fait' as TodoStatus };
+            }
+             if (t.description === "Valider la mutation") {
+                return { ...t, status: 'à faire' as TodoStatus };
+            }
+        }
+        return t;
+    });
+
+    return newState;
+}
+
+
+
 // This function will rebuild the state from the event stream for the main application.
 function rebuildStateFromEvents(events: AppState['eventStream']): AppState {
     let state: AppState = { ...initialState, eventStream: events };
@@ -270,6 +297,9 @@ function applyEvent(state: AppState, event: AppEvent): AppState {
             break;
         case 'MODIFICATION_DROITS_AUTORISEE':
             nextState = applyModificationDroitsAutorisee(nextState, event);
+            break;
+        case 'MODIFICATION_RESSOURCES_AUTORISEE':
+            nextState = applyModificationRessourcesAutorisee(nextState, event);
             break;
         case 'DROITS_ANALYSES':
             nextState = applyDroitsAnalyses(nextState, event);
@@ -319,6 +349,9 @@ export function cqrsReducer(state: AppState, command: AppCommand): AppState {
             break;
         case 'AUTORISER_MODIFICATION_DROITS':
             newState = autoriserModificationDroitsCommandHandler(state, command);
+            break;
+        case 'AUTORISER_MODIFICATION_RESSOURCES':
+            newState = autoriserModificationRessourcesCommandHandler(state, command);
             break;
         case 'ANALYZE_DROITS':
             newState = analyzeDroitsCommandHandler(state, command);
