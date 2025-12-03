@@ -47,6 +47,7 @@ export function AnalyzeDroitsButton({ mutationId }: { mutationId: string }) {
     
     const handleSubmit = () => {
         if (!dateDebut || !dateFin) return;
+        if (dateDebut > dateFin) return;
         dispatch({
             type: 'ANALYZE_DROITS',
             payload: { mutationId, dateDebut: dateDebut.toISOString(), dateFin: dateFin.toISOString() }
@@ -56,6 +57,8 @@ export function AnalyzeDroitsButton({ mutationId }: { mutationId: string }) {
 
     const isTodo = todo?.status === 'à faire';
     const isDone = todo?.status === 'fait';
+    
+    const isDateRangeValid = dateDebut && dateFin && dateDebut <= dateFin;
 
     const getVariant = () => {
         if (isTodo) return 'default';
@@ -120,7 +123,7 @@ export function AnalyzeDroitsButton({ mutationId }: { mutationId: string }) {
                     </div>
                     <DialogFooter>
                         <Button onClick={() => setIsOpen(false)} variant="ghost">Annuler</Button>
-                        <Button onClick={handleSubmit} disabled={!dateDebut || !dateFin}>Analyser</Button>
+                        <Button onClick={handleSubmit} disabled={!isDateRangeValid}>Analyser</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
