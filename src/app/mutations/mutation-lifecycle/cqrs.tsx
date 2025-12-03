@@ -5,8 +5,12 @@ import React, { createContext, useContext, useReducer, type Dispatch } from 'rea
 import { createDroitsMutationReducer } from '../create-mutation/handler';
 import { type CreateDroitsMutationCommand } from '../create-mutation/command';
 import type { DroitsMutationCreatedEvent } from '../create-mutation/event';
-import { suspendPaiementsReducer, type SuspendPaiementsCommand, type PaiementsSuspendusEvent } from '../suspend-paiements/cqrs';
-import { analyzeDroitsReducer, type AnalyzeDroitsCommand, type DroitsAnalysesEvent } from '../analyze-droits/cqrs';
+import { suspendPaiementsReducer } from '../suspend-paiements/handler';
+import { type SuspendPaiementsCommand } from '../suspend-paiements/command';
+import { type PaiementsSuspendusEvent } from '../suspend-paiements/event';
+import { analyzeDroitsReducer } from '../analyze-droits/handler';
+import { type AnalyzeDroitsCommand } from '../analyze-droits/command';
+import { type DroitsAnalysesEvent } from '../analyze-droits/event';
 
 // 1. TYPES
 // ===========

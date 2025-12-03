@@ -1,33 +1,16 @@
 
 "use client";
 
-import type { AppState, BaseEvent, TodoStatus } from '../mutation-lifecycle/cqrs';
-
-// Command
-export interface SuspendPaiementsCommand {
-  type: 'SUSPEND_PAIEMENTS';
-  payload: {
-    mutationId: string;
-  };
-}
-
-// Event
-export interface PaiementsSuspendusEvent extends BaseEvent {
-    type: 'PAIEMENTS_SUSPENDUS';
-    payload: {
-        userEmail: string;
-    }
-}
+import type { AppState } from '../mutation-lifecycle/cqrs';
+import type { SuspendPaiementsCommand } from './command';
+import type { PaiementsSuspendusEvent } from './event';
 
 // Command Handler
 export function suspendPaiementsReducer(state: AppState, command: SuspendPaiementsCommand): AppState {
   const { mutationId } = command.payload;
-  const mutation = state.mutations.find((m) => m.id === mutationId);
-  if (!mutation || mutation.status === 'COMPLETEE') return state;
 
   const todo = state.todos.find(t => t.mutationId === mutationId && t.description === 'Suspendre les paiements');
   if (!todo || todo.status !== 'à faire') return state;
-
 
   const event: PaiementsSuspendusEvent = {
     id: crypto.randomUUID(),

@@ -1,23 +1,8 @@
-
 "use client";
 
-import type { AppState, BaseEvent, TodoStatus } from '../mutation-lifecycle/cqrs';
-
-// Command
-export interface AnalyzeDroitsCommand {
-  type: 'ANALYZE_DROITS';
-  payload: {
-    mutationId: string;
-  };
-}
-
-// Event
-export interface DroitsAnalysesEvent extends BaseEvent {
-    type: 'DROITS_ANALYSES';
-    payload: {
-        userEmail: string;
-    }
-}
+import type { AppState } from '../mutation-lifecycle/cqrs';
+import type { AnalyzeDroitsCommand } from './command';
+import type { DroitsAnalysesEvent } from './event';
 
 // Command Handler
 export function analyzeDroitsReducer(state: AppState, command: AnalyzeDroitsCommand): AppState {
