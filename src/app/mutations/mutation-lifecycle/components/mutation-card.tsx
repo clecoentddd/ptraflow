@@ -60,16 +60,16 @@ export function MutationCard({ mutation }: { mutation: Mutation }) {
           <p className="text-sm font-medium">Étapes:</p>
           <ul className="space-y-2.5">
               <SuspendPaiementsTodoItem mutationId={mutation.id} />
-              <AuthorizeModificationTodoItem mutationId={mutation.id} />
               <AnalyzeDroitsTodoItem mutationId={mutation.id} />
+              <AuthorizeModificationTodoItem mutationId={mutation.id} />
               <ValidateMutationTodoItem mutationId={mutation.id} />
           </ul>
         </div>
       </CardContent>
       <CardFooter className="flex flex-col items-stretch gap-2">
          <SuspendPaiementsButton mutationId={mutation.id} />
-         <AuthorizeModificationButton mutationId={mutation.id} />
          <AnalyzeDroitsButton mutationId={mutation.id} />
+         <AuthorizeModificationButton mutationId={mutation.id} />
          <ValidateMutationButton mutationId={mutation.id} />
       </CardFooter>
     </Card>

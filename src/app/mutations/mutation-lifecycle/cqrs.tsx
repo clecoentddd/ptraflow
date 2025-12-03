@@ -19,7 +19,7 @@ import { type CreateRessourcesMutationCommand } from '../create-ressources-mutat
 import type { RessourcesMutationCreatedEvent } from '../create-ressources-mutation/event';
 import { authorizeModificationCommandHandler } from '../authorize-modification/handler';
 import { type AuthorizeModificationCommand } from '../authorize-modification/command';
-import type { ModificationDroitsAutoriseeEvent } from '../authorize-modification/event';
+import type { ModificationAutoriseeEvent } from '../authorize-modification/event';
 import { validatedPeriodsProjectionReducer, type ValidatedPeriodsState, initialValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
 
 // 1. TYPES
@@ -34,7 +34,7 @@ export interface BaseEvent {
 }
 
 // Event Union
-export type AppEvent = DroitsMutationCreatedEvent | PaiementsSuspendusEvent | DroitsAnalysesEvent | MutationValidatedEvent | RessourcesMutationCreatedEvent | ModificationDroitsAutoriseeEvent;
+export type AppEvent = DroitsMutationCreatedEvent | PaiementsSuspendusEvent | DroitsAnalysesEvent | MutationValidatedEvent | RessourcesMutationCreatedEvent | ModificationAutoriseeEvent;
 
 // Command Union
 export type AppCommand = CreateDroitsMutationCommand | SuspendPaiementsCommand | AnalyzeDroitsCommand | ValidateMutationCommand | CreateRessourcesMutationCommand | AuthorizeModificationCommand | { type: 'REPLAY', event: AppEvent } | { type: 'REPLAY_COMPLETE' };
@@ -99,13 +99,13 @@ function applyDroitsMutationCreated(state: AppState, event: DroitsMutationCreate
         {
             id: crypto.randomUUID(),
             mutationId: event.mutationId,
-            description: "Autoriser la modification",
+            description: "Analyser les droits",
             status: 'en attente',
         },
         {
             id: crypto.randomUUID(),
             mutationId: event.mutationId,
-            description: "Analyser les droits",
+            description: "Autoriser la modification",
             status: 'en attente',
         },
          {
@@ -139,6 +139,12 @@ function applyRessourcesMutationCreated(state: AppState, event: RessourcesMutati
             description: "Suspendre les paiements",
             status: 'à faire',
         },
+        {
+            id: crypto.randomUUID(),
+            mutationId: event.mutationId,
+            description: "Autoriser la modification",
+            status: 'en attente',
+        },
          {
             id: crypto.randomUUID(),
             mutationId: event.mutationId,
@@ -167,14 +173,12 @@ function applyPaiementsSuspendus(state: AppState, event: PaiementsSuspendusEvent
                  return { ...t, status: 'fait' as TodoStatus };
             }
 
-            // If it's a DROITS mutation, the next step is to authorize modification
             const mutation = newState.mutations.find(m => m.id === event.mutationId);
-            if (mutation?.type === 'DROITS' && t.description === "Autoriser la modification") {
+            if (mutation?.type === 'DROITS' && t.description === "Analyser les droits") {
                 return { ...t, status: 'à faire' as TodoStatus };
             }
             
-            // If it's not a DROITS mutation, the next step might be to validate
-            if (mutation?.type !== 'DROITS' && t.description === "Valider la mutation") {
+            if (mutation?.type === 'RESSOURCES' && t.description === "Autoriser la modification") {
                 return { ...t, status: 'à faire' as TodoStatus };
             }
         }
@@ -184,7 +188,7 @@ function applyPaiementsSuspendus(state: AppState, event: PaiementsSuspendusEvent
     return newState;
 }
 
-function applyModificationDroitsAutorisee(state: AppState, event: ModificationDroitsAutoriseeEvent): AppState {
+function applyModificationAutorisee(state: AppState, event: ModificationAutoriseeEvent): AppState {
     const newState = { ...state };
     
     newState.mutations = newState.mutations.map(m =>
@@ -196,7 +200,7 @@ function applyModificationDroitsAutorisee(state: AppState, event: ModificationDr
             if (t.description === "Autoriser la modification") {
                  return { ...t, status: 'fait' as TodoStatus };
             }
-             if (t.description === "Analyser les droits") {
+             if (t.description === "Valider la mutation") {
                 return { ...t, status: 'à faire' as TodoStatus };
             }
         }
@@ -219,7 +223,7 @@ function applyDroitsAnalyses(state: AppState, event: DroitsAnalysesEvent): AppSt
             if (t.description === "Analyser les droits") {
                  return { ...t, status: 'fait' as TodoStatus };
             }
-             if (t.description === "Valider la mutation") {
+             if (t.description === "Autoriser la modification") {
                 return { ...t, status: 'à faire' as TodoStatus };
             }
         }
@@ -270,8 +274,8 @@ function applyEvent(state: AppState, event: AppEvent): AppState {
         case 'PAIEMENTS_SUSPENDUS':
             nextState = applyPaiementsSuspendus(nextState, event);
             break;
-        case 'MODIFICATION_DROITS_AUTORISEE':
-            nextState = applyModificationDroitsAutorisee(nextState, event);
+        case 'MODIFICATION_AUTORISEE':
+            nextState = applyModificationAutorisee(nextState, event);
             break;
         case 'DROITS_ANALYSES':
             nextState = applyDroitsAnalyses(nextState, event);

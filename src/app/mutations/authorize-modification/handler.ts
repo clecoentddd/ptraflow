@@ -3,15 +3,15 @@
 
 import type { AppState } from '../mutation-lifecycle/cqrs';
 import type { AuthorizeModificationCommand } from './command';
-import type { ModificationDroitsAutoriseeEvent } from './event';
+import type { ModificationAutoriseeEvent } from './event';
 
 // Command Handler
 export function authorizeModificationCommandHandler(state: AppState, command: AuthorizeModificationCommand): AppState {
   const { mutationId } = command.payload;
   
-  const event: ModificationDroitsAutoriseeEvent = {
+  const event: ModificationAutoriseeEvent = {
     id: crypto.randomUUID(),
-    type: 'MODIFICATION_DROITS_AUTORISEE',
+    type: 'MODIFICATION_AUTORISEE',
     mutationId,
     timestamp: new Date().toISOString(),
     payload: {
