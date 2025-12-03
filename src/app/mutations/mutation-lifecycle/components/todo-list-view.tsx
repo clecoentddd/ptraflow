@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCqrs, type TodoStatus, type Todo } from "@/app/mutations/mutation-lifecycle/cqrs";
@@ -21,8 +22,9 @@ const statusStyles: Record<TodoStatus, string> = {
 
 const taskOrder: Record<string, number> = {
     "Suspendre les paiements": 1,
-    "Analyser les droits": 2,
-    "Valider la mutation": 3,
+    "Autoriser la modification": 2,
+    "Analyser les droits": 3,
+    "Valider la mutation": 4,
 };
 
 const statusOrder: Record<TodoStatus, number> = {

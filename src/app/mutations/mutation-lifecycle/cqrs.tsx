@@ -17,6 +17,9 @@ import type { MutationValidatedEvent } from '../validate-mutation/event';
 import { createRessourcesMutationCommandHandler } from '../create-ressources-mutation/handler';
 import { type CreateRessourcesMutationCommand } from '../create-ressources-mutation/command';
 import type { RessourcesMutationCreatedEvent } from '../create-ressources-mutation/event';
+import { authorizeModificationCommandHandler } from '../authorize-modification/handler';
+import { type AuthorizeModificationCommand } from '../authorize-modification/command';
+import type { ModificationDroitsAutoriseeEvent } from '../authorize-modification/event';
 
 // 1. TYPES
 // ===========
@@ -30,10 +33,10 @@ export interface BaseEvent {
 }
 
 // Event Union
-export type AppEvent = DroitsMutationCreatedEvent | PaiementsSuspendusEvent | DroitsAnalysesEvent | MutationValidatedEvent | RessourcesMutationCreatedEvent;
+export type AppEvent = DroitsMutationCreatedEvent | PaiementsSuspendusEvent | DroitsAnalysesEvent | MutationValidatedEvent | RessourcesMutationCreatedEvent | ModificationDroitsAutoriseeEvent;
 
 // Command Union
-export type AppCommand = CreateDroitsMutationCommand | SuspendPaiementsCommand | AnalyzeDroitsCommand | ValidateMutationCommand | CreateRessourcesMutationCommand | { type: 'REPLAY', event: AppEvent } | { type: 'REPLAY_COMPLETE' };
+export type AppCommand = CreateDroitsMutationCommand | SuspendPaiementsCommand | AnalyzeDroitsCommand | ValidateMutationCommand | CreateRessourcesMutationCommand | AuthorizeModificationCommand | { type: 'REPLAY', event: AppEvent } | { type: 'REPLAY_COMPLETE' };
 
 
 // Projections (Read Model)
@@ -90,6 +93,12 @@ function applyDroitsMutationCreated(state: AppState, event: DroitsMutationCreate
             mutationId: event.mutationId,
             description: "Suspendre les paiements",
             status: 'à faire',
+        },
+        {
+            id: crypto.randomUUID(),
+            mutationId: event.mutationId,
+            description: "Autoriser la modification",
+            status: 'en attente',
         },
         {
             id: crypto.randomUUID(),
@@ -155,10 +164,15 @@ function applyPaiementsSuspendus(state: AppState, event: PaiementsSuspendusEvent
             if (t.description === "Suspendre les paiements") {
                  return { ...t, status: 'fait' as TodoStatus };
             }
-            if (t.description === "Analyser les droits") {
+
+            // If it's a DROITS mutation, the next step is to authorize modification
+            const mutation = newState.mutations.find(m => m.id === event.mutationId);
+            if (mutation?.type === 'DROITS' && t.description === "Autoriser la modification") {
                 return { ...t, status: 'à faire' as TodoStatus };
             }
-             if (t.description === "Valider la mutation" && !newState.todos.some(todo => todo.mutationId === event.mutationId && todo.description === "Analyser les droits")) {
+            
+            // If it's not a DROITS mutation, the next step might be to validate
+            if (mutation?.type !== 'DROITS' && t.description === "Valider la mutation") {
                 return { ...t, status: 'à faire' as TodoStatus };
             }
         }
@@ -167,6 +181,29 @@ function applyPaiementsSuspendus(state: AppState, event: PaiementsSuspendusEvent
 
     return newState;
 }
+
+function applyModificationDroitsAutorisee(state: AppState, event: ModificationDroitsAutoriseeEvent): AppState {
+    const newState = { ...state };
+    
+    newState.mutations = newState.mutations.map(m =>
+        m.id === event.mutationId ? { ...m, history: [...m.history, event] } : m
+    );
+
+    newState.todos = newState.todos.map(t => {
+        if (t.mutationId === event.mutationId) {
+            if (t.description === "Autoriser la modification") {
+                 return { ...t, status: 'fait' as TodoStatus };
+            }
+             if (t.description === "Analyser les droits") {
+                return { ...t, status: 'à faire' as TodoStatus };
+            }
+        }
+        return t;
+    });
+
+    return newState;
+}
+
 
 function applyDroitsAnalyses(state: AppState, event: DroitsAnalysesEvent): AppState {
     const newState = { ...state };
@@ -227,6 +264,8 @@ function applyEvent(state: AppState, event: AppEvent): AppState {
             return applyRessourcesMutationCreated(state, event);
         case 'PAIEMENTS_SUSPENDUS':
             return applyPaiementsSuspendus(state, event);
+        case 'MODIFICATION_DROITS_AUTORISEE':
+            return applyModificationDroitsAutorisee(state, event);
         case 'DROITS_ANALYSES':
             return applyDroitsAnalyses(state, event);
         case 'MUTATION_VALIDATED':
@@ -265,6 +304,9 @@ export function cqrsReducer(state: AppState, command: AppCommand): AppState {
             break;
         case 'SUSPEND_PAIEMENTS':
             newState = suspendPaiementsCommandHandler(state, command);
+            break;
+        case 'AUTHORIZE_MODIFICATION':
+            newState = authorizeModificationCommandHandler(state, command);
             break;
         case 'ANALYZE_DROITS':
             newState = analyzeDroitsCommandHandler(state, command);
