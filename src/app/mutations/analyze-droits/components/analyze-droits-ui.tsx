@@ -1,9 +1,10 @@
+
 "use client";
 
 import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ArrowRight, ArrowRightCircle, CheckCircle2, Circle } from "lucide-react";
+import { ArrowRight, ArrowRightCircle, Check, CheckCircle2, Circle } from "lucide-react";
 
 export function AnalyzeDroitsTodoItem({ mutationId }: { mutationId: string }) {
     const { state } = useCqrs();
@@ -38,10 +39,24 @@ export function AnalyzeDroitsButton({ mutationId }: { mutationId: string }) {
         dispatch({ type: 'ANALYZE_DROITS', payload: { mutationId } });
     };
 
+    const isTodo = todo?.status === 'à faire';
+    const isDone = todo?.status === 'fait';
+
+    const getVariant = () => {
+        if (isTodo) return 'default';
+        if (isDone) return 'secondary';
+        return 'outline';
+    }
+
     return (
-         <Button onClick={handleClick} disabled={todo?.status !== 'à faire'} variant="outline" className="w-full">
+         <Button 
+            onClick={handleClick} 
+            disabled={!isTodo}
+            variant={getVariant()}
+            className="w-full"
+        >
+            {isDone ? <Check className="mr-2 h-4 w-4" /> : <ArrowRight className="mr-2 h-4 w-4" />}
             Analyser les droits
-            <ArrowRight className="ml-2 h-4 w-4" />
         </Button>
     )
 }
