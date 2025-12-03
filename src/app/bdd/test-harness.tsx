@@ -2,11 +2,12 @@
 "use client";
 
 import React, { useState } from 'react';
-import type { AppState, AppEvent } from '../mutations/mutation-lifecycle/cqrs';
+import type { AppState, AppEvent, AppCommand } from '../mutations/mutation-lifecycle/cqrs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, XCircle } from 'lucide-react';
 import { initialState, cqrsReducer } from '../mutations/mutation-lifecycle/cqrs';
+import type { ValidatedPeriodsState } from '../mutations/projection-periodes-de-droits/projection';
 
 // Mocked toast for testing purposes
 export const mockToasts: { message: string; type: 'error' | 'success' }[] = [];
@@ -31,7 +32,7 @@ const projectEvents = (eventStream: AppEvent[]): AppState => {
     return { ...finalProjection, eventStream }; // Ensure eventStream is the original one
 }
 
-interface TestComponentProps {
+interface TestComponentProps<T> {
     title: string;
     description: string;
     given: () => { eventStream: AppEvent[] };
@@ -39,7 +40,7 @@ interface TestComponentProps {
     then: (finalState: AppState, toasts: typeof mockToasts) => { pass: boolean; message: string };
 }
 
-export const TestComponent: React.FC<TestComponentProps> = ({ title, description, given, when, then }) => {
+export const TestComponent: React.FC<TestComponentProps<ValidatedPeriodsState>> = ({ title, description, given, when, then }) => {
     const [result, setResult] = useState<{ pass: boolean; message: string } | null>(null);
     const [finalEventStreamForDisplay, setFinalEventStreamForDisplay] = useState<AppEvent[] | null>(null);
 

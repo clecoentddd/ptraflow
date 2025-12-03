@@ -2,11 +2,12 @@
 "use client";
 
 import React from 'react';
-import type { AppEvent } from '../mutations/mutation-lifecycle/cqrs';
+import type { AppState, AppEvent } from '../mutations/mutation-lifecycle/cqrs';
 import { TestComponent } from './test-harness';
 
 // Import event types for correct test data creation
 import type { MutationValidatedEvent } from '../mutations/validate-mutation/event';
+import { validatedPeriodsProjectionReducer, initialValidatedPeriodsState } from '../mutations/projection-periodes-de-droits/projection';
 
 
 // Definition of the BDD Test
@@ -40,13 +41,18 @@ export const BDDTestProjectionPeriodes: React.FC = () => (
                 } as MutationValidatedEvent,
             ];
             // We provide the events in reverse chronological order to simulate the event stream
-            // But the projection logic will sort them correctly.
-            return { eventStream: events };
+            // But the projection logic will sort them by timestamp implicitly via replay order.
+            return { eventStream: events.reverse() }; // Reverse to simulate replay order (oldest first)
         }}
-        when={(initialState) => {
-            // WHEN: There is no command, we are only testing the projection.
-            // The projection happens automatically in the test harness.
-            return initialState;
+        when={(initialState: AppState) => {
+            // WHEN: we manually run the projection logic on the given events
+            let projectionState = initialValidatedPeriodsState;
+            for (const event of initialState.eventStream) {
+                // We call the slice reducer directly
+                projectionState = validatedPeriodsProjectionReducer(projectionState, event);
+            }
+            // We return a state shape that the 'then' block can inspect.
+            return { ...initialState, ...projectionState };
         }}
         then={(state) => {
             // THEN: we check the projection state.

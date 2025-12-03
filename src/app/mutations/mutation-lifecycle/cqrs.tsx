@@ -20,6 +20,7 @@ import type { RessourcesMutationCreatedEvent } from '../create-ressources-mutati
 import { authorizeModificationCommandHandler } from '../authorize-modification/handler';
 import { type AuthorizeModificationCommand } from '../authorize-modification/command';
 import type { ModificationDroitsAutoriseeEvent } from '../authorize-modification/event';
+import { validatedPeriodsProjectionReducer, type ValidatedPeriodsState, initialValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
 
 // 1. TYPES
 // ===========
@@ -59,16 +60,9 @@ export interface Todo {
     status: TodoStatus;
 }
 
-export interface ValidatedPeriod {
-  mutationId: string;
-  dateDebut: string;
-  dateFin: string;
-}
-
-export interface AppState {
+export interface AppState extends ValidatedPeriodsState {
   mutations: Mutation[];
   todos: Todo[];
-  validatedPeriods: ValidatedPeriod[];
   eventStream: AppEvent[];
 }
 
@@ -78,8 +72,8 @@ export interface AppState {
 export const initialState: AppState = {
   mutations: [],
   todos: [],
-  validatedPeriods: [],
   eventStream: [],
+  ...initialValidatedPeriodsState,
 };
 
 // 3. PROJECTION LOGIC
@@ -249,17 +243,6 @@ function applyMutationValidated(state: AppState, event: MutationValidatedEvent):
         return t;
     });
 
-    // The projection now only keeps the LATEST validated period.
-    if (event.payload.dateDebut && event.payload.dateFin) {
-        const newValidatedPeriod: ValidatedPeriod = {
-            mutationId: event.mutationId,
-            dateDebut: event.payload.dateDebut,
-            dateFin: event.payload.dateFin,
-        };
-        // It overwrites the previous state instead of adding to it.
-        newState.validatedPeriods = [newValidatedPeriod];
-    }
-
     return newState;
 }
 
@@ -276,22 +259,31 @@ function rebuildStateFromEvents(events: AppState['eventStream']): AppState {
 }
 
 function applyEvent(state: AppState, event: AppEvent): AppState {
+    let nextState = state;
     switch (event.type) {
         case 'DROITS_MUTATION_CREATED':
-            return applyDroitsMutationCreated(state, event);
+            nextState = applyDroitsMutationCreated(nextState, event);
+            break;
         case 'RESSOURCES_MUTATION_CREATED':
-            return applyRessourcesMutationCreated(state, event);
+            nextState = applyRessourcesMutationCreated(nextState, event);
+            break;
         case 'PAIEMENTS_SUSPENDUS':
-            return applyPaiementsSuspendus(state, event);
+            nextState = applyPaiementsSuspendus(nextState, event);
+            break;
         case 'MODIFICATION_DROITS_AUTORISEE':
-            return applyModificationDroitsAutorisee(state, event);
+            nextState = applyModificationDroitsAutorisee(nextState, event);
+            break;
         case 'DROITS_ANALYSES':
-            return applyDroitsAnalyses(state, event);
+            nextState = applyDroitsAnalyses(nextState, event);
+            break;
         case 'MUTATION_VALIDATED':
-            return applyMutationValidated(state, event);
-        default:
-            return state;
+            nextState = applyMutationValidated(nextState, event);
+            break;
     }
+    // After applying the main logic, we pass the state and event to the projection slice reducers
+    nextState = validatedPeriodsProjectionReducer(nextState, event);
+    
+    return nextState;
 }
 
 
@@ -306,7 +298,10 @@ export function cqrsReducer(state: AppState, command: AppCommand): AppState {
     }
     if (command.type === 'REPLAY_COMPLETE') {
        // Filter out completed/rejected mutations from view
-       return { ...state, mutations: state.mutations.filter(m => m.status === 'OUVERTE' || m.status === 'EN_COURS') };
+       let finalState = { ...state, mutations: state.mutations.filter(m => m.status === 'OUVERTE' || m.status === 'EN_COURS') };
+       // Call projection reducers one last time after replay to finalize their state if needed
+       finalState = validatedPeriodsProjectionReducer(finalState, command);
+       return finalState;
     }
 
 
@@ -340,7 +335,8 @@ export function cqrsReducer(state: AppState, command: AppCommand): AppState {
     // After a command has potentially added a new event,
     // we rebuild the entire state from the full event stream.
     // This is the "event sourcing" part of the pattern.
-    return rebuildStateFromEvents(newState.eventStream);
+    const replayedState = rebuildStateFromEvents(newState.eventStream);
+    return { ...replayedState, mutations: replayedState.mutations.filter(m => m.status === 'OUVERTE' || m.status === 'EN_COURS') };
 }
 
 
