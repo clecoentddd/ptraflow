@@ -1,11 +1,10 @@
-
 "use client";
 
-import { CqrsProvider, useCqrs } from '@/lib/cqrs.tsx';
-import { AppHeader } from '@/components/domain/app-header';
-import { MutationCard } from '@/components/domain/mutation-card';
-import { EventStreamView } from '@/components/domain/event-stream-view';
-import { TodoListView } from '@/components/domain/todo-list-view';
+import { CqrsProvider, useCqrs } from '@/app/mutations/mutation-lifecycle/cqrs';
+import { AppHeader } from '@/app/mutations/create-mutation/components/app-header';
+import { MutationCard } from '@/app/mutations/mutation-lifecycle/components/mutation-card';
+import { EventStreamView } from '@/app/mutations/mutation-lifecycle/components/event-stream-view';
+import { TodoListView } from '@/app/mutations/mutation-lifecycle/components/todo-list-view';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
@@ -28,12 +27,9 @@ function DashboardContent() {
               </Card>
             ) : (
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                {state.mutations.map((mutation) => {
-                  const todo = state.todos.find(t => t.mutationId === mutation.id);
-                  return (
-                    <MutationCard key={mutation.id} mutation={mutation} todo={todo} />
-                  )
-                })}
+                {state.mutations.map((mutation) => (
+                    <MutationCard key={mutation.id} mutation={mutation} />
+                ))}
               </div>
             )}
           </div>

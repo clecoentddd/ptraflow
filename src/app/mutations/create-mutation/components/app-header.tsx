@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { useCqrs } from "@/lib/cqrs.tsx";
+import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
 import { CircleDotDashed, Plus } from "lucide-react";
 
 export function AppHeader() {

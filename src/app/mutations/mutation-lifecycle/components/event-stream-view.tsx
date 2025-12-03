@@ -1,6 +1,6 @@
 "use client";
 
-import { useCqrs, type AppEvent } from "@/lib/cqrs.tsx";
+import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
 import {
   Accordion,
   AccordionContent,
