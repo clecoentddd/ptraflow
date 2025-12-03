@@ -59,9 +59,16 @@ export interface Todo {
     status: TodoStatus;
 }
 
+export interface ValidatedPeriod {
+  mutationId: string;
+  dateDebut: string;
+  dateFin: string;
+}
+
 export interface AppState {
   mutations: Mutation[];
   todos: Todo[];
+  validatedPeriods: ValidatedPeriod[];
   eventStream: AppEvent[];
 }
 
@@ -71,6 +78,7 @@ export interface AppState {
 export const initialState: AppState = {
   mutations: [],
   todos: [],
+  validatedPeriods: [],
   eventStream: [],
 };
 
@@ -228,7 +236,7 @@ function applyDroitsAnalyses(state: AppState, event: DroitsAnalysesEvent): AppSt
 }
 
 function applyMutationValidated(state: AppState, event: MutationValidatedEvent): AppState {
-    const newState = { ...state };
+    let newState = { ...state };
     
     newState.mutations = newState.mutations.map(m =>
         m.id === event.mutationId ? { ...m, history: [...m.history, event], status: 'COMPLETEE' as MutationStatus } : m
@@ -240,6 +248,15 @@ function applyMutationValidated(state: AppState, event: MutationValidatedEvent):
         }
         return t;
     });
+
+    if (event.payload.dateDebut && event.payload.dateFin) {
+        const newValidatedPeriod: ValidatedPeriod = {
+            mutationId: event.mutationId,
+            dateDebut: event.payload.dateDebut,
+            dateFin: event.payload.dateFin,
+        };
+        newState.validatedPeriods = [...newState.validatedPeriods, newValidatedPeriod];
+    }
 
     return newState;
 }

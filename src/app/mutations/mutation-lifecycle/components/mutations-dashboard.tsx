@@ -7,6 +7,7 @@ import { EventStreamView } from '@/app/mutations/mutation-lifecycle/components/e
 import { TodoListView } from '@/app/mutations/mutation-lifecycle/components/todo-list-view';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { ValidatedPeriodsView } from './validated-periods-view';
 
 function DashboardContent() {
   const { state } = useCqrs();
@@ -32,6 +33,10 @@ function DashboardContent() {
                 ))}
               </div>
             )}
+          </div>
+           <div>
+              <h2 className="text-2xl font-bold mb-4 text-foreground">Périodes de droits validées</h2>
+              <ValidatedPeriodsView />
           </div>
           <div>
               <h2 className="text-2xl font-bold mb-4 text-foreground">Liste de tâches</h2>
