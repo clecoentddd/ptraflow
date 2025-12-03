@@ -16,33 +16,13 @@ import type { MutationValidatedEvent } from '../mutations/validate-mutation/even
 
 // Mocked toast for testing purposes
 const mockToasts: { message: string; type: 'error' | 'success' }[] = [];
-const toast = {
+const mockToast = {
   error: (message: string) => {
     console.error("MOCK TOAST (Error):", message);
     mockToasts.push({ message, type: 'error' });
   },
 };
 
-// We need to override the handler to use our mock toast.
-// The original handler imported the real 'react-hot-toast'.
-function createTestDroitsMutationCommandHandler(state: AppState, command: AppCommand): AppState {
-    if (command.type !== 'CREATE_DROITS_MUTATION') return state;
-
-    const existingMutation = state.mutations.find(m => m.status === 'OUVERTE' || m.status === 'EN_COURS');
-    if (existingMutation) {
-        toast.error(`La mutation ${existingMutation.id} est déjà en cours.`);
-        return state;
-    }
-    const mutationId = crypto.randomUUID();
-    const event: DroitsMutationCreatedEvent = {
-        id: crypto.randomUUID(),
-        type: 'DROITS_MUTATION_CREATED',
-        mutationId,
-        timestamp: new Date().toISOString(),
-        payload: { mutationType: 'DROITS' },
-    };
-    return { ...state, eventStream: [event, ...state.eventStream] };
-}
 
 // This function rebuilds the read model (projection) from an event stream.
 // It's used to set up the 'given' state and to get the final state for assertions.
@@ -128,8 +108,8 @@ export const BDDTest1: React.FC = () => (
             return { eventStream: [event] };
         }}
         when={(initialState) => {
-            // WHEN: we call the command handler directly with the command
-            return createTestDroitsMutationCommandHandler(initialState, { type: 'CREATE_DROITS_MUTATION' });
+            // WHEN: we call the command handler directly with the command and our mock toast
+            return createDroitsMutationCommandHandler(initialState, { type: 'CREATE_DROITS_MUTATION' }, { toast: mockToast });
         }}
         then={(state, toasts) => {
             // THEN: we check that NO new event was created and a toast was shown.

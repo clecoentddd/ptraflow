@@ -4,14 +4,22 @@
 import type { AppState } from '../mutation-lifecycle/cqrs';
 import type { CreateDroitsMutationCommand } from './command';
 import type { DroitsMutationCreatedEvent } from './event';
-import { toast } from 'react-hot-toast';
+import { toast as realToast } from 'react-hot-toast';
+
+type HandlerDependencies = {
+  toast: { error: (message: string) => void };
+}
 
 // Command Handler
-export function createDroitsMutationCommandHandler(state: AppState, command: CreateDroitsMutationCommand): AppState {
+export function createDroitsMutationCommandHandler(
+  state: AppState,
+  command: CreateDroitsMutationCommand,
+  dependencies: HandlerDependencies = { toast: realToast }
+): AppState {
   
   const existingMutation = state.mutations.find(m => m.status === 'OUVERTE' || m.status === 'EN_COURS');
   if (existingMutation) {
-    toast.error(`La mutation ${existingMutation.id} est déjà en cours.`);
+    dependencies.toast.error(`La mutation ${existingMutation.id} est déjà en cours.`);
     return state;
   }
   
