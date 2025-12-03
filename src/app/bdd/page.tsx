@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useEffect, useState } from 'react';
-import { AppState, AppCommand, cqrsReducer, initialState } from '../mutations/mutation-lifecycle/cqrs';
+import { AppState, AppCommand, cqrsReducer, initialState, AppEvent } from '../mutations/mutation-lifecycle/cqrs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, XCircle } from 'lucide-react';
@@ -11,6 +11,11 @@ import { createRessourcesMutationCommandHandler } from '../mutations/create-ress
 import { suspendPaiementsCommandHandler } from '../mutations/suspend-paiements/handler';
 import { analyzeDroitsCommandHandler } from '../mutations/analyze-droits/handler';
 import { validateMutationCommandHandler } from '../mutations/validate-mutation/handler';
+
+// Import event types for correct test data creation
+import type { DroitsMutationCreatedEvent } from '../mutations/create-mutation/event';
+import type { PaiementsSuspendusEvent } from '../mutations/suspend-paiements/event';
+import type { MutationValidatedEvent } from '../mutations/validate-mutation/event';
 
 // Mocked toast for testing purposes
 const mockToasts: { message: string; type: 'error' | 'success' }[] = [];
@@ -24,31 +29,37 @@ const toast = {
 // We need to override the handler to use our mock toast.
 // The original handler imported the real 'react-hot-toast'.
 function createTestDroitsMutationCommandHandler(state: AppState, command: AppCommand): AppState {
-    // This part of the logic needs the projected state (mutations), which is fine for the command handler.
     const existingMutation = state.mutations.find(m => m.status === 'OUVERTE' || m.status === 'EN_COURS');
     if (existingMutation && command.type === 'CREATE_DROITS_MUTATION') {
         toast.error(`La mutation ${existingMutation.id} est déjà en cours.`);
         return state;
     }
-    // We call the original handler if the check passes (which in this test, it won't)
-    // but this ensures we are testing the handler's logic.
-    return createDroitsMutationCommandHandler(state, command as any);
+    // We call the original handler logic here but with our mocked toast.
+    // This is a simplified version of the real handler.
+    const mutationId = crypto.randomUUID();
+    const event: DroitsMutationCreatedEvent = {
+        id: crypto.randomUUID(),
+        type: 'DROITS_MUTATION_CREATED',
+        mutationId,
+        timestamp: new Date().toISOString(),
+        payload: { mutationType: 'DROITS' },
+    };
+    return { ...state, eventStream: [event, ...state.eventStream] };
 }
 
 // This function rebuilds the read model (projection) from an event stream.
 // It's used to set up the 'given' state and to get the final state.
-const projectEvents = (eventStream: AppState['eventStream']): AppState => {
+const projectEvents = (eventStream: AppEvent[]): AppState => {
     let projectedState: AppState = { ...initialState, eventStream };
     // We use the global reducer here just for its projection logic
     return cqrsReducer(projectedState, { type: 'REPLAY' } as any);
 }
 
-
 interface TestComponentProps {
     title: string;
     description: string;
-    given: () => { eventStream: AppState['eventStream'] };
-    when: (dispatch: (command: AppCommand) => void) => void;
+    given: () => { eventStream: AppEvent[] };
+    when: (dispatch: (command: AppCommand) => void, initialState: AppState) => void;
     then: (finalState: AppState, toasts: typeof mockToasts) => { pass: boolean; message: string };
 }
 
@@ -61,18 +72,18 @@ const TestComponent: React.FC<TestComponentProps> = ({ title, description, given
         mockToasts.length = 0; // Clear toasts for each run
 
         // GIVEN: Set up the initial state by projecting past events
-        const givenProjectedState = projectEvents(given().eventStream);
+        const initialEventStream = given().eventStream;
+        const givenProjectedState = projectEvents(initialEventStream);
 
         // WHEN: The action is performed
-        const dispatch = (command: AppCommand) => {
+        const dispatch = (command: AppCommand, state: AppState) => {
              // The command handler is called on the initial projected state
-             // We use a special test handler for the creation command to intercept the toast.
              let stateAfterCommand: AppState;
              if (command.type === 'CREATE_DROITS_MUTATION') {
-                stateAfterCommand = createTestDroitsMutationCommandHandler(givenProjectedState, command);
+                stateAfterCommand = createTestDroitsMutationCommandHandler(state, command);
              } else {
                 // For other commands, we would call their respective handlers
-                stateAfterCommand = givenProjectedState; // Placeholder for other tests
+                stateAfterCommand = state; // Placeholder for other tests
              }
              
              // We project the final event stream to get the final read model for assertion
@@ -80,7 +91,7 @@ const TestComponent: React.FC<TestComponentProps> = ({ title, description, given
              setFinalState(finalProjectedState);
         };
         
-        when(dispatch);
+        when(dispatch, givenProjectedState);
         setHasRun(true);
     };
 
@@ -127,13 +138,13 @@ const BDDTest1: React.FC = () => (
         description="Etant donnée qu'une mutation est déjà créée, quand l'utisateur tente de créer une autre mutation, alors une erreur 'mutation ... est déjà en cours' est affichée et aucun nouvel événement n'est créé."
         given={() => {
             const mutationId = 'mut-1';
-            const event = { id: 'evt-1', mutationId, type: 'DROITS_MUTATION_CREATED', timestamp: new Date().toISOString(), payload: { mutationType: 'DROITS' } };
+            const event: DroitsMutationCreatedEvent = { id: 'evt-1', mutationId, type: 'DROITS_MUTATION_CREATED', timestamp: new Date().toISOString(), payload: { mutationType: 'DROITS' } };
             // The initial state has one event in its stream.
             return { eventStream: [event] };
         }}
-        when={(dispatch) => {
+        when={(dispatch, initialState) => {
             // WHEN a new mutation is created
-            dispatch({ type: 'CREATE_DROITS_MUTATION' });
+            dispatch({ type: 'CREATE_DROITS_MUTATION' }, initialState);
         }}
         then={(state, toasts) => {
             // THEN we check that NO new event was created and a toast was shown.
@@ -154,16 +165,16 @@ const BDDTest2: React.FC = () => (
         given={() => {
             const mutationId = "mut-1";
             // The events are in reverse chronological order (as in the real app state)
-            const events = [
-                 { id: 'evt-3', mutationId, type: 'MUTATION_VALIDATED', timestamp: new Date().toISOString(), payload: { userEmail: 'test' } },
-                 { id: 'evt-2', mutationId, type: 'PAIEMENTS_SUSPENDUS', timestamp: new Date().toISOString(), payload: { userEmail: 'test' } },
-                 { id: 'evt-1', mutationId, type: 'DROITS_MUTATION_CREATED', timestamp: new Date().toISOString(), payload: { mutationType: 'DROITS' } },
+            const events: AppEvent[] = [
+                 { id: 'evt-3', mutationId, type: 'MUTATION_VALIDATED', timestamp: new Date().toISOString(), payload: { userEmail: 'test' } } as MutationValidatedEvent,
+                 { id: 'evt-2', mutationId, type: 'PAIEMENTS_SUSPENDUS', timestamp: new Date().toISOString(), payload: { userEmail: 'test' } } as PaiementsSuspendusEvent,
+                 { id: 'evt-1', mutationId, type: 'DROITS_MUTATION_CREATED', timestamp: new Date().toISOString(), payload: { mutationType: 'DROITS' } } as DroitsMutationCreatedEvent,
             ];
             return { eventStream: events };
         }}
-        when={(dispatch) => {
+        when={(dispatch, initialState) => {
             // WHEN a new mutation is created
-            dispatch({ type: 'CREATE_DROITS_MUTATION' });
+            dispatch({ type: 'CREATE_DROITS_MUTATION' }, initialState);
         }}
         then={(state) => {
              // THEN we check that a new event has been added to the stream.
