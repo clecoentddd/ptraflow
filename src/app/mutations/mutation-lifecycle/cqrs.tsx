@@ -11,6 +11,9 @@ import type { PaiementsSuspendusEvent } from '../suspend-paiements/event';
 import { analyzeDroitsCommandHandler } from '../analyze-droits/handler';
 import { type AnalyzeDroitsCommand } from '../analyze-droits/command';
 import type { DroitsAnalysesEvent } from '../analyze-droits/event';
+import { validateMutationCommandHandler } from '../validate-mutation/handler';
+import { type ValidateMutationCommand } from '../validate-mutation/command';
+import type { MutationValidatedEvent } from '../validate-mutation/event';
 
 // 1. TYPES
 // ===========
@@ -24,10 +27,10 @@ export interface BaseEvent {
 }
 
 // Event Union
-export type AppEvent = DroitsMutationCreatedEvent | PaiementsSuspendusEvent | DroitsAnalysesEvent;
+export type AppEvent = DroitsMutationCreatedEvent | PaiementsSuspendusEvent | DroitsAnalysesEvent | MutationValidatedEvent;
 
 // Command Union
-export type AppCommand = CreateDroitsMutationCommand | SuspendPaiementsCommand | AnalyzeDroitsCommand;
+export type AppCommand = CreateDroitsMutationCommand | SuspendPaiementsCommand | AnalyzeDroitsCommand | ValidateMutationCommand;
 
 // Projections (Read Model)
 export type MutationType = 'DROITS';
@@ -148,6 +151,23 @@ function applyDroitsAnalyses(state: AppState, event: DroitsAnalysesEvent): AppSt
     return newState;
 }
 
+function applyMutationValidated(state: AppState, event: MutationValidatedEvent): AppState {
+    const newState = { ...state };
+    
+    newState.mutations = newState.mutations.map(m =>
+        m.id === event.mutationId ? { ...m, history: [...m.history, event], status: 'COMPLETEE' as MutationStatus } : m
+    );
+
+    newState.todos = newState.todos.map(t => {
+        if (t.mutationId === event.mutationId && t.description === "Valider la mutation") {
+            return { ...t, status: 'fait' as TodoStatus };
+        }
+        return t;
+    });
+
+    return newState;
+}
+
 
 // This function will rebuild the state from the event stream.
 // It's the core of the event sourcing pattern.
@@ -166,6 +186,9 @@ function rebuildStateFromEvents(events: AppState['eventStream']): AppState {
                 break;
             case 'DROITS_ANALYSES':
                 state = applyDroitsAnalyses(state, event);
+                break;
+            case 'MUTATION_VALIDATED':
+                state = applyMutationValidated(state, event);
                 break;
         }
     }
@@ -190,6 +213,9 @@ function cqrsReducer(state: AppState, command: AppCommand): AppState {
             break;
         case 'ANALYZE_DROITS':
             newState = analyzeDroitsCommandHandler(state, command);
+            break;
+        case 'VALIDATE_MUTATION':
+            newState = validateMutationCommandHandler(state, command);
             break;
         default:
             return state;
