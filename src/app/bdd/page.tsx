@@ -2,12 +2,15 @@
 "use client";
 
 import React, { createContext, useContext, useEffect, useReducer, useState } from 'react';
-import { useCqrs, AppState, AppCommand, cqrsReducer, initialState } from '../mutations/mutation-lifecycle/cqrs';
+import { AppState, AppCommand, cqrsReducer, initialState } from '../mutations/mutation-lifecycle/cqrs';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, XCircle } from 'lucide-react';
 import { createDroitsMutationCommandHandler } from '../mutations/create-mutation/handler';
 import { createRessourcesMutationCommandHandler } from '../mutations/create-ressources-mutation/handler';
+import { suspendPaiementsCommandHandler } from '../mutations/suspend-paiements/handler';
+import { analyzeDroitsCommandHandler } from '../mutations/analyze-droits/handler';
+import { validateMutationCommandHandler } from '../mutations/validate-mutation/handler';
 
 // Mocked toast for testing purposes
 const mockToasts: { message: string; type: 'error' | 'success' }[] = [];
@@ -29,90 +32,74 @@ function createTestDroitsMutationCommandHandler(state: AppState, command: AppCom
     return createDroitsMutationCommandHandler(state, command as any);
 }
 
-// Custom reducer for tests that separates command handling from projection
-const testReducer = (state: AppState, command: AppCommand): AppState => {
-    let stateAfterCommand = state;
-
-    // 1. Command Handling: Only run the command handler, which produces an event.
-    // It does NOT run the projection.
-     switch (command.type) {
+// This test reducer ONLY runs the command handler. It does NOT run the projection.
+// Its purpose is to isolate the command logic for testing.
+const testCommandHandler = (state: AppState, command: AppCommand): AppState => {
+    switch (command.type) {
         case 'CREATE_DROITS_MUTATION':
             // Use our special test handler with the mock toast
-            stateAfterCommand = createTestDroitsMutationCommandHandler(state, command);
-            break;
-         case 'CREATE_RESSOURCES_MUTATION':
-             stateAfterCommand = createRessourcesMutationCommandHandler(state, command as any);
-             break;
-        // For other commands, we use the main reducer's command handling part
+            return createTestDroitsMutationCommandHandler(state, command);
+        case 'CREATE_RESSOURCES_MUTATION':
+            return createRessourcesMutationCommandHandler(state, command as any);
+        case 'SUSPEND_PAIEMENTS':
+            return suspendPaiementsCommandHandler(state, command as any);
+        case 'ANALYZE_DROITS':
+            return analyzeDroitsCommandHandler(state, command as any);
+        case 'VALIDATE_MUTATION':
+            return validateMutationCommandHandler(state, command as any);
         default:
-             stateAfterCommand = cqrsReducer(state, command);
-             // The problem is cqrsReducer also does projection. Let's simplify for the test.
-             // We'll assume for now only CREATE commands are tested this way.
-            break;
+            return state;
     }
+};
 
-    // 2. Projection: Rebuild the state from the resulting event stream.
-    // This simulates what our main cqrsReducer does in a second step.
-    let rebuiltState: AppState = { ...initialState, eventStream: stateAfterCommand.eventStream };
-    const sortedEvents = [...stateAfterCommand.eventStream].reverse();
+// This function rebuilds the read model (projection) from an event stream
+const projectEvents = (eventStream: AppState['eventStream']): AppState => {
+    let projectedState: AppState = { ...initialState, eventStream };
+    const sortedEvents = [...eventStream].reverse();
 
     for (const event of sortedEvents) {
         // We use the global reducer here just for its projection logic
-        rebuiltState = cqrsReducer(rebuiltState, { type: `REPLAY_${event.type}`, ...event } as any);
+        projectedState = cqrsReducer(projectedState, { type: `REPLAY_${event.type}`, ...event } as any);
     }
-    // The final state has the new event stream and the projected state
-    return { ...rebuiltState, eventStream: stateAfterCommand.eventStream };
-};
-
-const BddCqrsProvider: React.FC<{ given: () => AppState, children: React.ReactNode }> = ({ given, children }) => {
-    const [state, dispatch] = useReducer(testReducer, initialState, given);
-    const value = { state, dispatch, CqrsProvider: BddCqrsProvider } as any;
-    return <CqrsContext.Provider value={value}>{children}</CqrsContext.Provider>;
-}
-const CqrsContext = createContext<{ state: AppState; dispatch: React.Dispatch<AppCommand>; CqrsProvider: any } | undefined>(undefined);
-const useBddCqrs = () => {
-    const context = useContext(CqrsContext);
-    if (!context) throw new Error("useBddCqrs must be used within a BddCqrsProvider");
-    return context;
+    return { ...projectedState, eventStream };
 }
 
 
 interface TestComponentProps {
     title: string;
     description: string;
-    given: () => AppState;
-    when: (dispatch: React.Dispatch<AppCommand>, state: AppState) => void;
+    given: () => { eventStream: AppState['eventStream'] };
+    when: (dispatch: (command: AppCommand) => void) => void;
     then: (finalState: AppState, toasts: typeof mockToasts) => { pass: boolean; message: string };
 }
 
 const TestComponent: React.FC<TestComponentProps> = ({ title, description, given, when, then }) => {
-    const [initialState, setInitialState] = useState(given);
     const [finalState, setFinalState] = useState<AppState | null>(null);
     const [hasRun, setHasRun] = useState(false);
     const [result, setResult] = useState<{ pass: boolean; message: string } | null>(null);
 
     const runTest = () => {
         mockToasts.length = 0; // Clear toasts for each run
-        let stateAfterGiven = given();
 
-        // Apply projection to the initial state
-        let projectedInitialState: AppState = { ...initialState, eventStream: stateAfterGiven.eventStream };
-        const sortedEvents = [...stateAfterGiven.eventStream].reverse();
-        for (const event of sortedEvents) {
-            projectedInitialState = cqrsReducer(projectedInitialState, { type: event.type, ...event } as any);
-        }
+        // GIVEN: Set up the initial state by projecting past events
+        const givenState = projectEvents(given().eventStream);
 
+        // WHEN: The action is performed
         const dispatch = (command: AppCommand) => {
-             const stateAfterCommand = testReducer(projectedInitialState, command);
-             setFinalState(stateAfterCommand);
+             // The command handler is called on the initial state
+             const stateAfterCommand = testCommandHandler(givenState, command);
+             // We project the final event stream to get the final read model
+             const finalProjectedState = projectEvents(stateAfterCommand.eventStream);
+             setFinalState(finalProjectedState);
         };
         
-        when(dispatch, projectedInitialState);
+        when(dispatch);
         setHasRun(true);
     };
 
     useEffect(() => {
         if (hasRun && finalState) {
+            // THEN: The result is checked
             const testResult = then(finalState, mockToasts);
             setResult(testResult);
         }
@@ -132,10 +119,12 @@ const TestComponent: React.FC<TestComponentProps> = ({ title, description, given
                 {result && (
                     <div>
                         <p className={result.pass ? 'text-green-700' : 'text-red-700'}>{result.message}</p>
-                        <details className="mt-4 text-xs text-muted-foreground">
-                            <summary>Voir l'état final</summary>
-                            <pre className="mt-2 p-2 bg-muted rounded-md overflow-x-auto">{JSON.stringify(finalState, null, 2)}</pre>
-                        </details>
+                        {finalState && (
+                             <details className="mt-4 text-xs text-muted-foreground">
+                                <summary>Voir le flux d'événements final</summary>
+                                <pre className="mt-2 p-2 bg-muted rounded-md overflow-x-auto">{JSON.stringify(finalState.eventStream, null, 2)}</pre>
+                            </details>
+                        )}
                     </div>
                 )}
             </CardContent>
@@ -148,18 +137,19 @@ const TestComponent: React.FC<TestComponentProps> = ({ title, description, given
 const BDDTest1: React.FC = () => (
     <TestComponent
         title="Test 1: Création de mutation concurrente"
-        description="Etant qu'une mutation est créée, quand l'utisateur crée une autre mutation, alors une erreur 'mutation id ... est déjà en cours' est affichée."
+        description="Etant donnée qu'une mutation est déjà créée, quand l'utisateur tente de créer une autre mutation, alors une erreur 'mutation ... est déjà en cours' est affichée et aucun nouvel événement n'est créé."
         given={() => {
             const mutationId = 'mut-1';
             const event = { id: 'evt-1', mutationId, type: 'DROITS_MUTATION_CREATED', timestamp: new Date().toISOString(), payload: { mutationType: 'DROITS' } };
-            // The initial state only contains the event stream
-            return { ...initialState, eventStream: [event] };
+            // The initial state has one event in its stream.
+            return { eventStream: [event] };
         }}
         when={(dispatch) => {
+            // WHEN a new mutation is created
             dispatch({ type: 'CREATE_DROITS_MUTATION' });
         }}
         then={(state, toasts) => {
-            // We check that no new event was created and a toast was shown.
+            // THEN we check that NO new event was created and a toast was shown.
             const pass = state.eventStream.length === 1 && toasts.some(t => t.message.includes('est déjà en cours'));
             return {
                 pass,
@@ -173,26 +163,27 @@ const BDDTest1: React.FC = () => (
 const BDDTest2: React.FC = () => (
      <TestComponent
         title="Test 2: Création de mutation après validation"
-        description="Etant qu'une mutation est créée et validée, quand l'utilisateur crée une mutation, la nouvelle mutation est créée."
+        description="Etant donnée qu'une mutation est créée et validée, quand l'utilisateur crée une nouvelle mutation, alors la nouvelle mutation est bien créée."
         given={() => {
             const mutationId = "mut-1";
+            // The events are in reverse chronological order (as in the real app state)
             const events = [
                  { id: 'evt-3', mutationId, type: 'MUTATION_VALIDATED', timestamp: new Date().toISOString(), payload: { userEmail: 'test' } },
                  { id: 'evt-2', mutationId, type: 'PAIEMENTS_SUSPENDUS', timestamp: new Date().toISOString(), payload: { userEmail: 'test' } },
                  { id: 'evt-1', mutationId, type: 'DROITS_MUTATION_CREATED', timestamp: new Date().toISOString(), payload: { mutationType: 'DROITS' } },
             ];
-            return { ...initialState, eventStream: events };
+            return { eventStream: events };
         }}
         when={(dispatch) => {
             // WHEN a new mutation is created
             dispatch({ type: 'CREATE_DROITS_MUTATION' });
         }}
         then={(state) => {
-             // We check that a new event has been added to the stream.
+             // THEN we check that a new event has been added to the stream.
             const pass = state.eventStream.length === 4 && state.eventStream[0].type === 'DROITS_MUTATION_CREATED';
             return {
                 pass,
-                message: pass ? 'Succès: Une nouvelle mutation a bien été créée (un 4ème événement a été ajouté).' : 'Échec: La nouvelle mutation n\'a pas pu être créée.',
+                message: pass ? 'Succès: Une nouvelle mutation a bien été créée (un 4ème événement a été ajouté au flux).' : 'Échec: La nouvelle mutation n\'a pas pu être créée.',
             };
         }}
     />
@@ -204,7 +195,7 @@ export default function BDDPage() {
         <div className="p-8 space-y-8">
             <header>
                 <h1 className="text-3xl font-bold">Tests BDD - MutationFlow</h1>
-                <p className="text-muted-foreground">Cette page exécute les scénarios de test pour valider les règles métier.</p>
+                <p className="text-muted-foreground">Cette page exécute les scénarios de test pour valider les règles métier des Command Handlers.</p>
             </header>
             <main className="space-y-6">
                 <BDDTest1 />
@@ -213,3 +204,5 @@ export default function BDDPage() {
         </div>
     );
 }
+
+    
