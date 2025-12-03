@@ -6,7 +6,7 @@ import type { SuspendPaiementsCommand } from './command';
 import type { PaiementsSuspendusEvent } from './event';
 
 // Command Handler
-export function suspendPaiementsReducer(state: AppState, command: SuspendPaiementsCommand): AppState {
+export function suspendPaiementsCommandHandler(state: AppState, command: SuspendPaiementsCommand): AppState {
   const { mutationId } = command.payload;
 
   const todo = state.todos.find(t => t.mutationId === mutationId && t.description === 'Suspendre les paiements');

@@ -2,13 +2,13 @@
 "use client";
 
 import React, { createContext, useContext, useReducer, type Dispatch } from 'react';
-import { createDroitsMutationReducer } from '../create-mutation/handler';
+import { createDroitsMutationCommandHandler } from '../create-mutation/handler';
 import { type CreateDroitsMutationCommand } from '../create-mutation/command';
 import type { DroitsMutationCreatedEvent } from '../create-mutation/event';
-import { suspendPaiementsReducer } from '../suspend-paiements/handler';
+import { suspendPaiementsCommandHandler } from '../suspend-paiements/handler';
 import { type SuspendPaiementsCommand } from '../suspend-paiements/command';
 import { type PaiementsSuspendusEvent } from '../suspend-paiements/event';
-import { analyzeDroitsReducer } from '../analyze-droits/handler';
+import { analyzeDroitsCommandHandler } from '../analyze-droits/handler';
 import { type AnalyzeDroitsCommand } from '../analyze-droits/command';
 import { type DroitsAnalysesEvent } from '../analyze-droits/event';
 
@@ -183,13 +183,13 @@ function cqrsReducer(state: AppState, command: AppCommand): AppState {
     // They don't contain projection logic.
     switch (command.type) {
         case 'CREATE_DROITS_MUTATION':
-            newState = createDroitsMutationReducer(state, command);
+            newState = createDroitsMutationCommandHandler(state, command);
             break;
         case 'SUSPEND_PAIEMENTS':
-            newState = suspendPaiementsReducer(state, command);
+            newState = suspendPaiementsCommandHandler(state, command);
             break;
         case 'ANALYZE_DROITS':
-            newState = analyzeDroitsReducer(state, command);
+            newState = analyzeDroitsCommandHandler(state, command);
             break;
         default:
             return state;

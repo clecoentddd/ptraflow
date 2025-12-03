@@ -5,7 +5,7 @@ import type { AnalyzeDroitsCommand } from './command';
 import type { DroitsAnalysesEvent } from './event';
 
 // Command Handler
-export function analyzeDroitsReducer(state: AppState, command: AnalyzeDroitsCommand): AppState {
+export function analyzeDroitsCommandHandler(state: AppState, command: AnalyzeDroitsCommand): AppState {
   const { mutationId } = command.payload;
   
   const todo = state.todos.find(t => t.mutationId === mutationId && t.description === 'Analyser les droits');
