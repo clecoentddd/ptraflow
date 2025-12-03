@@ -19,15 +19,34 @@ const statusStyles: Record<TodoStatus, string> = {
     'en attente': 'bg-gray-400 text-white',
 };
 
+const taskOrder: Record<string, number> = {
+    "Suspendre les paiements": 1,
+    "Analyser les droits": 2,
+    "Valider la mutation": 3,
+};
+
+const statusOrder: Record<TodoStatus, number> = {
+    'à faire': 1,
+    'en attente': 2,
+    'fait': 3,
+};
+
+
 export function TodoListView() {
     const { state } = useCqrs();
 
     const sortedTodos = [...state.todos].sort((a, b) => {
-        if (a.status === 'à faire') return -1;
-        if (b.status === 'à faire') return 1;
-        if (a.status === 'fait' && b.status !== 'fait') return 1;
-        if (b.status === 'fait' && a.status !== 'fait') return -1;
-        return 0;
+        const orderA = taskOrder[a.description] ?? 99;
+        const orderB = taskOrder[b.description] ?? 99;
+        
+        if (orderA !== orderB) {
+            return orderA - orderB;
+        }
+
+        const statusOrderA = statusOrder[a.status] ?? 99;
+        const statusOrderB = statusOrder[b.status] ?? 99;
+        
+        return statusOrderA - statusOrderB;
     });
 
     if (state.todos.length === 0) {
@@ -44,6 +63,7 @@ export function TodoListView() {
                 <TableHeader>
                     <TableRow>
                         <TableHead>Description</TableHead>
+
                         <TableHead>Statut</TableHead>
                         <TableHead>Mutation ID</TableHead>
                     </TableRow>
