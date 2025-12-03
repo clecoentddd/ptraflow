@@ -8,9 +8,9 @@ import { cn } from "@/lib/utils";
 import { ArrowRight, ArrowRightCircle, CalendarIcon, Check, CheckCircle2, Circle } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
-import { Calendar } from '@/components/ui/calendar';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
+import { MonthPicker } from '@/components/ui/month-picker';
 
 export function AnalyzeDroitsTodoItem({ mutationId }: { mutationId: string }) {
     const { state } = useCqrs();
@@ -84,7 +84,7 @@ export function AnalyzeDroitsButton({ mutationId }: { mutationId: string }) {
                     <DialogHeader>
                         <DialogTitle>Analyser les droits</DialogTitle>
                         <DialogDescription>
-                            Veuillez sélectionner le mois de début et le mois de fin de droits.
+                           Veuillez sélectionner le mois de début et le mois de fin de droits.
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
@@ -101,7 +101,12 @@ export function AnalyzeDroitsButton({ mutationId }: { mutationId: string }) {
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0">
-                                    <Calendar mode="single" selected={dateDebut} onSelect={setDateDebut} initialFocus />
+                                     <MonthPicker
+                                        date={dateDebut}
+                                        onChange={(newDate) => {
+                                            setDateDebut(newDate);
+                                        }}
+                                    />
                                 </PopoverContent>
                             </Popover>
                         </div>
@@ -118,7 +123,12 @@ export function AnalyzeDroitsButton({ mutationId }: { mutationId: string }) {
                                     </Button>
                                 </PopoverTrigger>
                                 <PopoverContent className="w-auto p-0">
-                                    <Calendar mode="single" selected={dateFin} onSelect={setDateFin} initialFocus />
+                                    <MonthPicker
+                                        date={dateFin}
+                                        onChange={(newDate) => {
+                                            setDateFin(newDate);
+                                        }}
+                                    />
                                 </PopoverContent>
                             </Popover>
                         </div>
