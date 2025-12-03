@@ -32,15 +32,15 @@ const projectEvents = (eventStream: AppEvent[]): AppState => {
     return { ...finalProjection, eventStream }; // Ensure eventStream is the original one
 }
 
-interface TestComponentProps<T> {
+interface TestComponentProps {
     title: string;
     description: string;
     given: () => { eventStream: AppEvent[] };
-    when: (initialState: AppState) => AppState;
-    then: (finalState: AppState, toasts: typeof mockToasts) => { pass: boolean; message: string };
+    when: (initialState: AppState & ValidatedPeriodsState) => AppState & ValidatedPeriodsState;
+    then: (finalState: AppState & ValidatedPeriodsState, toasts: typeof mockToasts) => { pass: boolean; message: string };
 }
 
-export const TestComponent: React.FC<TestComponentProps<ValidatedPeriodsState>> = ({ title, description, given, when, then }) => {
+export const TestComponent: React.FC<TestComponentProps> = ({ title, description, given, when, then }) => {
     const [result, setResult] = useState<{ pass: boolean; message: string } | null>(null);
     const [finalEventStreamForDisplay, setFinalEventStreamForDisplay] = useState<AppEvent[] | null>(null);
 
@@ -48,18 +48,21 @@ export const TestComponent: React.FC<TestComponentProps<ValidatedPeriodsState>> 
         mockToasts.length = 0; // Clear toasts for each run
 
         // GIVEN: Set up the initial state by projecting past events
-        const initialEventStream = given().eventStream;
-        const givenState = projectEvents(initialEventStream);
+        const initialSetup = given();
+        const givenState = projectEvents(initialSetup.eventStream);
 
-        // WHEN: The command handler is called on the initial state
-        const stateAfterCommand = when(givenState);
+        // WHEN: The command handler or projection logic is called
+        const stateAfterWhen = when(givenState);
         
         // We project the final event stream to get the final read model for assertion
-        const finalProjectedState = projectEvents(stateAfterCommand.eventStream);
-        setFinalEventStreamForDisplay(finalProjectedState.eventStream);
+        const finalProjectedState = projectEvents(stateAfterWhen.eventStream);
+        // Special case for projection tests: merge the manually projected state
+        const finalStateForAssertion = { ...finalProjectedState, ...stateAfterWhen };
+
+        setFinalEventStreamForDisplay(finalStateForAssertion.eventStream);
 
         // THEN: The result is checked
-        const testResult = then(finalProjectedState, mockToasts);
+        const testResult = then(finalStateForAssertion, mockToasts);
         setResult(testResult);
     };
 

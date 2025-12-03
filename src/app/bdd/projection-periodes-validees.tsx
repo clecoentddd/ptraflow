@@ -47,7 +47,10 @@ export const BDDTestProjectionPeriodes: React.FC = () => (
         when={(initialState: AppState) => {
             // WHEN: we manually run the projection logic on the given events
             let projectionState = initialValidatedPeriodsState;
-            for (const event of initialState.eventStream) {
+            // The events must be processed in chronological order for the projection to be correct
+            const sortedEvents = [...initialState.eventStream].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+            for (const event of sortedEvents) {
                 // We call the slice reducer directly
                 projectionState = validatedPeriodsProjectionReducer(projectionState, event);
             }

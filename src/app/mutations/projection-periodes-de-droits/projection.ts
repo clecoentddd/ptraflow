@@ -28,7 +28,8 @@ function applyMutationValidated(state: ValidatedPeriodsState, event: MutationVal
             dateDebut: event.payload.dateDebut,
             dateFin: event.payload.dateFin,
         };
-        // This is the business rule: always overwrite with the latest validated period.
+        // Business rule: always overwrite with the latest validated period based on timestamp.
+        // We expect events to be replayed in chronological order, so the last one wins.
         return { ...state, validatedPeriods: [newValidatedPeriod] };
     }
     return state;
@@ -44,12 +45,11 @@ export function validatedPeriodsProjectionReducer<T extends ValidatedPeriodsStat
         const event = eventOrCommand;
         switch (event.type) {
             case 'MUTATION_VALIDATED':
-                return applyMutationValidated(state, event);
+                // Pass the event to the dedicated projection logic function
+                // It's crucial that this function receives only its relevant state slice,
+                // but for simplicity in the main reducer, we pass the whole state and trust this function.
+                return applyMutationValidated(state, event) as T;
         }
-    }
-    // Reset state for new replays if needed, though for a "latest only" slice it's not strictly necessary.
-    if(eventOrCommand.type === 'REPLAY' && state.validatedPeriods.length > 0 && eventOrCommand.event.type === 'DROITS_MUTATION_CREATED') {
-        // This is a simplistic way to handle replay, might need more robust logic
     }
     
     return state;
