@@ -7,7 +7,7 @@ import { TestComponent } from './test-harness';
 
 // Import event types for correct test data creation
 import type { MutationValidatedEvent } from '../mutations/validate-mutation/event';
-import { validatedPeriodsProjectionReducer, initialValidatedPeriodsState, selectValidatedPeriods } from '../mutations/projection-periodes-de-droits/projection';
+import { validatedPeriodsProjectionReducer, initialValidatedPeriodsState, queryValidatedPeriods } from '../mutations/projection-periodes-de-droits/projection';
 
 
 // Definition of the BDD Test
@@ -59,7 +59,7 @@ export const BDDTestProjectionPeriodes: React.FC = () => (
         }}
         then={(state) => {
             // THEN: we use the selector to query the projection state.
-            const validatedPeriods = selectValidatedPeriods(state);
+            const validatedPeriods = queryValidatedPeriods(state);
             
             const isLengthCorrect = validatedPeriods.length === 1;
             const singlePeriod = validatedPeriods[0];

@@ -54,6 +54,6 @@ export function validatedPeriodsProjectionReducer<T extends ValidatedPeriodsStat
 }
 
 // 4. Query (Selector)
-export function selectValidatedPeriods(state: AppState): ValidatedPeriod[] {
+export function queryValidatedPeriods(state: AppState): ValidatedPeriod[] {
     return state.validatedPeriods;
 }
