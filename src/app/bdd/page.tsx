@@ -4,6 +4,7 @@
 import React from 'react';
 import { BDDTest1, BDDTest2 } from './creation-de-mutation';
 import { BDDTestProjectionPeriodes } from './projection-periodes-validees';
+import { BDDTestCreationRessources } from './creation-ressources-mutation';
 
 export default function BDDPage() {
     return (
@@ -16,6 +17,7 @@ export default function BDDPage() {
                 <BDDTest1 />
                 <BDDTest2 />
                 <BDDTestProjectionPeriodes />
+                <BDDTestCreationRessources />
             </main>
         </div>
     );
