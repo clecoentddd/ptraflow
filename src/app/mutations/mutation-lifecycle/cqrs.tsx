@@ -2,7 +2,7 @@
 "use client";
 
 import React, { createContext, useContext, useReducer, type Dispatch } from 'react';
-import { createDroitsMutationReducer, applyDroitsMutationCreated } from '../create-mutation/handler';
+import { createDroitsMutationReducer } from '../create-mutation/handler';
 import { type CreateDroitsMutationCommand } from '../create-mutation/command';
 import type { DroitsMutationCreatedEvent } from '../create-mutation/event';
 import { suspendPaiementsReducer, type SuspendPaiementsCommand } from '../suspend-paiements/cqrs';
@@ -52,25 +52,97 @@ const initialState: AppState = {
   eventStream: [],
 };
 
-// 3. AGGREGATE REDUCER (COMMAND HANDLER)
-// ======================================
+// 3. PROJECTION LOGIC
+// ======================
 
-// This reducer now delegates command handling to the specific slice reducers.
-function cqrsReducer(state: AppState, command: AppCommand): AppState {
-  switch (command.type) {
-    case 'CREATE_DROITS_MUTATION':
-        return createDroitsMutationReducer(state, command);
-    case 'SUSPEND_PAIEMENTS':
-        return suspendPaiementsReducer(state, command);
-    case 'ANALYZE_DROITS':
-        return analyzeDroitsReducer(state, command);
-    default:
-      return state;
-  }
+function applyDroitsMutationCreated(state: AppState, event: DroitsMutationCreatedEvent): AppState {
+    const newState = { ...state };
+
+    const newMutation: Mutation = {
+        id: event.mutationId,
+        type: 'DROITS',
+        status: 'OUVERTE',
+        history: [event],
+    };
+
+    const newTodos: Todo[] = [
+        {
+            id: crypto.randomUUID(),
+            mutationId: event.mutationId,
+            description: "Suspendre les paiements",
+            status: 'à faire',
+        },
+        {
+            id: crypto.randomUUID(),
+            mutationId: event.mutationId,
+            description: "Analyser les droits",
+            status: 'en attente',
+        },
+         {
+            id: crypto.randomUUID(),
+            mutationId: event.mutationId,
+            description: "Valider la mutation",
+            status: 'en attente',
+        },
+    ];
+
+    newState.mutations = [newMutation, ...newState.mutations];
+    newState.todos = [...newState.todos, ...newTodos];
+
+    return newState;
+}
+
+// This function will rebuild the state from the event stream.
+// It's the core of the event sourcing pattern.
+function rebuildStateFromEvents(events: AppEvent[]): AppState {
+    let state = initialState;
+    // We reverse the events to apply them in chronological order
+    const sortedEvents = [...events].reverse();
+
+    for (const event of sortedEvents) {
+        switch (event.type) {
+            case 'DROITS_MUTATION_CREATED':
+                state = applyDroitsMutationCreated(state, event);
+                break;
+            // other event cases will go here
+        }
+    }
+    // We keep the eventStream in reverse chronological order for display
+    state.eventStream = events;
+    return state;
 }
 
 
-// 4. CONTEXT & PROVIDER
+// 4. AGGREGATE REDUCER (COMMAND HANDLER)
+// ======================================
+
+function cqrsReducer(state: AppState, command: AppCommand): AppState {
+    let newState = state;
+
+    // The command handlers only produce events and add them to the stream.
+    // They don't contain projection logic.
+    switch (command.type) {
+        case 'CREATE_DROITS_MUTATION':
+            newState = createDroitsMutationReducer(state, command);
+            break;
+        case 'SUSPEND_PAIEMENTS':
+            newState = suspendPaiementsReducer(state, command);
+            break;
+        case 'ANALYZE_DROITS':
+            newState = analyzeDroitsReducer(state, command);
+            break;
+        default:
+            return state;
+    }
+
+    // After a command has potentially added a new event,
+    // we rebuild the entire state from the full event stream.
+    // This is the "event sourcing" part of the pattern.
+    return rebuildStateFromEvents(newState.eventStream);
+}
+
+
+// 5. CONTEXT & PROVIDER
 // =======================
 const CqrsContext = createContext<{ state: AppState; dispatch: Dispatch<AppCommand> } | undefined>(undefined);
 
@@ -84,7 +156,7 @@ export function CqrsProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-// 5. HOOK
+// 6. HOOK
 // =========
 export function useCqrs() {
   const context = useContext(CqrsContext);
