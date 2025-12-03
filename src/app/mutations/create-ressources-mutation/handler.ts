@@ -4,9 +4,17 @@
 import type { AppState } from '../mutation-lifecycle/cqrs';
 import type { CreateRessourcesMutationCommand } from './command';
 import type { RessourcesMutationCreatedEvent } from './event';
+import { toast } from 'react-hot-toast';
 
 // Command Handler
 export function createRessourcesMutationCommandHandler(state: AppState, command: CreateRessourcesMutationCommand): AppState {
+  
+  const existingMutation = state.mutations.find(m => m.status === 'OUVERTE' || m.status === 'EN_COURS');
+  if (existingMutation) {
+    toast.error(`La mutation ${existingMutation.id} est déjà en cours.`);
+    return state;
+  }
+  
   const mutationId = crypto.randomUUID();
   const event: RessourcesMutationCreatedEvent = {
     id: crypto.randomUUID(),

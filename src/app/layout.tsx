@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import './globals.css';
-import { Toaster } from '@/components/ui/toaster';
+import { Toaster as OldToaster } from '@/components/ui/toaster';
+import { Toaster } from 'react-hot-toast';
 
 export const metadata: Metadata = {
   title: 'MutationFlow',
@@ -27,8 +28,9 @@ export default function RootLayout({
         />
       </head>
       <body className="font-body antialiased">
+        <Toaster position="bottom-center" />
         {children}
-        <Toaster />
+        <OldToaster />
       </body>
     </html>
   );
