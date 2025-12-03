@@ -1,10 +1,16 @@
 
 "use client";
 
+import React, { useState } from 'react';
 import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { ArrowRight, ArrowRightCircle, Check, CheckCircle2, Circle } from "lucide-react";
+import { ArrowRight, ArrowRightCircle, CalendarIcon, Check, CheckCircle2, Circle } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 export function AnalyzeDroitsTodoItem({ mutationId }: { mutationId: string }) {
     const { state } = useCqrs();
@@ -33,10 +39,19 @@ export function AnalyzeDroitsTodoItem({ mutationId }: { mutationId: string }) {
 
 export function AnalyzeDroitsButton({ mutationId }: { mutationId: string }) {
     const { state, dispatch } = useCqrs();
+    const [isOpen, setIsOpen] = useState(false);
+    const [dateDebut, setDateDebut] = useState<Date | undefined>();
+    const [dateFin, setDateFin] = useState<Date | undefined>();
+
     const todo = state.todos.find(t => t.mutationId === mutationId && t.description === 'Analyser les droits');
     
-    const handleClick = () => {
-        dispatch({ type: 'ANALYZE_DROITS', payload: { mutationId } });
+    const handleSubmit = () => {
+        if (!dateDebut || !dateFin) return;
+        dispatch({
+            type: 'ANALYZE_DROITS',
+            payload: { mutationId, dateDebut: dateDebut.toISOString(), dateFin: dateFin.toISOString() }
+        });
+        setIsOpen(false);
     };
 
     const isTodo = todo?.status === 'à faire';
@@ -49,14 +64,66 @@ export function AnalyzeDroitsButton({ mutationId }: { mutationId: string }) {
     }
 
     return (
-         <Button 
-            onClick={handleClick} 
-            disabled={!isTodo}
-            variant={getVariant()}
-            className="w-full"
-        >
-            {isDone ? <Check className="mr-2 h-4 w-4" /> : <ArrowRight className="mr-2 h-4 w-4" />}
-            Analyser les droits
-        </Button>
+        <>
+            <Button 
+                onClick={() => setIsOpen(true)} 
+                disabled={!isTodo}
+                variant={getVariant()}
+                className="w-full"
+            >
+                {isDone ? <Check className="mr-2 h-4 w-4" /> : <ArrowRight className="mr-2 h-4 w-4" />}
+                Analyser les droits
+            </Button>
+            <Dialog open={isOpen} onOpenChange={setIsOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Analyser les droits</DialogTitle>
+                        <DialogDescription>
+                            Veuillez sélectionner la période (début et fin de mois) pour l'analyse des droits.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-4 py-4">
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <label htmlFor="date-debut" className="text-right">Date de début</label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn("col-span-3 justify-start text-left font-normal", !dateDebut && "text-muted-foreground")}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {dateDebut ? format(dateDebut, 'LLLL yyyy', { locale: fr }) : <span>Choisissez un mois</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                    <Calendar mode="single" selected={dateDebut} onSelect={setDateDebut} initialFocus />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                        <div className="grid grid-cols-4 items-center gap-4">
+                            <label htmlFor="date-fin" className="text-right">Date de fin</label>
+                            <Popover>
+                                <PopoverTrigger asChild>
+                                    <Button
+                                        variant={"outline"}
+                                        className={cn("col-span-3 justify-start text-left font-normal", !dateFin && "text-muted-foreground")}
+                                    >
+                                        <CalendarIcon className="mr-2 h-4 w-4" />
+                                        {dateFin ? format(dateFin, 'LLLL yyyy', { locale: fr }) : <span>Choisissez un mois</span>}
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-auto p-0">
+                                    <Calendar mode="single" selected={dateFin} onSelect={setDateFin} initialFocus />
+                                </PopoverContent>
+                            </Popover>
+                        </div>
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={() => setIsOpen(false)} variant="ghost">Annuler</Button>
+                        <Button onClick={handleSubmit} disabled={!dateDebut || !dateFin}>Analyser</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+        </>
     )
 }

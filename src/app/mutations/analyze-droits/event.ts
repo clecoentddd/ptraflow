@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { BaseEvent } from '../mutation-lifecycle/cqrs';
@@ -7,5 +8,7 @@ export interface DroitsAnalysesEvent extends BaseEvent {
     type: 'DROITS_ANALYSES';
     payload: {
         userEmail: string;
+        dateDebut: string;
+        dateFin: string;
     }
 }
