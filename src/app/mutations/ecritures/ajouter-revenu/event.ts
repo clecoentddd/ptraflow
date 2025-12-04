@@ -1,15 +1,13 @@
-
 "use client";
 
 import type { BaseEvent } from '../../mutation-lifecycle/domain';
 
 // Event
-export interface EcritureAjouteeEvent extends BaseEvent {
-    type: 'ECRITURE_AJOUTEE';
+export interface RevenuAjouteEvent extends BaseEvent {
+    type: 'REVENU_AJOUTE';
     ressourceVersionId: string;
     payload: {
         ecritureId: string;
-        typeEcriture: 'revenu' | 'depense';
         code: string;
         libelle: string;
         montant: number;

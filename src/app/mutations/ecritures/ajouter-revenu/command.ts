@@ -1,14 +1,12 @@
-
 "use client";
 
 // Command
-export interface AjouterEcritureCommand {
-  type: 'AJOUTER_ECRITURE';
+export interface AjouterRevenuCommand {
+  type: 'AJOUTER_REVENU';
   payload: {
     mutationId: string;
     ressourceVersionId: string;
     ecritureId: string;
-    typeEcriture: 'revenu' | 'depense';
     code: string;
     libelle: string;
     montant: number;

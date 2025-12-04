@@ -6,7 +6,7 @@ import type { MutationValidatedEvent } from '../validate-mutation/event';
 import type { RessourcesMutationCreatedEvent } from '../create-ressources-mutation/event';
 import type { ModificationDroitsAutoriseeEvent } from '../autoriser-modification-des-droits/event';
 import type { ModificationRessourcesAutoriseeEvent } from '../autoriser-modification-des-ressources/event';
-import type { EcritureAjouteeEvent } from '../ecritures/ajouter-ecriture/event';
+import type { RevenuAjouteEvent } from '../ecritures/ajouter-revenu/event';
 
 import type { CreateDroitsMutationCommand } from '../create-mutation/command';
 import type { SuspendPaiementsCommand } from '../suspend-paiements/command';
@@ -15,7 +15,7 @@ import type { ValidateMutationCommand } from '../validate-mutation/command';
 import type { CreateRessourcesMutationCommand } from '../create-ressources-mutation/command';
 import type { AutoriserModificationDroitsCommand } from '../autoriser-modification-des-droits/command';
 import type { AutoriserModificationRessourcesCommand } from '../autoriser-modification-des-ressources/command';
-import type { AjouterEcritureCommand } from '../ecritures/ajouter-ecriture/command';
+import type { AjouterRevenuCommand } from '../ecritures/ajouter-revenu/command';
 
 import type { ValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
 import type { MutationsState } from '../projection-mutations/projection';
@@ -42,7 +42,7 @@ export type AppEvent =
     | RessourcesMutationCreatedEvent 
     | ModificationDroitsAutoriseeEvent
     | ModificationRessourcesAutoriseeEvent
-    | EcritureAjouteeEvent;
+    | RevenuAjouteEvent;
 
 // Command Union (Le "registre central" des commandes)
 export type AppCommand = 
@@ -53,7 +53,7 @@ export type AppCommand =
     | CreateRessourcesMutationCommand
     | AutoriserModificationDroitsCommand
     | AutoriserModificationRessourcesCommand
-    | AjouterEcritureCommand
+    | AjouterRevenuCommand
     | { type: 'REPLAY', event: AppEvent } 
     | { type: 'REPLAY_COMPLETE' };
 
