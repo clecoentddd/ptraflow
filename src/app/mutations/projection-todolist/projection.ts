@@ -26,7 +26,7 @@ export const initialTodolistState: TodolistState = {
 function applyDroitsMutationCreated(state: TodolistState, event: DroitsMutationCreatedEvent): TodolistState {
     const newTodos: Todo[] = [
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Suspendre les paiements", status: 'à faire' },
-        { id: crypto.randomUUID(), mutationId: event.mutationId, description: 'Autoriser la modification', status: 'en attente' },
+        { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Autoriser la modification de droits", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Analyser les droits", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la mutation", status: 'en attente' },
     ];
@@ -54,7 +54,7 @@ function applyPaiementsSuspendus(state: TodolistState, event: PaiementsSuspendus
             if (!mutation) return t;
 
             // Unlock next step based on mutation type
-            if (mutation.type === 'DROITS' && t.description === "Autoriser la modification") {
+            if (mutation.type === 'DROITS' && t.description === "Autoriser la modification de droits") {
                 return { ...t, status: 'à faire' };
             }
             if (mutation.type === 'RESSOURCES' && t.description === "Valider la mutation") {
@@ -71,7 +71,7 @@ function applyModificationDroitsAutorisee(state: TodolistState, event: Modificat
         ...state,
         todos: state.todos.map(t => {
             if (t.mutationId !== event.mutationId) return t;
-            if (t.description === "Autoriser la modification") return { ...t, status: 'fait' };
+            if (t.description === "Autoriser la modification de droits") return { ...t, status: 'fait' };
             if (t.description === "Analyser les droits") return { ...t, status: 'à faire' };
             return t;
         })
@@ -95,7 +95,7 @@ function applyModificationRessourcesAutorisee(state: TodolistState, event: Modif
         ...state,
         todos: state.todos.map(t => {
             if (t.mutationId !== event.mutationId) return t;
-            if (t.description === "Autoriser la modification") return { ...t, status: 'fait' };
+            if (t.description === " de droits") return { ...t, status: 'fait' };
             if (t.description === "Valider la mutation") return { ...t, status: 'à faire' };
             return t;
         })

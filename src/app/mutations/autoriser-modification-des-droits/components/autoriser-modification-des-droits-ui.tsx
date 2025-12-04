@@ -9,7 +9,7 @@ import { queryTodos } from "../../projection-todolist/projection";
 export function AutoriserModificationDroitsTodoItem({ mutationId }: { mutationId: string }) {
     const { state } = useCqrs();
     const todos = queryTodos(state);
-    const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Autoriser la modification');
+    const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Autoriser la modification de droits');
 
     if (!todo) return null;
 
@@ -35,7 +35,7 @@ export function AutoriserModificationDroitsTodoItem({ mutationId }: { mutationId
 export function AutoriserModificationDroitsButton({ mutationId }: { mutationId: string }) {
     const { state, dispatch } = useCqrs();
     const todos = queryTodos(state);
-    const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Autoriser la modification');
+    const todo = todos.find(t => t.mutationId === mutationId && t.description === '');
     
     const handleClick = () => {
         dispatch({ type: 'AUTORISER_MODIFICATION_DROITS', payload: { mutationId } });
@@ -60,7 +60,7 @@ export function AutoriserModificationDroitsButton({ mutationId }: { mutationId: 
             className="w-full"
         >
             {isDone ? <Check className="mr-2 h-4 w-4" /> : <ArrowRight className="mr-2 h-4 w-4" />}
-            Autoriser la modification
+            Autoriser la modification de droits
         </Button>
     )
 }
