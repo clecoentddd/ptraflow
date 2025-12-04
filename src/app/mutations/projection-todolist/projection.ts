@@ -1,6 +1,7 @@
+
 "use client";
 
-import type { AppEvent, AppCommand, AppState, Todo } from '../mutation-lifecycle/domain';
+import type { AppEvent, AppCommand, AppState, Todo, MutationType } from '../mutation-lifecycle/domain';
 import type { DroitsMutationCreatedEvent } from '../create-mutation/event';
 import type { RessourcesMutationCreatedEvent } from '../create-ressources-mutation/event';
 import type { PaiementsSuspendusEvent } from '../suspend-paiements/event';
@@ -35,7 +36,6 @@ function applyDroitsMutationCreated(state: TodolistState, event: DroitsMutationC
 function applyRessourcesMutationCreated(state: TodolistState, event: RessourcesMutationCreatedEvent): TodolistState {
     const newTodos: Todo[] = [
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Suspendre les paiements", status: 'à faire' },
-        { id: crypto.randomUUID(), mutationId: event.mutationId, description: 'Autoriser la modification', status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la mutation", status: 'en attente' },
     ];
     return { ...state, todos: [...state.todos.filter(t => t.mutationId !== event.mutationId), ...newTodos] };
@@ -47,11 +47,18 @@ function applyPaiementsSuspendus(state: TodolistState, event: PaiementsSuspendus
         todos: state.todos.map(t => {
             if (t.mutationId !== event.mutationId) return t;
 
+            // Mark "Suspendre les paiements" as done
             if (t.description === "Suspendre les paiements") return { ...t, status: 'fait' };
             
             const mutation = mutations.find(m => m.id === event.mutationId);
-            if (mutation && t.description === "Autoriser la modification") {
+            if (!mutation) return t;
+
+            // Unlock next step based on mutation type
+            if (mutation.type === 'DROITS' && t.description === "Autoriser la modification") {
                 return { ...t, status: 'à faire' };
+            }
+            if (mutation.type === 'RESSOURCES' && t.description === "Valider la mutation") {
+                 return { ...t, status: 'à faire' };
             }
             
             return t;
