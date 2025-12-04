@@ -17,11 +17,8 @@ export function createDroitsMutationCommandHandler(
   dependencies: HandlerDependencies = { toast: realToast }
 ): AppState {
   
-  const existingMutation = state.mutations.find(m => m.status === 'OUVERTE' || m.status === 'EN_COURS');
-  if (existingMutation) {
-    dependencies.toast.error(`La mutation ${existingMutation.id} est déjà en cours.`);
-    return state;
-  }
+  // La validation a été déplacée côté UI. 
+  // Le handler se contente maintenant de créer l'événement.
   
   const mutationId = crypto.randomUUID();
   const event: DroitsMutationCreatedEvent = {
