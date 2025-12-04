@@ -95,7 +95,7 @@ function applyModificationRessourcesAutorisee(state: TodolistState, event: Modif
         ...state,
         todos: state.todos.map(t => {
             if (t.mutationId !== event.mutationId) return t;
-            if (t.description === " de droits") return { ...t, status: 'fait' };
+            if (t.description === "Autoriser la modification de ressources") return { ...t, status: 'fait' };
             if (t.description === "Valider la mutation") return { ...t, status: 'à faire' };
             return t;
         })
