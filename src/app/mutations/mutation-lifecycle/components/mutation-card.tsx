@@ -90,7 +90,7 @@ export function MutationCard({ mutation }: { mutation: Mutation }) {
               <ValidateMutationTodoItem mutationId={mutation.id} />
           </ul>
         </div>
-        {canEditRessources && (
+        {canEditRessources && authEvent && (
             <div className="mt-6">
                 <Separator className="my-4" />
                 <h3 className="text-sm font-medium mb-2">Gestion des ressources</h3>
