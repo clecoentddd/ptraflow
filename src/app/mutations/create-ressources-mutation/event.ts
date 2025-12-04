@@ -1,5 +1,4 @@
-
-import type { BaseEvent } from '../mutation-lifecycle/cqrs';
+import type { BaseEvent } from '../mutation-lifecycle/domain';
 
 // Event
 export interface RessourcesMutationCreatedEvent extends BaseEvent {
