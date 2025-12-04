@@ -35,7 +35,7 @@ export function AutoriserModificationDroitsTodoItem({ mutationId }: { mutationId
 export function AutoriserModificationDroitsButton({ mutationId }: { mutationId: string }) {
     const { state, dispatch } = useCqrs();
     const todos = queryTodos(state);
-    const todo = todos.find(t => t.mutationId === mutationId && t.description === '');
+    const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Autoriser la modification de droits');
     
     const handleClick = () => {
         dispatch({ type: 'AUTORISER_MODIFICATION_DROITS', payload: { mutationId } });
@@ -64,5 +64,3 @@ export function AutoriserModificationDroitsButton({ mutationId }: { mutationId: 
         </Button>
     )
 }
-
-    
