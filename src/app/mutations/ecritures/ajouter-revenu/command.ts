@@ -10,7 +10,7 @@ export interface AjouterRevenuCommand {
     code: string;
     libelle: string;
     montant: number;
-    dateDebut: string; // format YYYY-MM-DD
-    dateFin: string; // format YYYY-MM-DD
+    dateDebut: string; // ISO Date String
+    dateFin: string; // ISO Date String
   };
 }

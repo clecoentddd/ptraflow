@@ -15,8 +15,13 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { PlusCircle } from 'lucide-react';
+import { CalendarIcon, PlusCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { MonthPicker } from '@/components/ui/month-picker';
+import { cn } from '@/lib/utils';
+import { format } from 'date-fns';
+import { fr } from 'date-fns/locale';
 
 interface AjouterRevenuUIProps {
     mutationId: string;
@@ -31,8 +36,8 @@ export function AjouterRevenuUI({ mutationId, ressourceVersionId }: AjouterReven
     const [code, setCode] = useState('');
     const [libelle, setLibelle] = useState('');
     const [montant, setMontant] = useState('');
-    const [dateDebut, setDateDebut] = useState('');
-    const [dateFin, setDateFin] = useState('');
+    const [dateDebut, setDateDebut] = useState<Date | undefined>();
+    const [dateFin, setDateFin] = useState<Date | undefined>();
 
     const handleSubmit = () => {
         const parsedMontant = parseFloat(montant);
@@ -46,6 +51,11 @@ export function AjouterRevenuUI({ mutationId, ressourceVersionId }: AjouterReven
             return;
         }
 
+        if (dateDebut > dateFin) {
+            toast.error("La date de début ne peut pas être après la date de fin.");
+            return;
+        }
+
         dispatch({
             type: 'AJOUTER_REVENU',
             payload: {
@@ -55,8 +65,8 @@ export function AjouterRevenuUI({ mutationId, ressourceVersionId }: AjouterReven
                 code,
                 libelle,
                 montant: parsedMontant,
-                dateDebut, // expected format YYYY-MM-DD from input type="date"
-                dateFin,   // expected format YYYY-MM-DD from input type="date"
+                dateDebut: dateDebut.toISOString(),
+                dateFin: dateFin.toISOString(),
             }
         });
 
@@ -64,11 +74,13 @@ export function AjouterRevenuUI({ mutationId, ressourceVersionId }: AjouterReven
         setCode('');
         setLibelle('');
         setMontant('');
-        setDateDebut('');
-        setDateFin('');
+        setDateDebut(undefined);
+        setDateFin(undefined);
         setIsOpen(false);
     };
     
+    const isFormValid = code && libelle && montant && dateDebut && dateFin && (dateDebut <= dateFin);
+
     return (
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
@@ -98,17 +110,49 @@ export function AjouterRevenuUI({ mutationId, ressourceVersionId }: AjouterReven
                         <Input id="montant" type="number" value={montant} onChange={e => setMontant(e.target.value)} className="col-span-3" />
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="dateDebut" className="text-right">Date de début</Label>
-                        <Input id="dateDebut" type="date" value={dateDebut} onChange={e => setDateDebut(e.target.value)} className="col-span-3" />
+                        <Label htmlFor="date-debut" className="text-right">Date de début</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant={"outline"}
+                                    className={cn("col-span-3 justify-start text-left font-normal", !dateDebut && "text-muted-foreground")}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {dateDebut ? format(dateDebut, 'LLLL yyyy', { locale: fr }) : <span>Choisissez un mois</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                                 <MonthPicker
+                                    date={dateDebut}
+                                    onChange={(newDate) => setDateDebut(newDate)}
+                                />
+                            </PopoverContent>
+                        </Popover>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="dateFin" className="text-right">Date de fin</Label>
-                        <Input id="dateFin" type="date" value={dateFin} onChange={e => setDateFin(e.target.value)} className="col-span-3" />
+                        <Label htmlFor="date-fin" className="text-right">Date de fin</Label>
+                        <Popover>
+                            <PopoverTrigger asChild>
+                                <Button
+                                    variant={"outline"}
+                                    className={cn("col-span-3 justify-start text-left font-normal", !dateFin && "text-muted-foreground")}
+                                >
+                                    <CalendarIcon className="mr-2 h-4 w-4" />
+                                    {dateFin ? format(dateFin, 'LLLL yyyy', { locale: fr }) : <span>Choisissez un mois</span>}
+                                </Button>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-auto p-0">
+                                <MonthPicker
+                                    date={dateFin}
+                                    onChange={(newDate) => setDateFin(newDate)}
+                                />
+                            </PopoverContent>
+                        </Popover>
                     </div>
                 </div>
                 <DialogFooter>
                     <Button onClick={() => setIsOpen(false)} variant="ghost">Annuler</Button>
-                    <Button onClick={handleSubmit}>Ajouter</Button>
+                    <Button onClick={handleSubmit} disabled={!isFormValid}>Ajouter</Button>
                 </DialogFooter>
             </DialogContent>
         </Dialog>
