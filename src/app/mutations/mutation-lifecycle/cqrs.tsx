@@ -14,6 +14,7 @@ import { validateMutationCommandHandler } from '../validate-mutation/handler';
 import { createRessourcesMutationCommandHandler } from '../create-ressources-mutation/handler';
 import { autoriserModificationDroitsCommandHandler } from '../autoriser-modification-des-droits/handler';
 import { autoriserModificationRessourcesCommandHandler } from '../autoriser-modification-des-ressources/handler';
+import { ajouterEcritureCommandHandler } from '../ecritures/ajouter-ecriture/handler';
 
 // Importation des logiques de projection
 import { validatedPeriodsProjectionReducer, initialValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
@@ -102,6 +103,9 @@ export function cqrsReducer(state: AppState, command: AppCommand): AppState {
             break;
         case 'VALIDATE_MUTATION':
             newState = validateMutationCommandHandler(state, command);
+            break;
+        case 'AJOUTER_ECRITURE':
+            newState = ajouterEcritureCommandHandler(state, command);
             break;
         default:
             return state;

@@ -5,6 +5,7 @@ import type { AppState } from '../../mutation-lifecycle/domain';
 import type { AjouterEcritureCommand } from './command';
 import type { EcritureAjouteeEvent } from './event';
 import { toast as realToast } from 'react-hot-toast';
+import { format } from 'date-fns';
 
 type HandlerDependencies = {
   toast: { error: (message: string) => void };
@@ -40,8 +41,8 @@ export function ajouterEcritureCommandHandler(
             code,
             libelle,
             montant,
-            dateDebut,
-            dateFin,
+            dateDebut: format(new Date(dateDebut), 'MM-yyyy'),
+            dateFin: format(new Date(dateFin), 'MM-yyyy'),
         }
     };
 

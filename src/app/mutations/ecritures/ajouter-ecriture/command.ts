@@ -12,7 +12,7 @@ export interface AjouterEcritureCommand {
     code: string;
     libelle: string;
     montant: number;
-    dateDebut: string;
-    dateFin: string;
+    dateDebut: string; // format YYYY-MM-DD
+    dateFin: string; // format YYYY-MM-DD
   };
 }
