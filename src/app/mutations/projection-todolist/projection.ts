@@ -9,6 +9,7 @@ import type { ModificationDroitsAutoriseeEvent } from '../autoriser-modification
 import type { DroitsAnalysesEvent } from '../analyze-droits/event';
 import type { MutationValidatedEvent } from '../validate-mutation/event';
 import type { ModificationRessourcesAutoriseeEvent } from '../autoriser-modification-des-ressources/event';
+import type { ModificationRessourcesValideeEvent } from '../valider-modification-ressources/event';
 
 
 // 1. State Slice and Initial State
@@ -29,6 +30,7 @@ function applyDroitsMutationCreated(state: TodolistState, event: DroitsMutationC
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Autoriser la modification de droits", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Analyser les droits", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Autoriser la modification de ressources", status: 'en attente' },
+        { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la modification des ressources", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la mutation", status: 'en attente' },
     ];
     return { ...state, todos: [...state.todos.filter(t => t.mutationId !== event.mutationId), ...newTodos] };
@@ -38,6 +40,7 @@ function applyRessourcesMutationCreated(state: TodolistState, event: RessourcesM
     const newTodos: Todo[] = [
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Suspendre les paiements", status: 'à faire' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Autoriser la modification de ressources", status: 'en attente' },
+        { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la modification des ressources", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la mutation", status: 'en attente' },
     ];
     return { ...state, todos: [...state.todos.filter(t => t.mutationId !== event.mutationId), ...newTodos] };
@@ -100,7 +103,19 @@ function applyModificationRessourcesAutorisee(state: TodolistState, event: Modif
             if (t.mutationId !== event.mutationId) return t;
             // Mark the current step as 'fait'
             if (t.description === "Autoriser la modification de ressources") return { ...t, status: 'fait' };
-            // Unlock the next step, which is always "Valider la mutation"
+            // Unlock the next step
+            if (t.description === "Valider la modification des ressources") return { ...t, status: 'à faire' };
+            return t;
+        })
+    };
+}
+
+function applyModificationRessourcesValidee(state: TodolistState, event: ModificationRessourcesValideeEvent): TodolistState {
+    return {
+        ...state,
+        todos: state.todos.map(t => {
+            if (t.mutationId !== event.mutationId) return t;
+            if (t.description === "Valider la modification des ressources") return { ...t, status: 'fait' };
             if (t.description === "Valider la mutation") return { ...t, status: 'à faire' };
             return t;
         })
@@ -142,6 +157,8 @@ export function todolistProjectionReducer<T extends TodolistState & { mutations:
                     return applyDroitsAnalyses(state, event) as T;
                 case 'MODIFICATION_RESSOURCES_AUTORISEE':
                     return applyModificationRessourcesAutorisee(state, event) as T;
+                case 'MODIFICATION_RESSOURCES_VALIDEE':
+                    return applyModificationRessourcesValidee(state, event) as T;
                 case 'MUTATION_VALIDATED':
                     return applyMutationValidated(state, event) as T;
             }

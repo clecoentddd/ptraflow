@@ -18,6 +18,7 @@ import { AnalyzeDroitsButton, AnalyzeDroitsTodoItem } from "@/app/mutations/anal
 import { ValidateMutationButton, ValidateMutationTodoItem } from "@/app/mutations/validate-mutation/components/validate-mutation-ui";
 import { AutoriserModificationDroitsButton, AutoriserModificationDroitsTodoItem } from "../../autoriser-modification-des-droits/components/autoriser-modification-des-droits-ui";
 import { AutoriserModificationRessourcesButton, AutoriserModificationRessourcesTodoItem } from "../../autoriser-modification-des-ressources/components/autoriser-modification-ressources-ui";
+import { ValiderModificationRessourcesButton, ValiderModificationRessourcesTodoItem } from "../../valider-modification-ressources/components/valider-modification-ressources-ui";
 
 
 const statusStyles: Record<MutationStatus, string> = {
@@ -65,6 +66,7 @@ export function MutationCard({ mutation }: { mutation: Mutation }) {
                 </>
               )}
               <AutoriserModificationRessourcesTodoItem mutationId={mutation.id} />
+              <ValiderModificationRessourcesTodoItem mutationId={mutation.id} />
               <ValidateMutationTodoItem mutationId={mutation.id} />
           </ul>
         </div>
@@ -78,6 +80,7 @@ export function MutationCard({ mutation }: { mutation: Mutation }) {
             </>
          )}
          <AutoriserModificationRessourcesButton mutationId={mutation.id} />
+         <ValiderModificationRessourcesButton mutationId={mutation.id} />
          <ValidateMutationButton mutationId={mutation.id} />
       </CardFooter>
     </Card>
