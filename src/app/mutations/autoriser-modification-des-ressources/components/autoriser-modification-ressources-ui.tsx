@@ -38,7 +38,13 @@ export function AutoriserModificationRessourcesButton({ mutationId }: { mutation
     const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Autoriser la modification de ressources');
     
     const handleClick = () => {
-        dispatch({ type: 'AUTORISER_MODIFICATION_RESSOURCES', payload: { mutationId } });
+        dispatch({ 
+            type: 'AUTORISER_MODIFICATION_RESSOURCES', 
+            payload: { 
+                mutationId,
+                ressourceVersionId: crypto.randomUUID()
+            } 
+        });
     };
 
     if (!todo) return null;

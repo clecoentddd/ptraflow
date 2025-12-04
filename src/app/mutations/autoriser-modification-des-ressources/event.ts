@@ -7,5 +7,6 @@ export interface ModificationRessourcesAutoriseeEvent extends BaseEvent {
     type: 'MODIFICATION_RESSOURCES_AUTORISEE';
     payload: {
         userEmail: string;
+        ressourceVersionId: string;
     }
 }
