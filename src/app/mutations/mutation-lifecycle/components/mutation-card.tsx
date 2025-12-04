@@ -64,9 +64,7 @@ export function MutationCard({ mutation }: { mutation: Mutation }) {
                     <AnalyzeDroitsTodoItem mutationId={mutation.id} />
                 </>
               )}
-              {mutation.type === 'RESSOURCES' && (
-                <AutoriserModificationRessourcesTodoItem mutationId={mutation.id} />
-              )}
+              <AutoriserModificationRessourcesTodoItem mutationId={mutation.id} />
               <ValidateMutationTodoItem mutationId={mutation.id} />
           </ul>
         </div>
@@ -79,9 +77,7 @@ export function MutationCard({ mutation }: { mutation: Mutation }) {
                 <AnalyzeDroitsButton mutationId={mutation.id} />
             </>
          )}
-         {mutation.type === 'RESSOURCES' && (
-            <AutoriserModificationRessourcesButton mutationId={mutation.id} />
-         )}
+         <AutoriserModificationRessourcesButton mutationId={mutation.id} />
          <ValidateMutationButton mutationId={mutation.id} />
       </CardFooter>
     </Card>
