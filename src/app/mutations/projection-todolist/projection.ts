@@ -36,6 +36,7 @@ function applyDroitsMutationCreated(state: TodolistState, event: DroitsMutationC
 function applyRessourcesMutationCreated(state: TodolistState, event: RessourcesMutationCreatedEvent): TodolistState {
     const newTodos: Todo[] = [
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Suspendre les paiements", status: 'à faire' },
+        { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Autoriser la modification de ressources", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la mutation", status: 'en attente' },
     ];
     return { ...state, todos: [...state.todos.filter(t => t.mutationId !== event.mutationId), ...newTodos] };
@@ -57,7 +58,7 @@ function applyPaiementsSuspendus(state: TodolistState, event: PaiementsSuspendus
             if (mutation.type === 'DROITS' && t.description === "Autoriser la modification de droits") {
                 return { ...t, status: 'à faire' };
             }
-            if (mutation.type === 'RESSOURCES' && t.description === "Valider la mutation") {
+            if (mutation.type === 'RESSOURCES' && t.description === "Autoriser la modification de ressources") {
                  return { ...t, status: 'à faire' };
             }
             
