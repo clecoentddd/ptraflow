@@ -23,6 +23,7 @@ import { AjouterRevenuUI } from "../../ecritures/ajouter-revenu/components/ajout
 import { useCqrs } from "../cqrs";
 import type { ModificationRessourcesAutoriseeEvent } from "../../autoriser-modification-des-ressources/event";
 import { Separator } from "@/components/ui/separator";
+import { AjouterDepenseUI } from "../../ecritures/ajouter-depense/components/ajouter-depense-ui";
 
 
 const statusStyles: Record<MutationStatus, string> = {
@@ -95,10 +96,16 @@ export function MutationCard({ mutation }: { mutation: Mutation }) {
                 <Separator className="my-4" />
                 <h3 className="text-sm font-medium mb-2">Gestion des ressources</h3>
                  <p className="text-xs text-muted-foreground mb-4">Version des ressources: <code className="font-mono">{authEvent.ressourceVersionId}</code></p>
-                <AjouterRevenuUI 
-                    mutationId={mutation.id}
-                    ressourceVersionId={authEvent.ressourceVersionId}
-                />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                    <AjouterRevenuUI 
+                        mutationId={mutation.id}
+                        ressourceVersionId={authEvent.ressourceVersionId}
+                    />
+                    <AjouterDepenseUI
+                        mutationId={mutation.id}
+                        ressourceVersionId={authEvent.ressourceVersionId}
+                    />
+                </div>
             </div>
         )}
       </CardContent>

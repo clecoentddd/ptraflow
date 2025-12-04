@@ -7,6 +7,7 @@ import type { RessourcesMutationCreatedEvent } from '../create-ressources-mutati
 import type { ModificationDroitsAutoriseeEvent } from '../autoriser-modification-des-droits/event';
 import type { ModificationRessourcesAutoriseeEvent } from '../autoriser-modification-des-ressources/event';
 import type { RevenuAjouteEvent } from '../ecritures/ajouter-revenu/event';
+import type { DepenseAjouteeEvent } from '../ecritures/ajouter-depense/event';
 import type { ModificationRessourcesValideeEvent } from '../valider-modification-ressources/event';
 
 import type { CreateDroitsMutationCommand } from '../create-mutation/command';
@@ -17,6 +18,7 @@ import type { CreateRessourcesMutationCommand } from '../create-ressources-mutat
 import type { AutoriserModificationDroitsCommand } from '../autoriser-modification-des-droits/command';
 import type { AutoriserModificationRessourcesCommand } from '../autoriser-modification-des-ressources/command';
 import type { AjouterRevenuCommand } from '../ecritures/ajouter-revenu/command';
+import type { AjouterDepenseCommand } from '../ecritures/ajouter-depense/command';
 import type { ValiderModificationRessourcesCommand } from '../valider-modification-ressources/command';
 
 import type { ValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
@@ -45,6 +47,7 @@ export type AppEvent =
     | ModificationDroitsAutoriseeEvent
     | ModificationRessourcesAutoriseeEvent
     | RevenuAjouteEvent
+    | DepenseAjouteeEvent
     | ModificationRessourcesValideeEvent;
 
 // Command Union (Le "registre central" des commandes)
@@ -57,6 +60,7 @@ export type AppCommand =
     | AutoriserModificationDroitsCommand
     | AutoriserModificationRessourcesCommand
     | AjouterRevenuCommand
+    | AjouterDepenseCommand
     | ValiderModificationRessourcesCommand
     | { type: 'REPLAY', event: AppEvent } 
     | { type: 'REPLAY_COMPLETE' };

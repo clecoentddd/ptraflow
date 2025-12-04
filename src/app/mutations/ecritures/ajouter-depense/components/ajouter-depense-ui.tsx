@@ -15,7 +15,7 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CalendarIcon, PlusCircle } from 'lucide-react';
+import { CalendarIcon, MinusCircle } from 'lucide-react';
 import { toast } from 'react-hot-toast';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { MonthPicker } from '@/components/ui/month-picker';
@@ -23,14 +23,14 @@ import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { incomeOptions } from '../../ecriture-options';
+import { expenseOptions } from '../../ecriture-options';
 
-interface AjouterRevenuUIProps {
+interface AjouterDepenseUIProps {
     mutationId: string;
     ressourceVersionId: string;
 }
 
-export function AjouterRevenuUI({ mutationId, ressourceVersionId }: AjouterRevenuUIProps) {
+export function AjouterDepenseUI({ mutationId, ressourceVersionId }: AjouterDepenseUIProps) {
     const { dispatch } = useCqrs();
     const [isOpen, setIsOpen] = useState(false);
     
@@ -41,7 +41,7 @@ export function AjouterRevenuUI({ mutationId, ressourceVersionId }: AjouterReven
     const [dateFin, setDateFin] = useState<Date | undefined>();
 
     const handleSelectChange = (value: string) => {
-        const option = incomeOptions.find(opt => opt.code === value);
+        const option = expenseOptions.find(opt => opt.code === value);
         setSelectedOption(option || null);
     };
 
@@ -56,14 +56,14 @@ export function AjouterRevenuUI({ mutationId, ressourceVersionId }: AjouterReven
             toast.error("Tous les champs sont obligatoires.");
             return;
         }
-
+        
         if (dateDebut > dateFin) {
             toast.error("La date de début ne peut pas être après la date de fin.");
             return;
         }
 
         dispatch({
-            type: 'AJOUTER_REVENU',
+            type: 'AJOUTER_DEPENSE',
             payload: {
                 mutationId,
                 ressourceVersionId,
@@ -90,26 +90,26 @@ export function AjouterRevenuUI({ mutationId, ressourceVersionId }: AjouterReven
         <Dialog open={isOpen} onOpenChange={setIsOpen}>
             <DialogTrigger asChild>
                 <Button variant="outline" className="w-full">
-                    <PlusCircle className="mr-2 h-4 w-4" />
-                    Ajouter un revenu
+                    <MinusCircle className="mr-2 h-4 w-4" />
+                    Ajouter une dépense
                 </Button>
             </DialogTrigger>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Ajouter un nouveau revenu</DialogTitle>
+                    <DialogTitle>Ajouter une nouvelle dépense</DialogTitle>
                     <DialogDescription>
-                        Saisissez les informations du revenu.
+                        Saisissez les informations de la dépense.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="grid gap-4 py-4">
-                    <div className="grid grid-cols-4 items-center gap-4">
+                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="code" className="text-right">Type</Label>
-                        <Select onValueChange={handleSelectChange} value={selectedOption?.code}>
+                         <Select onValueChange={handleSelectChange} value={selectedOption?.code}>
                             <SelectTrigger className="col-span-3">
-                                <SelectValue placeholder="Sélectionnez un type de revenu" />
+                                <SelectValue placeholder="Sélectionnez un type de dépense" />
                             </SelectTrigger>
                             <SelectContent>
-                                {incomeOptions.map(option => (
+                                {expenseOptions.map(option => (
                                     <SelectItem key={option.code} value={option.code}>
                                         {option.label} ({option.code})
                                     </SelectItem>
