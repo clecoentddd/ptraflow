@@ -11,14 +11,12 @@ export function AppHeader() {
   const { state, dispatch } = useCqrs();
   const mutations = queryMutations(state);
 
-  // Logique de validation déplacée ici, depuis le handler.
+  // La validation est dupliquée ici pour une meilleure expérience utilisateur (désactivation du bouton).
+  // La validation principale reste dans le handler.
   const existingMutation = mutations.find(m => m.status === 'OUVERTE' || m.status === 'EN_COURS');
 
   const handleCreateDroitsMutation = () => {
-    if (existingMutation) {
-      toast.error(`La mutation ${existingMutation.id} est déjà en cours.`);
-      return;
-    }
+    // L'UI tente d'envoyer la commande. Le handler aura le dernier mot.
     dispatch({ type: 'CREATE_DROITS_MUTATION' });
   };
 
