@@ -10,7 +10,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Mutation, MutationStatus, MutationType } from "@/app/mutations/mutation-lifecycle/domain";
+import type { Mutation, MutationStatus, MutationType, AppEvent } from "@/app/mutations/mutation-lifecycle/domain";
 import { Users, Gem } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { SuspendPaiementsButton, SuspendPaiementsTodoItem } from "@/app/mutations/suspend-paiements/components/suspend-paiements-ui";
@@ -19,6 +19,10 @@ import { ValidateMutationButton, ValidateMutationTodoItem } from "@/app/mutation
 import { AutoriserModificationDroitsButton, AutoriserModificationDroitsTodoItem } from "../../autoriser-modification-des-droits/components/autoriser-modification-des-droits-ui";
 import { AutoriserModificationRessourcesButton, AutoriserModificationRessourcesTodoItem } from "../../autoriser-modification-des-ressources/components/autoriser-modification-ressources-ui";
 import { ValiderModificationRessourcesButton, ValiderModificationRessourcesTodoItem } from "../../valider-modification-ressources/components/valider-modification-ressources-ui";
+import { AjouterRevenuUI } from "../../ecritures/ajouter-revenu/components/ajouter-revenu-ui";
+import { useCqrs } from "../cqrs";
+import type { ModificationRessourcesAutoriseeEvent } from "../../autoriser-modification-des-ressources/event";
+import { Separator } from "@/components/ui/separator";
 
 
 const statusStyles: Record<MutationStatus, string> = {
@@ -34,9 +38,25 @@ const typeDetails: Record<MutationType, { title: string, icon: React.ElementType
 }
 
 export function MutationCard({ mutation }: { mutation: Mutation }) {
+  const { state } = useCqrs();
   const isCompleted = mutation.status === 'COMPLETEE' || mutation.status === 'REJETEE';
   const details = typeDetails[mutation.type] || { title: "Mutation", icon: Users };
   const Icon = details.icon;
+
+  // Business Rule: Check if resource modification is allowed
+  const authEvent = state.eventStream.find(
+      (e): e is ModificationRessourcesAutoriseeEvent => 
+          e.mutationId === mutation.id && e.type === 'MODIFICATION_RESSOURCES_AUTORISEE'
+  );
+
+  const isRessourceModificationValidated = state.eventStream.some(
+      e => e.mutationId === mutation.id && 
+           e.type === 'MODIFICATION_RESSOURCES_VALIDEE' &&
+           authEvent &&
+           (e as any).ressourceVersionId === authEvent.ressourceVersionId
+  );
+
+  const canEditRessources = authEvent && !isRessourceModificationValidated;
 
   return (
     <Card className="flex flex-col justify-between transition-shadow duration-300 hover:shadow-xl">
@@ -70,6 +90,17 @@ export function MutationCard({ mutation }: { mutation: Mutation }) {
               <ValidateMutationTodoItem mutationId={mutation.id} />
           </ul>
         </div>
+        {canEditRessources && (
+            <div className="mt-6">
+                <Separator className="my-4" />
+                <h3 className="text-sm font-medium mb-2">Gestion des ressources</h3>
+                 <p className="text-xs text-muted-foreground mb-4">Version des ressources: <code className="font-mono">{authEvent.ressourceVersionId}</code></p>
+                <AjouterRevenuUI 
+                    mutationId={mutation.id}
+                    ressourceVersionId={authEvent.ressourceVersionId}
+                />
+            </div>
+        )}
       </CardContent>
       <CardFooter className="flex flex-col items-stretch gap-2">
          <SuspendPaiementsButton mutationId={mutation.id} />
