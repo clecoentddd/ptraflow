@@ -1,3 +1,4 @@
+
 "use client";
     
 import type { AppState } from '../mutation-lifecycle/domain';
@@ -13,9 +14,9 @@ export function autoriserModificationRessourcesCommandHandler(state: AppState, c
     type: 'MODIFICATION_RESSOURCES_AUTORISEE',
     mutationId,
     timestamp: new Date().toISOString(),
+    ressourceVersionId,
     payload: {
         userEmail: 'anonymous',
-        ressourceVersionId,
     }
   };
 
