@@ -93,21 +93,15 @@ function applyDroitsAnalyses(state: TodolistState, event: DroitsAnalysesEvent): 
     };
 }
 
-function applyModificationRessourcesAutorisee(state: TodolistState, event: ModificationRessourcesAutoriseeEvent, mutations: AppState['mutations']): TodolistState {
+function applyModificationRessourcesAutorisee(state: TodolistState, event: ModificationRessourcesAutoriseeEvent): TodolistState {
     return {
         ...state,
         todos: state.todos.map(t => {
             if (t.mutationId !== event.mutationId) return t;
+            // Mark the current step as 'fait'
             if (t.description === "Autoriser la modification de ressources") return { ...t, status: 'fait' };
-
-            const mutation = mutations.find(m => m.id === event.mutationId);
-            if (!mutation) return t;
-
-            // For both mutation types, the next step is "Valider la mutation"
-            if (t.description === "Valider la mutation") {
-                 return { ...t, status: 'à faire' };
-            }
-            
+            // Unlock the next step, which is always "Valider la mutation"
+            if (t.description === "Valider la mutation") return { ...t, status: 'à faire' };
             return t;
         })
     };
@@ -147,7 +141,7 @@ export function todolistProjectionReducer<T extends TodolistState & { mutations:
                 case 'DROITS_ANALYSES':
                     return applyDroitsAnalyses(state, event) as T;
                 case 'MODIFICATION_RESSOURCES_AUTORISEE':
-                    return applyModificationRessourcesAutorisee(state, event, state.mutations) as T;
+                    return applyModificationRessourcesAutorisee(state, event) as T;
                 case 'MUTATION_VALIDATED':
                     return applyMutationValidated(state, event) as T;
             }
