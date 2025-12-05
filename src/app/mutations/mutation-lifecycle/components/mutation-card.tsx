@@ -45,7 +45,6 @@ export function MutationCard({ mutation }: { mutation: Mutation }) {
   const details = typeDetails[mutation.type] || { title: "Mutation", icon: Users };
   const Icon = details.icon;
 
-  // Business Rule: Check if resource modification is allowed
   const authEvent = state.eventStream.find(
       (e): e is ModificationRessourcesAutoriseeEvent => 
           e.mutationId === mutation.id && e.type === 'MODIFICATION_RESSOURCES_AUTORISEE'
@@ -92,24 +91,27 @@ export function MutationCard({ mutation }: { mutation: Mutation }) {
               <ValidateMutationTodoItem mutationId={mutation.id} />
           </ul>
         </div>
-        {canEditRessources && authEvent && (
+        {authEvent && (
             <div className="mt-6">
                 <Separator className="my-4" />
                 <h3 className="text-sm font-medium mb-2">Gestion des ressources</h3>
                  <p className="text-xs text-muted-foreground mb-4">Version des ressources: <code className="font-mono">{authEvent.ressourceVersionId}</code></p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                    <AjouterRevenuUI 
-                        mutationId={mutation.id}
-                        ressourceVersionId={authEvent.ressourceVersionId}
-                    />
-                    <AjouterDepenseUI
-                        mutationId={mutation.id}
-                        ressourceVersionId={authEvent.ressourceVersionId}
-                    />
-                </div>
+                {canEditRessources && (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <AjouterRevenuUI 
+                            mutationId={mutation.id}
+                            ressourceVersionId={authEvent.ressourceVersionId}
+                        />
+                        <AjouterDepenseUI
+                            mutationId={mutation.id}
+                            ressourceVersionId={authEvent.ressourceVersionId}
+                        />
+                    </div>
+                )}
                 <EcrituresListUI
                     mutationId={mutation.id}
                     ressourceVersionId={authEvent.ressourceVersionId}
+                    canDelete={canEditRessources}
                 />
             </div>
         )}
