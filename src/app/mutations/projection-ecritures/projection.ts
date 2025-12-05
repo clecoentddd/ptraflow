@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { AppEvent, AppCommand, AppState, Ecriture } from '../mutation-lifecycle/domain';
@@ -65,7 +66,23 @@ export function ecrituresProjectionReducer<T extends EcrituresState>(
     return state;
 }
 
-// 4. Query (Selector)
-export function queryEcritures(state: AppState, ressourceVersionId: string): Ecriture[] {
+// 4. Queries (Selectors)
+
+// Returns ALL ecritures from the state
+export function queryAllEcritures(state: AppState): Ecriture[] {
+    // Sort by timestamp from the related event for chronological order
+    const eventMap = new Map(state.eventStream.map(e => [e.id, e.timestamp]));
+    return [...state.ecritures].sort((a, b) => {
+         const eventA = state.eventStream.find(e => (e.type === 'REVENU_AJOUTE' || e.type === 'DEPENSE_AJOUTEE') && e.payload.ecritureId === a.id);
+         const eventB = state.eventStream.find(e => (e.type === 'REVENU_AJOUTE' || e.type === 'DEPENSE_AJOUTEE') && e.payload.ecritureId === b.id);
+         const timeA = eventA ? new Date(eventA.timestamp).getTime() : 0;
+         const timeB = eventB ? new Date(eventB.timestamp).getTime() : 0;
+         return timeB - timeA; // most recent first
+    });
+}
+
+
+// Returns ecritures for a specific ressourceVersionId
+export function queryEcrituresForRessourceVersion(state: AppState, ressourceVersionId: string): Ecriture[] {
     return state.ecritures.filter(e => e.ressourceVersionId === ressourceVersionId);
 }

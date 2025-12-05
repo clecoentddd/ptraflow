@@ -3,12 +3,13 @@
 
 import React from 'react';
 import { useCqrs } from '@/app/mutations/mutation-lifecycle/cqrs';
-import { queryEcritures } from '@/app/mutations/projection-ecritures/projection';
+import { queryAllEcritures, queryEcrituresForRessourceVersion } from '@/app/mutations/projection-ecritures/projection';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Trash2 } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Card } from '@/components/ui/card';
 
 interface EcrituresListUIProps {
     mutationId: string;
@@ -16,9 +17,10 @@ interface EcrituresListUIProps {
     canDelete: boolean;
 }
 
-export function EcrituresListUI({ mutationId, ressourceVersionId, canDelete }: EcrituresListUIProps) {
+// This component shows the ecritures for a SPECIFIC mutation version
+export function EcrituresForMutationListUI({ mutationId, ressourceVersionId, canDelete }: EcrituresListUIProps) {
     const { state, dispatch } = useCqrs();
-    const ecritures = queryEcritures(state, ressourceVersionId);
+    const ecritures = queryEcrituresForRessourceVersion(state, ressourceVersionId);
 
     const handleSupprimer = (ecritureId: string) => {
         dispatch({
@@ -37,7 +39,7 @@ export function EcrituresListUI({ mutationId, ressourceVersionId, canDelete }: E
 
     return (
         <div className="mt-4">
-            <h4 className="text-xs font-semibold mb-2">Écritures saisies</h4>
+            <h4 className="text-xs font-semibold mb-2">Écritures saisies pour cette modification</h4>
             <ScrollArea className="h-48 rounded-md border">
                 <Table>
                     <TableHeader>
@@ -76,5 +78,53 @@ export function EcrituresListUI({ mutationId, ressourceVersionId, canDelete }: E
                 </Table>
             </ScrollArea>
         </div>
+    );
+}
+
+
+// This component shows ALL ecritures
+export function AllEcrituresListView() {
+    const { state } = useCqrs();
+    const allEcritures = queryAllEcritures(state);
+
+    if (allEcritures.length === 0) {
+        return (
+            <Card className="flex items-center justify-center h-48 border-dashed">
+                <p className="text-muted-foreground">Aucune écriture enregistrée.</p>
+            </Card>
+        );
+    }
+
+    return (
+        <Card>
+            <ScrollArea className="h-96">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Type</TableHead>
+                            <TableHead>Libellé</TableHead>
+                            <TableHead>Période</TableHead>
+                            <TableHead>Mutation ID</TableHead>
+                            <TableHead className="text-right">Montant</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {allEcritures.map((ecriture) => (
+                            <TableRow key={ecriture.id}>
+                                <TableCell>
+                                     <Badge variant={ecriture.type === 'revenu' ? 'default' : 'destructive'} className="text-xs">
+                                        {ecriture.type}
+                                    </Badge>
+                                </TableCell>
+                                <TableCell>{ecriture.libelle} ({ecriture.code})</TableCell>
+                                <TableCell className="text-xs">{ecriture.dateDebut} - {ecriture.dateFin}</TableCell>
+                                <TableCell className="font-mono text-xs">{ecriture.mutationId}</TableCell>
+                                <TableCell className="text-right font-mono">{ecriture.montant.toFixed(2)} €</TableCell>
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </ScrollArea>
+        </Card>
     );
 }
