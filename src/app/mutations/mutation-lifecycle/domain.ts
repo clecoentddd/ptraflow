@@ -59,6 +59,9 @@ export type AppEvent =
 
 // Command Union (Le "registre central" des commandes)
 export type AppCommand = 
+    // Nouveau type d'action pour le pattern Pub/Sub
+    | { type: 'DISPATCH_EVENT', event: AppEvent }
+    // Commandes legacy (à supprimer progressivement)
     | CreateDroitsMutationCommand 
     | SuspendPaiementsCommand 
     | AnalyzeDroitsCommand 
@@ -71,6 +74,7 @@ export type AppCommand =
     | ValiderModificationRessourcesCommand
     | SupprimerEcritureCommand
     | MettreAJourEcritureCommand
+    // Actions pour les tests
     | { type: 'REPLAY', event: AppEvent } 
     | { type: 'REPLAY_COMPLETE' };
 

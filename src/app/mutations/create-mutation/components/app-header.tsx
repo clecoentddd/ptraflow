@@ -6,9 +6,10 @@ import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
 import { CircleDotDashed, Plus } from "lucide-react";
 import { queryMutations } from "../../projection-mutations/projection";
 import { toast } from "react-hot-toast";
+import { createDroitsMutationCommandHandler } from "../handler";
 
 export function AppHeader() {
-  const { state, dispatch } = useCqrs();
+  const { state, dispatchEvent } = useCqrs();
   const mutations = queryMutations(state);
 
   // La validation est dupliquée ici pour une meilleure expérience utilisateur (désactivation du bouton).
@@ -16,12 +17,15 @@ export function AppHeader() {
   const existingMutation = mutations.find(m => m.status === 'OUVERTE' || m.status === 'EN_COURS');
 
   const handleCreateDroitsMutation = () => {
-    // L'UI tente d'envoyer la commande. Le handler aura le dernier mot.
-    dispatch({ type: 'CREATE_DROITS_MUTATION' });
+    // Le handler est maintenant appelé directement depuis l'UI (ou une slice).
+    // Il ne retourne plus un état, mais publie un événement via la fonction `dispatchEvent`.
+    createDroitsMutationCommandHandler(state, dispatchEvent);
   };
 
   const handleCreateRessourcesMutation = () => {
-    dispatch({ type: 'CREATE_RESSOURCES_MUTATION' });
+    // TODO: This also needs to be refactored to the new pattern
+    // For now, we keep the old dispatch for other commands.
+    (dispatchEvent as any)({ type: 'CREATE_RESSOURCES_MUTATION' });
   };
 
   return (

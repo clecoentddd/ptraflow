@@ -6,8 +6,7 @@ import React, { createContext, useContext, useReducer, type Dispatch } from 'rea
 // Importation des types de commandes, événements et état depuis le domaine
 import type { AppCommand, AppEvent, AppState } from './domain';
 
-// Importation des command handlers
-import { createDroitsMutationCommandHandler } from '../create-mutation/handler';
+// Importation des command handlers (seront appelés différemment maintenant)
 import { suspendPaiementsCommandHandler } from '../suspend-paiements/handler';
 import { analyzeDroitsCommandHandler } from '../analyze-droits/handler';
 import { validateMutationCommandHandler } from '../validate-mutation/handler';
@@ -39,14 +38,14 @@ export const initialState: AppState = {
   ...initialJournalState,
 };
 
-// 2. PROJECTION LOGIC
-// ======================
+// 2. PROJECTION LOGIC (Le "Subscriber")
+// ======================================
 
-// This function applies a single event to all projection reducers.
-function applyEvent(state: AppState, event: AppEvent): AppState {
+// Cette fonction applique un SEUL événement à toutes les projections.
+function applyEventToProjections(state: AppState, event: AppEvent): AppState {
     let nextState = state;
     
-    // Each projection slice reducer is called in order.
+    // Chaque projection met à jour sa propre slice de l'état.
     nextState = mutationsProjectionReducer(nextState, event);
     nextState = todolistProjectionReducer(nextState, event);
     nextState = validatedPeriodsProjectionReducer(nextState, event);
@@ -56,102 +55,114 @@ function applyEvent(state: AppState, event: AppEvent): AppState {
     return nextState;
 }
 
-// This function will rebuild the state from the event stream for the main application.
+// Cette fonction reconstruit l'état complet à partir du flux d'événements.
+// Utile pour l'hydratation initiale ou les tests.
 function rebuildStateFromEvents(events: AppState['eventStream']): AppState {
     let state: AppState = { ...initialState, eventStream: events };
-    // Events must be processed in chronological order (oldest first)
+    // Les événements doivent être traités par ordre chronologique (du plus ancien au plus récent)
     const sortedEvents = [...events].reverse();
 
     for (const event of sortedEvents) {
-        state = applyEvent(state, event);
+        state = applyEventToProjections(state, event);
     }
     return state;
 }
 
-// 3. AGGREGATE REDUCER (COMMAND DISPATCHER)
-// ======================================
+// 3. AGGREGATE REDUCER (Le "Bus" d'événements + Routeur de commandes legacy)
+// ===========================================================================
 
-export function cqrsReducer(state: AppState, command: AppCommand): AppState {
+export function cqrsReducer(state: AppState, action: AppCommand): AppState {
 
-    // For BDD tests: projection is handled separately.
-    if (command.type === 'REPLAY') {
-       return applyEvent(state, command.event);
-    }
-    if (command.type === 'REPLAY_COMPLETE') {
-       // We keep all mutations in the state for the todolist to work, but the UI will filter them.
-       let finalState = { ...state };
-       // Call projection reducers one last time after replay to finalize their state if needed
-       finalState = validatedPeriodsProjectionReducer(finalState, command);
-       finalState = mutationsProjectionReducer(finalState, command);
-       finalState = todolistProjectionReducer(finalState, command);
-       finalState = ecrituresProjectionReducer(finalState, command);
-       finalState = journalProjectionReducer(finalState, command);
-       return finalState;
+    // Nouveau pattern : on reçoit directement un événement à dispatcher
+    if (action.type === 'DISPATCH_EVENT') {
+        const newState = {
+            ...state,
+            eventStream: [action.event, ...state.eventStream]
+        };
+        // On applique le nouvel événement aux projections existantes
+        return applyEventToProjections(newState, action.event);
     }
 
-
-    let newState = state;
-
-    // The command handlers only produce events and add them to the stream.
-    // They don't contain projection logic.
-    switch (command.type) {
+    // --- Legacy Command Handling (à refactoriser progressivement) ---
+    // Ce switch est conservé pour les commandes non encore migrées.
+    let newStateWithEvent = state;
+    switch (action.type) {
         case 'CREATE_DROITS_MUTATION':
-            newState = createDroitsMutationCommandHandler(state, command);
-            break;
+            // Ce cas est maintenant géré par le nouveau flux, mais on le laisse pour l'exemple
+            // Dans le futur, il sera supprimé.
+            return state; 
         case 'CREATE_RESSOURCES_MUTATION':
-            newState = createRessourcesMutationCommandHandler(state, command);
+            newStateWithEvent = createRessourcesMutationCommandHandler(state, action);
             break;
         case 'SUSPEND_PAIEMENTS':
-            newState = suspendPaiementsCommandHandler(state, command);
+            newStateWithEvent = suspendPaiementsCommandHandler(state, action);
             break;
         case 'AUTORISER_MODIFICATION_DROITS':
-            newState = autoriserModificationDroitsCommandHandler(state, command);
+            newStateWithEvent = autoriserModificationDroitsCommandHandler(state, action);
             break;
         case 'AUTORISER_MODIFICATION_RESSOURCES':
-            newState = autoriserModificationRessourcesCommandHandler(state, command);
+            newStateWithEvent = autoriserModificationRessourcesCommandHandler(state, action);
             break;
         case 'ANALYZE_DROITS':
-            newState = analyzeDroitsCommandHandler(state, command);
+            newStateWithEvent = analyzeDroitsCommandHandler(state, action);
             break;
         case 'VALIDATE_MUTATION':
-            newState = validateMutationCommandHandler(state, command);
+            newStateWithEvent = validateMutationCommandHandler(state, action);
             break;
         case 'AJOUTER_REVENU':
-            newState = ajouterRevenuCommandHandler(state, command);
+            newStateWithEvent = ajouterRevenuCommandHandler(state, action);
             break;
         case 'AJOUTER_DEPENSE':
-            newState = ajouterDepenseCommandHandler(state, command);
+            newStateWithEvent = ajouterDepenseCommandHandler(state, action);
             break;
         case 'VALIDER_MODIFICATION_RESSOURCES':
-            newState = validerModificationRessourcesCommandHandler(state, command);
+            newStateWithEvent = validerModificationRessourcesCommandHandler(state, action);
             break;
         case 'SUPPRIMER_ECRITURE':
-            newState = supprimerEcritureCommandHandler(state, command);
+            newStateWithEvent = supprimerEcritureCommandHandler(state, action);
             break;
         case 'METTRE_A_JOUR_ECRITURE':
-            newState = mettreAJourEcritureCommandHandler(state, command);
+            newStateWithEvent = mettreAJourEcritureCommandHandler(state, action);
             break;
+        case 'REPLAY': // Uniquement pour les tests BDD
+             return applyEventToProjections(state, action.event);
+        case 'REPLAY_COMPLETE': // Uniquement pour les tests BDD
+            // Cette partie peut nécessiter une révision après le refactoring complet
+            return state;
         default:
             return state;
     }
+    
+    // Si un nouvel événement a été ajouté par le legacy system, on reconstruit tout.
+    if (newStateWithEvent.eventStream.length > state.eventStream.length) {
+        return rebuildStateFromEvents(newStateWithEvent.eventStream);
+    }
 
-    // After a command has potentially added a new event,
-    // we rebuild the entire state from the full event stream.
-    // This is the "event sourcing" part of the pattern.
-    const replayedState = rebuildStateFromEvents(newState.eventStream);
-    return { ...replayedState };
+    return newStateWithEvent;
 }
 
 
 // 4. CONTEXT & PROVIDER
 // =======================
-const CqrsContext = createContext<{ state: AppState; dispatch: Dispatch<AppCommand> } | undefined>(undefined);
+const CqrsContext = createContext<{ state: AppState; dispatchEvent: (event: AppEvent | AppCommand) => void; } | undefined>(undefined);
 
 export function CqrsProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(cqrsReducer, initialState);
 
+  // Wrapper `dispatch` pour le nouveau pattern.
+  // Les composants UI n'appelleront que cette fonction.
+  const dispatchEvent = (eventOrCommand: AppEvent | AppCommand) => {
+    if ('type' in eventOrCommand && 'mutationId' in eventOrCommand) {
+        // C'est un événement
+        dispatch({ type: 'DISPATCH_EVENT', event: eventOrCommand });
+    } else {
+        // C'est une commande (legacy)
+        dispatch(eventOrCommand as AppCommand);
+    }
+  };
+
   return (
-    <CqrsContext.Provider value={{ state, dispatch }}>
+    <CqrsContext.Provider value={{ state, dispatchEvent }}>
       {children}
     </CqrsContext.Provider>
   );
