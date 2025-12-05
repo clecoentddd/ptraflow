@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
@@ -33,12 +34,12 @@ export function AutoriserModificationDroitsTodoItem({ mutationId }: { mutationId
 }
 
 export function AutoriserModificationDroitsButton({ mutationId }: { mutationId: string }) {
-    const { state, dispatch } = useCqrs();
+    const { state, dispatchEvent } = useCqrs();
     const todos = queryTodos(state);
     const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Autoriser la modification de droits');
     
     const handleClick = () => {
-        dispatch({ type: 'AUTORISER_MODIFICATION_DROITS', payload: { mutationId } });
+        dispatchEvent({ type: 'AUTORISER_MODIFICATION_DROITS', payload: { mutationId } });
     };
 
     if (!todo) return null;

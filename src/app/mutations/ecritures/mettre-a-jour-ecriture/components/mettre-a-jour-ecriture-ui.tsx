@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { useState, useEffect } from 'react';
@@ -33,7 +34,7 @@ interface MettreAJourEcritureUIProps {
 }
 
 export function MettreAJourEcritureUI({ isOpen, setIsOpen, ecriture, mutationId, ressourceVersionId }: MettreAJourEcritureUIProps) {
-    const { dispatch } = useCqrs();
+    const { dispatchEvent } = useCqrs();
     
     // Form state
     const allOptions = [...incomeOptions, ...expenseOptions];
@@ -82,7 +83,7 @@ export function MettreAJourEcritureUI({ isOpen, setIsOpen, ecriture, mutationId,
             return;
         }
 
-        dispatch({
+        dispatchEvent({
             type: 'METTRE_A_JOUR_ECRITURE',
             payload: {
                 mutationId,

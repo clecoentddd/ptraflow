@@ -31,7 +31,7 @@ interface AjouterDepenseUIProps {
 }
 
 export function AjouterDepenseUI({ mutationId, ressourceVersionId }: AjouterDepenseUIProps) {
-    const { dispatch } = useCqrs();
+    const { dispatchEvent } = useCqrs();
     const [isOpen, setIsOpen] = useState(false);
     
     // Form state
@@ -62,7 +62,7 @@ export function AjouterDepenseUI({ mutationId, ressourceVersionId }: AjouterDepe
             return;
         }
 
-        dispatch({
+        dispatchEvent({
             type: 'AJOUTER_DEPENSE',
             payload: {
                 mutationId,

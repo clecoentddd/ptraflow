@@ -4,7 +4,6 @@
 import React from 'react';
 import { TestComponent, mockToast } from './test-harness';
 import { createRessourcesMutationCommandHandler } from '../mutations/create-ressources-mutation/handler';
-import { queryValidatedPeriods } from '../mutations/projection-periodes-de-droits/projection';
 
 // Definition of Test for Resource Mutation Creation
 export const BDDTestCreationRessources: React.FC = () => (

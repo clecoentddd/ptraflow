@@ -25,7 +25,7 @@ export function AppHeader() {
   const handleCreateRessourcesMutation = () => {
     // TODO: This also needs to be refactored to the new pattern
     // For now, we keep the old dispatch for other commands.
-    (dispatchEvent as any)({ type: 'CREATE_RESSOURCES_MUTATION' });
+    dispatchEvent({ type: 'CREATE_RESSOURCES_MUTATION' });
   };
 
   return (

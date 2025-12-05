@@ -5,6 +5,7 @@ import React from 'react';
 import type { AppEvent } from '../mutations/mutation-lifecycle/domain';
 import { createDroitsMutationCommandHandler } from '../mutations/create-mutation/handler';
 import { TestComponent, mockToast } from './test-harness';
+import { cqrsReducer } from '../mutations/mutation-lifecycle/cqrs';
 
 // Import event types for correct test data creation
 import type { DroitsMutationCreatedEvent } from '../mutations/create-mutation/event';
@@ -23,8 +24,15 @@ export const BDDTest1: React.FC = () => (
             return { eventStream: [event] };
         }}
         when={(initialState) => {
+            let state = initialState;
             // WHEN: we call the command handler directly with the command and our mock toast
-            return createDroitsMutationCommandHandler(initialState, { type: 'CREATE_DROITS_MUTATION' }, { toast: mockToast });
+            // The handler now dispatches an event, so we create a mock dispatch function
+            const mockDispatch = (event: AppEvent) => {
+                // The reducer will apply the event and update the state
+                state = cqrsReducer(state, { type: 'DISPATCH_EVENT', event });
+            }
+            createDroitsMutationCommandHandler(initialState, mockDispatch, { toast: mockToast });
+            return state;
         }}
         then={(state, toasts) => {
             // THEN: we check that NO new event was created and a toast was shown.
@@ -53,8 +61,13 @@ export const BDDTest2: React.FC = () => (
             return { eventStream: events };
         }}
         when={(initialState) => {
+            let state = initialState;
              // WHEN: we call the command handler directly with the command
-            return createDroitsMutationCommandHandler(initialState, { type: 'CREATE_DROITS_MUTATION' });
+            const mockDispatch = (event: AppEvent) => {
+                state = cqrsReducer(state, { type: 'DISPATCH_EVENT', event });
+            }
+            createDroitsMutationCommandHandler(initialState, mockDispatch);
+            return state;
         }}
         then={(state) => {
              // THEN we check that a new event has been added to the stream.

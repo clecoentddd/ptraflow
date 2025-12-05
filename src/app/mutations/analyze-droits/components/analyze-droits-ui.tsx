@@ -40,7 +40,7 @@ export function AnalyzeDroitsTodoItem({ mutationId }: { mutationId: string }) {
 }
 
 export function AnalyzeDroitsButton({ mutationId }: { mutationId: string }) {
-    const { state, dispatch } = useCqrs();
+    const { state, dispatchEvent } = useCqrs();
     const [isOpen, setIsOpen] = useState(false);
     const [dateDebut, setDateDebut] = useState<Date | undefined>();
     const [dateFin, setDateFin] = useState<Date | undefined>();
@@ -52,7 +52,7 @@ export function AnalyzeDroitsButton({ mutationId }: { mutationId: string }) {
         if (!dateDebut || !dateFin) return;
         // This is a client-side check for better UX, the real business rule is in the handler
         if (dateDebut > dateFin) return; 
-        dispatch({
+        dispatchEvent({
             type: 'ANALYZE_DROITS',
             payload: { mutationId, dateDebut: dateDebut.toISOString(), dateFin: dateFin.toISOString() }
         });

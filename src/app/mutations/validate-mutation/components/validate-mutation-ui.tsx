@@ -34,12 +34,12 @@ export function ValidateMutationTodoItem({ mutationId }: { mutationId: string })
 }
 
 export function ValidateMutationButton({ mutationId }: { mutationId: string }) {
-    const { state, dispatch } = useCqrs();
+    const { state, dispatchEvent } = useCqrs();
     const todos = queryTodos(state);
     const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Valider la mutation');
     
     const handleClick = () => {
-        dispatch({ type: 'VALIDATE_MUTATION', payload: { mutationId } });
+        dispatchEvent({ type: 'VALIDATE_MUTATION', payload: { mutationId } });
     };
 
     const isTodo = todo?.status === 'à faire';

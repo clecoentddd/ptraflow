@@ -18,7 +18,7 @@ import type { Ecriture } from '@/app/mutations/mutation-lifecycle/domain';
 
 // This component shows ALL ecritures pivoted by month
 export function AllEcrituresListView() {
-    const { state, dispatch } = useCqrs();
+    const { state, dispatchEvent } = useCqrs();
     const { months, rows } = queryEcrituresByMonth(state);
 
     const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
@@ -39,7 +39,7 @@ export function AllEcrituresListView() {
     const handleSupprimer = (ecriture: (typeof rows)[0]['ecriture']) => {
         if (!activeMutation || !authEventForActiveMutation) return;
 
-        dispatch({
+        dispatchEvent({
             type: 'SUPPRIMER_ECRITURE',
             payload: {
                 mutationId: activeMutation.id,

@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
@@ -33,12 +34,12 @@ export function AutoriserModificationRessourcesTodoItem({ mutationId }: { mutati
 }
 
 export function AutoriserModificationRessourcesButton({ mutationId }: { mutationId: string }) {
-    const { state, dispatch } = useCqrs();
+    const { state, dispatchEvent } = useCqrs();
     const todos = queryTodos(state);
     const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Autoriser la modification de ressources');
     
     const handleClick = () => {
-        dispatch({ 
+        dispatchEvent({ 
             type: 'AUTORISER_MODIFICATION_RESSOURCES', 
             payload: { 
                 mutationId,

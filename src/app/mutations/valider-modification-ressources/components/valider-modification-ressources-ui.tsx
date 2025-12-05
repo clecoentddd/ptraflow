@@ -35,7 +35,7 @@ export function ValiderModificationRessourcesTodoItem({ mutationId }: { mutation
 }
 
 export function ValiderModificationRessourcesButton({ mutationId }: { mutationId: string }) {
-    const { state, dispatch } = useCqrs();
+    const { state, dispatchEvent } = useCqrs();
     const todos = queryTodos(state);
     const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Valider la modification des ressources');
     
@@ -50,7 +50,7 @@ export function ValiderModificationRessourcesButton({ mutationId }: { mutationId
             return;
         }
 
-        dispatch({ 
+        dispatchEvent({ 
             type: 'VALIDER_MODIFICATION_RESSOURCES', 
             payload: { 
                 mutationId,

@@ -31,7 +31,7 @@ interface AjouterRevenuUIProps {
 }
 
 export function AjouterRevenuUI({ mutationId, ressourceVersionId }: AjouterRevenuUIProps) {
-    const { dispatch } = useCqrs();
+    const { dispatchEvent } = useCqrs();
     const [isOpen, setIsOpen] = useState(false);
     
     // Form state
@@ -62,7 +62,7 @@ export function AjouterRevenuUI({ mutationId, ressourceVersionId }: AjouterReven
             return;
         }
 
-        dispatch({
+        dispatchEvent({
             type: 'AJOUTER_REVENU',
             payload: {
                 mutationId,
