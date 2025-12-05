@@ -78,10 +78,9 @@ export function queryEcrituresForRessourceVersion(state: AppState, ressourceVers
 export function queryEcrituresByMonth(state: AppState): {
     months: string[];
     rows: { ecriture: Ecriture; monthlyAmounts: Record<string, number> }[];
-    totals: Record<string, number>;
 } {
     if (state.ecritures.length === 0) {
-        return { months: [], rows: [], totals: {} };
+        return { months: [], rows: [] };
     }
 
     // Get all unique months across all ecritures
@@ -117,16 +116,5 @@ export function queryEcrituresByMonth(state: AppState): {
         return { ecriture, monthlyAmounts };
     });
 
-    // Calculate totals for each month
-    const totals: Record<string, number> = {};
-    sortedMonths.forEach(month => {
-        totals[month] = 0;
-        rows.forEach(row => {
-            if (row.monthlyAmounts[month]) {
-                totals[month] += row.monthlyAmounts[month];
-            }
-        });
-    });
-
-    return { months: sortedMonths, rows, totals };
+    return { months: sortedMonths, rows };
 }

@@ -87,7 +87,7 @@ export function EcrituresForMutationListUI({ mutationId, ressourceVersionId, can
 // This component shows ALL ecritures pivoted by month
 export function AllEcrituresListView() {
     const { state, dispatch } = useCqrs();
-    const { months, rows, totals } = queryEcrituresByMonth(state);
+    const { months, rows } = queryEcrituresByMonth(state);
 
     const activeMutation = state.mutations.find(m => m.status === 'EN_COURS' || m.status === 'OUVERTE');
 
@@ -180,17 +180,6 @@ export function AllEcrituresListView() {
                                         )}
                                     </TableRow>
                                 ))}
-                                <TableRow className="bg-muted/50 font-bold">
-                                     <TableCell>Total</TableCell>
-                                     {months.map(month => (
-                                        <TableCell key={`total-${month}`} className="text-right font-mono">
-                                            <span className={totals[month] < 0 ? 'text-blue-600' : 'text-green-600'}>
-                                                {totals[month].toFixed(2)} CHF
-                                            </span>
-                                        </TableCell>
-                                     ))}
-                                     {canEdit && <TableCell></TableCell>}
-                                </TableRow>
                             </TableBody>
                         </Table>
                     </ScrollArea>
