@@ -8,14 +8,6 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
@@ -60,15 +52,13 @@ export function TodoListView() {
     const allTodos = queryTodos(state);
     const allMutations = queryMutations(state);
 
-    if (allTodos.length === 0) {
-        return (
-            <Card className="flex items-center justify-center h-48 border-dashed">
-                <p className="text-muted-foreground">Aucune tâche à faire.</p>
-            </Card>
-        );
+    const activeMutations = allMutations.filter(m => m.status === 'OUVERTE' || m.status === 'EN_COURS');
+
+    if (activeMutations.length === 0) {
+        return null;
     }
     
-    const groupedTodos = allMutations.map(mutation => ({
+    const groupedTodos = activeMutations.map(mutation => ({
         mutation,
         todos: allTodos
             .filter(todo => todo.mutationId === mutation.id)
@@ -82,6 +72,14 @@ export function TodoListView() {
             }),
     })).filter(group => group.todos.length > 0);
 
+    if (groupedTodos.length === 0) {
+         return (
+            <Card className="flex items-center justify-center h-48 border-dashed">
+                <p className="text-muted-foreground">Aucune tâche à faire pour les mutations en cours.</p>
+            </Card>
+        );
+    }
+
     const firstMutationId = groupedTodos.length > 0 ? groupedTodos[0].mutation.id : undefined;
 
     return (
@@ -93,7 +91,7 @@ export function TodoListView() {
                         const Icon = details.icon;
                         return (
                             <AccordionItem value={mutation.id} key={mutation.id} className="border-b last:border-b-0">
-                                <AccordionTrigger className="px-6 py-4 hover:no-underline">
+                                <AccordionTrigger className="px-4 py-3 hover:no-underline md:px-6">
                                     <div className="flex flex-col items-start text-left">
                                         <div className="flex items-center gap-2">
                                             <Icon className="h-5 w-5 text-muted-foreground" />
@@ -102,27 +100,17 @@ export function TodoListView() {
                                         <span className="font-mono text-xs text-muted-foreground">{mutation.id}</span>
                                     </div>
                                 </AccordionTrigger>
-                                <AccordionContent className="px-2 pb-2">
-                                    <Table>
-                                        <TableHeader>
-                                            <TableRow>
-                                                <TableHead>Description</TableHead>
-                                                <TableHead className="w-24">Statut</TableHead>
-                                            </TableRow>
-                                        </TableHeader>
-                                        <TableBody>
-                                            {todos.map((todo) => (
-                                                <TableRow key={todo.id}>
-                                                    <TableCell className="font-medium">{todo.description}</TableCell>
-                                                    <TableCell>
-                                                        <Badge className={cn("capitalize", statusStyles[todo.status])}>
-                                                            {todo.status}
-                                                        </Badge>
-                                                    </TableCell>
-                                                </TableRow>
-                                            ))}
-                                        </TableBody>
-                                    </Table>
+                                <AccordionContent className="px-2 pb-2 md:px-4 md:pb-4">
+                                    <ul className="space-y-2">
+                                        {todos.map((todo) => (
+                                            <li key={todo.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
+                                                <span className="font-medium text-sm">{todo.description}</span>
+                                                <Badge className={cn("capitalize text-xs", statusStyles[todo.status])}>
+                                                    {todo.status}
+                                                </Badge>
+                                            </li>
+                                        ))}
+                                    </ul>
                                 </AccordionContent>
                             </AccordionItem>
                         );

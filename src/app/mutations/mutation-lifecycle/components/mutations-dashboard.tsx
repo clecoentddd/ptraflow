@@ -15,6 +15,7 @@ import { AllEcrituresListView } from '../../ecritures/supprimer-ecriture/compone
 function DashboardContent() {
   const { state } = useCqrs();
   const mutations = queryMutations(state);
+  const activeMutations = mutations.filter(m => m.status === 'OUVERTE' || m.status === 'EN_COURS');
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -46,10 +47,12 @@ function DashboardContent() {
            <div>
               <AllEcrituresListView />
           </div>
-          <div>
-              <h2 className="text-2xl font-bold mb-4 text-foreground">Liste de tâches</h2>
-              <TodoListView />
-          </div>
+          {activeMutations.length > 0 && (
+            <div>
+                <h2 className="text-2xl font-bold mb-4 text-foreground">Liste de tâches</h2>
+                <TodoListView />
+            </div>
+          )}
            <div>
                <Card className="h-full flex flex-col">
                 <CardHeader>
