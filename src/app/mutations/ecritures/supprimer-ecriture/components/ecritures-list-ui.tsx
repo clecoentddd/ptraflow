@@ -37,12 +37,11 @@ export function EcrituresForMutationListUI({ mutationId, ressourceVersionId, can
     };
     
     if (ecritures.length === 0) {
-        return <p className="text-xs text-muted-foreground text-center mt-4">Aucune écriture pour cette version.</p>
+        return null;
     }
 
     return (
         <div className="mt-4">
-            <h4 className="text-xs font-semibold mb-2">Écritures saisies pour cette modification</h4>
             <ScrollArea className="h-48 rounded-md border">
                 <Table>
                     <TableHeader>
@@ -62,7 +61,7 @@ export function EcrituresForMutationListUI({ mutationId, ressourceVersionId, can
                                     </Badge>
                                 </TableCell>
                                 <TableCell className="text-xs">{ecriture.libelle}</TableCell>
-                                <TableCell className="text-right text-xs font-mono">{ecriture.montant.toFixed(2)} €</TableCell>
+                                <TableCell className="text-right text-xs font-mono">{ecriture.montant.toFixed(2)} CHF</TableCell>
                                 {canDelete && (
                                     <TableCell>
                                         <Button
@@ -138,7 +137,7 @@ export function AllEcrituresListView() {
                         <p className="text-muted-foreground">Aucune écriture enregistrée.</p>
                     </div>
                 ) : (
-                    <ScrollArea className="h-96">
+                    <ScrollArea className="w-full whitespace-nowrap">
                         <Table>
                             <TableHeader>
                                 <TableRow>
@@ -163,7 +162,7 @@ export function AllEcrituresListView() {
                                         {months.map(month => (
                                             <TableCell key={`${row.ecriture.id}-${month}`} className="text-right font-mono">
                                                 {row.monthlyAmounts[month] 
-                                                    ? <span className={row.ecriture.type === 'dépense' ? 'text-destructive' : ''}>{row.monthlyAmounts[month]?.toFixed(2)} €</span>
+                                                    ? <span className={row.ecriture.type === 'dépense' ? 'text-blue-600' : 'text-green-600'}>{row.monthlyAmounts[month]?.toFixed(2)} CHF</span>
                                                     : <span className="text-muted-foreground">-</span>}
                                             </TableCell>
                                         ))}
@@ -185,8 +184,8 @@ export function AllEcrituresListView() {
                                      <TableCell>Total</TableCell>
                                      {months.map(month => (
                                         <TableCell key={`total-${month}`} className="text-right font-mono">
-                                            <span className={totals[month] < 0 ? 'text-destructive' : ''}>
-                                                {totals[month].toFixed(2)} €
+                                            <span className={totals[month] < 0 ? 'text-blue-600' : 'text-green-600'}>
+                                                {totals[month].toFixed(2)} CHF
                                             </span>
                                         </TableCell>
                                      ))}
