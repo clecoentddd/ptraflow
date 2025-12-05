@@ -45,13 +45,8 @@ export function JournalView() {
                                     </p>
                                 ) : (
                                      <div className="flex flex-col gap-1 text-sm">
-                                        <div className="flex gap-4">
-                                            <span>Revenus: <span className="font-semibold text-green-600">+{entry.addedRevenus}</span></span>
-                                            <span>Dépenses: <span className="font-semibold text-blue-600">+{entry.addedDepenses}</span></span>
-                                            <span>Suppressions: <span className="font-semibold text-red-600">-{entry.deletedEcritures}</span></span>
-                                        </div>
                                          {(entry.ressourcesDateDebut || entry.ressourcesDateFin) && (
-                                            <p className="text-xs text-muted-foreground">
+                                            <p className="text-sm">
                                                 Période des modifications: <span className="font-semibold">{entry.ressourcesDateDebut || '...'}</span> au <span className="font-semibold">{entry.ressourcesDateFin || '...'}</span>
                                             </p>
                                          )}
