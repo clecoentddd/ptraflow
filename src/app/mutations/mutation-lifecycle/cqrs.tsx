@@ -1,3 +1,4 @@
+
 "use client";
 
 import React, { createContext, useContext, useReducer, type Dispatch } from 'react';
@@ -74,8 +75,8 @@ export function cqrsReducer(state: AppState, command: AppCommand): AppState {
        return applyEvent(state, command.event);
     }
     if (command.type === 'REPLAY_COMPLETE') {
-       // Filter out completed/rejected mutations from view
-       let finalState = { ...state, mutations: state.mutations.filter(m => m.status === 'OUVERTE' || m.status === 'EN_COURS') };
+       // We keep all mutations in the state for the todolist to work, but the UI will filter them.
+       let finalState = { ...state };
        // Call projection reducers one last time after replay to finalize their state if needed
        finalState = validatedPeriodsProjectionReducer(finalState, command);
        finalState = mutationsProjectionReducer(finalState, command);
@@ -134,7 +135,7 @@ export function cqrsReducer(state: AppState, command: AppCommand): AppState {
     // we rebuild the entire state from the full event stream.
     // This is the "event sourcing" part of the pattern.
     const replayedState = rebuildStateFromEvents(newState.eventStream);
-    return { ...replayedState, mutations: replayedState.mutations.filter(m => m.status === 'OUVERTE' || m.status === 'EN_COURS') };
+    return { ...replayedState };
 }
 
 

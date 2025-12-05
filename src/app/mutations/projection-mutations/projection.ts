@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { AppEvent, AppCommand, AppState, Mutation } from '../mutation-lifecycle/domain';
@@ -96,5 +97,11 @@ export function mutationsProjectionReducer<T extends MutationsState>(
 
 // 4. Query (Selector)
 export function queryMutations(state: AppState): Mutation[] {
-    return state.mutations;
+    // We return mutations sorted by the most recent event timestamp
+    return [...state.mutations].sort((a, b) => {
+        const lastEventA = a.history[a.history.length - 1];
+        const lastEventB = b.history[b.history.length - 1];
+        if (!lastEventA || !lastEventB) return 0;
+        return new Date(lastEventB.timestamp).getTime() - new Date(lastEventA.timestamp).getTime();
+    });
 }

@@ -52,13 +52,16 @@ export function TodoListView() {
     const allTodos = queryTodos(state);
     const allMutations = queryMutations(state);
 
-    const activeMutations = allMutations.filter(m => m.status === 'OUVERTE' || m.status === 'EN_COURS');
-
-    if (activeMutations.length === 0) {
-        return null;
+    if (allMutations.length === 0) {
+        return (
+             <Card className="flex items-center justify-center h-48 border-dashed">
+                <p className="text-muted-foreground">Aucune tâche à afficher.</p>
+            </Card>
+        );
     }
     
-    const groupedTodos = activeMutations.map(mutation => ({
+    // We group todos by all mutations (active and completed)
+    const groupedTodos = allMutations.map(mutation => ({
         mutation,
         todos: allTodos
             .filter(todo => todo.mutationId === mutation.id)
@@ -75,11 +78,12 @@ export function TodoListView() {
     if (groupedTodos.length === 0) {
          return (
             <Card className="flex items-center justify-center h-48 border-dashed">
-                <p className="text-muted-foreground">Aucune tâche à faire pour les mutations en cours.</p>
+                <p className="text-muted-foreground">Aucune tâche à afficher.</p>
             </Card>
         );
     }
 
+    // Default to the first (most recent) mutationId
     const firstMutationId = groupedTodos.length > 0 ? groupedTodos[0].mutation.id : undefined;
 
     return (
