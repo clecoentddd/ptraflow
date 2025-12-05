@@ -19,8 +19,9 @@ function DashboardContent() {
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <AppHeader />
-      <main className="flex-1 p-4 md:p-8 grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
-        <div className="lg:col-span-2 grid gap-8">
+      <main className="flex-1 p-4 md:p-8 grid grid-cols-1 gap-8 items-start">
+        
+        <div className="grid gap-8">
           <div>
             <h2 className="text-2xl font-bold mb-4 text-foreground">Mutations en cours</h2>
             {mutations.length === 0 ? (
@@ -43,25 +44,24 @@ function DashboardContent() {
               <ValidatedPeriodsView />
           </div>
            <div>
-              <h2 className="text-2xl font-bold mb-4 text-foreground">Historique des écritures</h2>
               <AllEcrituresListView />
           </div>
           <div>
               <h2 className="text-2xl font-bold mb-4 text-foreground">Liste de tâches</h2>
               <TodoListView />
           </div>
-        </div>
-        <div className="lg:col-span-1">
-           <Card className="h-full flex flex-col sticky top-24">
-            <CardHeader>
-              <CardTitle>Flux d'événements</CardTitle>
-            </CardHeader>
-            <CardContent className="flex-1 p-0">
-                <ScrollArea className="h-[calc(100vh-16rem)]">
-                    <EventStreamView />
-                </ScrollArea>
-            </CardContent>
-          </Card>
+           <div>
+               <Card className="h-full flex flex-col">
+                <CardHeader>
+                  <CardTitle>Flux d'événements</CardTitle>
+                </CardHeader>
+                <CardContent className="flex-1 p-0">
+                    <ScrollArea className="h-[30rem]">
+                        <EventStreamView />
+                    </ScrollArea>
+                </CardContent>
+              </Card>
+          </div>
         </div>
       </main>
     </div>
