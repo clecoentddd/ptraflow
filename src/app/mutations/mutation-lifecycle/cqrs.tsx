@@ -16,6 +16,7 @@ import { autoriserModificationRessourcesCommandHandler } from '../autoriser-modi
 import { ajouterRevenuCommandHandler } from '../ecritures/ajouter-revenu/handler';
 import { validerModificationRessourcesCommandHandler } from '../valider-modification-ressources/handler';
 import { ajouterDepenseCommandHandler } from '../ecritures/ajouter-depense/handler';
+import { supprimerEcritureCommandHandler } from '../ecritures/supprimer-ecriture/handler';
 
 // Importation des logiques de projection
 import { validatedPeriodsProjectionReducer, initialValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
@@ -117,6 +118,9 @@ export function cqrsReducer(state: AppState, command: AppCommand): AppState {
             break;
         case 'VALIDER_MODIFICATION_RESSOURCES':
             newState = validerModificationRessourcesCommandHandler(state, command);
+            break;
+        case 'SUPPRIMER_ECRITURE':
+            newState = supprimerEcritureCommandHandler(state, command);
             break;
         default:
             return state;

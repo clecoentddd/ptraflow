@@ -37,6 +37,15 @@ function applyDepenseAjoutee(state: EcrituresState, event: AppEvent): EcrituresS
     return { ...state, ecritures: [...state.ecritures, newEcriture] };
 }
 
+function applyEcritureSupprimee(state: EcrituresState, event: AppEvent): EcrituresState {
+    if (event.type !== 'ECRITURE_SUPPRIMEE') return state;
+    return {
+        ...state,
+        ecritures: state.ecritures.filter(e => e.id !== event.payload.ecritureId)
+    };
+}
+
+
 // 3. Slice Reducer
 export function ecrituresProjectionReducer<T extends EcrituresState>(
     state: T, 
@@ -49,6 +58,8 @@ export function ecrituresProjectionReducer<T extends EcrituresState>(
                 return applyRevenuAjoute(state, event) as T;
             case 'DEPENSE_AJOUTEE':
                 return applyDepenseAjoutee(state, event) as T;
+            case 'ECRITURE_SUPPRIMEE':
+                return applyEcritureSupprimee(state, event) as T;
         }
     }
     return state;

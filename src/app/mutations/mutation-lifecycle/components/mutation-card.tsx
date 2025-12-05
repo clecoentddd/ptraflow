@@ -24,6 +24,7 @@ import { useCqrs } from "../cqrs";
 import type { ModificationRessourcesAutoriseeEvent } from "../../autoriser-modification-des-ressources/event";
 import { Separator } from "@/components/ui/separator";
 import { AjouterDepenseUI } from "../../ecritures/ajouter-depense/components/ajouter-depense-ui";
+import { EcrituresListUI } from "../../ecritures/supprimer-ecriture/components/ecritures-list-ui";
 
 
 const statusStyles: Record<MutationStatus, string> = {
@@ -106,6 +107,10 @@ export function MutationCard({ mutation }: { mutation: Mutation }) {
                         ressourceVersionId={authEvent.ressourceVersionId}
                     />
                 </div>
+                <EcrituresListUI
+                    mutationId={mutation.id}
+                    ressourceVersionId={authEvent.ressourceVersionId}
+                />
             </div>
         )}
       </CardContent>
