@@ -1,93 +1,28 @@
 
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useCqrs } from '@/app/mutations/mutation-lifecycle/cqrs';
-import { queryEcrituresForRessourceVersion, queryEcrituresByMonth } from '@/app/mutations/projection-ecritures/projection';
+import { queryEcrituresByMonth } from '@/app/mutations/projection-ecritures/projection';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { MinusCircle, PlusCircle, Trash2 } from 'lucide-react';
+import { MinusCircle, PlusCircle, Trash2, Edit } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import type { ModificationRessourcesAutoriseeEvent } from '../../../autoriser-modification-des-ressources/event';
 import { AjouterRevenuUI } from '../../ajouter-revenu/components/ajouter-revenu-ui';
 import { AjouterDepenseUI } from '../../ajouter-depense/components/ajouter-depense-ui';
-
-interface EcrituresListUIProps {
-    mutationId: string;
-    ressourceVersionId: string;
-    canDelete: boolean;
-}
-
-// This component shows the ecritures for a SPECIFIC mutation version
-export function EcrituresForMutationListUI({ mutationId, ressourceVersionId, canDelete }: EcrituresListUIProps) {
-    const { state, dispatch } = useCqrs();
-    const ecritures = queryEcrituresForRessourceVersion(state, ressourceVersionId);
-
-    const handleSupprimer = (ecritureId: string) => {
-        dispatch({
-            type: 'SUPPRIMER_ECRITURE',
-            payload: {
-                mutationId,
-                ressourceVersionId,
-                ecritureId,
-            },
-        });
-    };
-    
-    if (ecritures.length === 0) {
-        return null;
-    }
-
-    return (
-        <div className="mt-4">
-            <ScrollArea className="h-48 rounded-md border">
-                <Table>
-                    <TableHeader>
-                        <TableRow>
-                            <TableHead className="text-xs">Type</TableHead>
-                            <TableHead className="text-xs">Libellé</TableHead>
-                            <TableHead className="text-right text-xs">Montant</TableHead>
-                            {canDelete && <TableHead className="w-[50px]"></TableHead>}
-                        </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                        {ecritures.map((ecriture) => (
-                            <TableRow key={ecriture.id}>
-                                <TableCell>
-                                    <Badge variant={ecriture.type === 'revenu' ? 'default' : 'destructive'} className="text-xs">
-                                        {ecriture.type}
-                                    </Badge>
-                                </TableCell>
-                                <TableCell className="text-xs">{ecriture.libelle}</TableCell>
-                                <TableCell className="text-right text-xs font-mono">{ecriture.montant.toFixed(2)} CHF</TableCell>
-                                {canDelete && (
-                                    <TableCell>
-                                        <Button
-                                            variant="ghost"
-                                            size="icon"
-                                            className="h-6 w-6"
-                                            onClick={() => handleSupprimer(ecriture.id)}
-                                        >
-                                            <Trash2 className="h-4 w-4 text-destructive" />
-                                        </Button>
-                                    </TableCell>
-                                )}
-                            </TableRow>
-                        ))}
-                    </TableBody>
-                </Table>
-            </ScrollArea>
-        </div>
-    );
-}
-
+import { MettreAJourEcritureUI } from '../../mettre-a-jour-ecriture/components/mettre-a-jour-ecriture-ui';
+import type { Ecriture } from '@/app/mutations/mutation-lifecycle/domain';
 
 // This component shows ALL ecritures pivoted by month
 export function AllEcrituresListView() {
     const { state, dispatch } = useCqrs();
     const { months, rows } = queryEcrituresByMonth(state);
+
+    const [updateDialogOpen, setUpdateDialogOpen] = useState(false);
+    const [ecritureToUpdate, setEcritureToUpdate] = useState<Ecriture | null>(null);
 
     const activeMutation = state.mutations.find(m => m.status === 'EN_COURS' || m.status === 'OUVERTE');
 
@@ -114,7 +49,13 @@ export function AllEcrituresListView() {
         });
     };
 
+    const handleOpenUpdateDialog = (ecriture: Ecriture) => {
+        setEcritureToUpdate(ecriture);
+        setUpdateDialogOpen(true);
+    };
+
     return (
+        <>
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Écritures</CardTitle>
@@ -147,7 +88,7 @@ export function AllEcrituresListView() {
                                             {month}
                                         </TableHead>
                                     ))}
-                                    {canEdit && <TableHead className="w-12"></TableHead>}
+                                    {canEdit && <TableHead className="w-24"></TableHead>}
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -167,7 +108,15 @@ export function AllEcrituresListView() {
                                             </TableCell>
                                         ))}
                                         {canEdit && (
-                                            <TableCell>
+                                            <TableCell className="text-right">
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    className="h-8 w-8"
+                                                    onClick={() => handleOpenUpdateDialog(row.ecriture)}
+                                                >
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
                                                 <Button
                                                     variant="ghost"
                                                     size="icon"
@@ -186,5 +135,15 @@ export function AllEcrituresListView() {
                 )}
             </CardContent>
         </Card>
+        {ecritureToUpdate && authEventForActiveMutation && (
+            <MettreAJourEcritureUI
+                isOpen={updateDialogOpen}
+                setIsOpen={setUpdateDialogOpen}
+                ecriture={ecritureToUpdate}
+                mutationId={authEventForActiveMutation.mutationId}
+                ressourceVersionId={authEventForActiveMutation.ressourceVersionId}
+            />
+        )}
+        </>
     );
 }

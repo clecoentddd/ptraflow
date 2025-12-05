@@ -1,4 +1,3 @@
-
 "use client";
 
 import type { AppEvent, AppCommand, AppState, Ecriture } from '../mutation-lifecycle/domain';
@@ -69,11 +68,6 @@ export function ecrituresProjectionReducer<T extends EcrituresState>(
 
 // 4. Queries (Selectors)
 
-// Returns ecritures for a specific ressourceVersionId
-export function queryEcrituresForRessourceVersion(state: AppState, ressourceVersionId: string): Ecriture[] {
-    return state.ecritures.filter(e => e.ressourceVersionId === ressourceVersionId);
-}
-
 // Pivots the ecritures data to a monthly view
 export function queryEcrituresByMonth(state: AppState): {
     months: string[];
@@ -88,6 +82,7 @@ export function queryEcrituresByMonth(state: AppState): {
     state.ecritures.forEach(e => {
         const start = parse(e.dateDebut, 'MM-yyyy', new Date());
         const end = parse(e.dateFin, 'MM-yyyy', new Date());
+        if (start > end) return; // Ignore invalid data
         const interval = eachMonthOfInterval({ start, end });
         interval.forEach(monthDate => {
             allMonths.add(format(monthDate, 'MM-yyyy'));
@@ -105,16 +100,18 @@ export function queryEcrituresByMonth(state: AppState): {
         const monthlyAmounts: Record<string, number> = {};
         const start = parse(ecriture.dateDebut, 'MM-yyyy', new Date());
         const end = parse(ecriture.dateFin, 'MM-yyyy', new Date());
-        const interval = eachMonthOfInterval({ start, end });
-
-        interval.forEach(monthDate => {
-            const monthKey = format(monthDate, 'MM-yyyy');
-            const amount = ecriture.type === 'dépense' ? -ecriture.montant : ecriture.montant;
-            monthlyAmounts[monthKey] = (monthlyAmounts[monthKey] || 0) + amount;
-        });
+        
+        if (start <= end) {
+            const interval = eachMonthOfInterval({ start, end });
+            interval.forEach(monthDate => {
+                const monthKey = format(monthDate, 'MM-yyyy');
+                const amount = ecriture.type === 'dépense' ? -ecriture.montant : ecriture.montant;
+                monthlyAmounts[monthKey] = (monthlyAmounts[monthKey] || 0) + amount;
+            });
+        }
 
         return { ecriture, monthlyAmounts };
-    });
+    }).sort((a,b) => a.ecriture.code.localeCompare(b.ecriture.code));
 
     return { months: sortedMonths, rows };
 }
