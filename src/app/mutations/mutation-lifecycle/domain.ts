@@ -29,6 +29,7 @@ import type { ValidatedPeriodsState } from '../projection-periodes-de-droits/pro
 import type { MutationsState } from '../projection-mutations/projection';
 import type { TodolistState } from '../projection-todolist/projection';
 import type { EcrituresState } from '../projection-ecritures/projection';
+import type { JournalState } from '../projection-journal/projection';
 
 // =================================
 // 1. DÉFINITIONS DU DOMAINE (ÉVÉNEMENTS & COMMANDES)
@@ -117,6 +118,6 @@ export interface Ecriture {
 // =================================
 
 // L'état global est la somme de toutes les projections.
-export interface AppState extends ValidatedPeriodsState, MutationsState, TodolistState, EcrituresState {
+export interface AppState extends ValidatedPeriodsState, MutationsState, TodolistState, EcrituresState, JournalState {
   eventStream: AppEvent[];
 }

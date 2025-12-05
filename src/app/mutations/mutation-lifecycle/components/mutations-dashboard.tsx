@@ -11,6 +11,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { ValidatedPeriodsView } from './validated-periods-view';
 import { queryMutations } from '../../projection-mutations/projection';
 import { AllEcrituresListView } from '../../ecritures/supprimer-ecriture/components/ecritures-list-ui';
+import { JournalView } from '../../projection-journal/components/journal-ui';
 
 function DashboardContent() {
   const { state } = useCqrs();
@@ -39,17 +40,26 @@ function DashboardContent() {
               </div>
             )}
           </div>
+
+          <div>
+              <h2 className="text-2xl font-bold mb-4 text-foreground">Journal des modifications</h2>
+              <JournalView />
+          </div>
+
            <div>
               <h2 className="text-2xl font-bold mb-4 text-foreground">Périodes de droits validées</h2>
               <ValidatedPeriodsView />
           </div>
+
            <div>
               <AllEcrituresListView />
           </div>
+
           <div>
               <h2 className="text-2xl font-bold mb-4 text-foreground">Liste de tâches</h2>
               <TodoListView />
           </div>
+
            <div>
                <Card className="h-full flex flex-col">
                 <CardHeader>

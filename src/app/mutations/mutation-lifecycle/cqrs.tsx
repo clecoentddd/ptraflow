@@ -25,6 +25,7 @@ import { validatedPeriodsProjectionReducer, initialValidatedPeriodsState } from 
 import { mutationsProjectionReducer, initialMutationsState } from '../projection-mutations/projection';
 import { todolistProjectionReducer, initialTodolistState } from '../projection-todolist/projection';
 import { ecrituresProjectionReducer, initialEcrituresState } from '../projection-ecritures/projection';
+import { journalProjectionReducer, initialJournalState } from '../projection-journal/projection';
 
 
 // 1. INITIAL STATE
@@ -35,6 +36,7 @@ export const initialState: AppState = {
   ...initialMutationsState,
   ...initialTodolistState,
   ...initialEcrituresState,
+  ...initialJournalState,
 };
 
 // 2. PROJECTION LOGIC
@@ -49,6 +51,7 @@ function applyEvent(state: AppState, event: AppEvent): AppState {
     nextState = todolistProjectionReducer(nextState, event);
     nextState = validatedPeriodsProjectionReducer(nextState, event);
     nextState = ecrituresProjectionReducer(nextState, event);
+    nextState = journalProjectionReducer(nextState, event);
     
     return nextState;
 }
@@ -82,6 +85,7 @@ export function cqrsReducer(state: AppState, command: AppCommand): AppState {
        finalState = mutationsProjectionReducer(finalState, command);
        finalState = todolistProjectionReducer(finalState, command);
        finalState = ecrituresProjectionReducer(finalState, command);
+       finalState = journalProjectionReducer(finalState, command);
        return finalState;
     }
 
