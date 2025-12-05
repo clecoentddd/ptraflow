@@ -1,4 +1,3 @@
-
 "use client";
 
 import React, { createContext, useContext, useReducer, type Dispatch } from 'react';
@@ -22,6 +21,7 @@ import { ajouterDepenseCommandHandler } from '../ecritures/ajouter-depense/handl
 import { validatedPeriodsProjectionReducer, initialValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
 import { mutationsProjectionReducer, initialMutationsState } from '../projection-mutations/projection';
 import { todolistProjectionReducer, initialTodolistState } from '../projection-todolist/projection';
+import { ecrituresProjectionReducer, initialEcrituresState } from '../projection-ecritures/projection';
 
 
 // 1. INITIAL STATE
@@ -31,6 +31,7 @@ export const initialState: AppState = {
   ...initialValidatedPeriodsState,
   ...initialMutationsState,
   ...initialTodolistState,
+  ...initialEcrituresState,
 };
 
 // 2. PROJECTION LOGIC
@@ -44,6 +45,7 @@ function applyEvent(state: AppState, event: AppEvent): AppState {
     nextState = mutationsProjectionReducer(nextState, event);
     nextState = todolistProjectionReducer(nextState, event);
     nextState = validatedPeriodsProjectionReducer(nextState, event);
+    nextState = ecrituresProjectionReducer(nextState, event);
     
     return nextState;
 }
@@ -76,6 +78,7 @@ export function cqrsReducer(state: AppState, command: AppCommand): AppState {
        finalState = validatedPeriodsProjectionReducer(finalState, command);
        finalState = mutationsProjectionReducer(finalState, command);
        finalState = todolistProjectionReducer(finalState, command);
+       finalState = ecrituresProjectionReducer(finalState, command);
        return finalState;
     }
 

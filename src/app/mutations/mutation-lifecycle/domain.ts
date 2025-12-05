@@ -24,6 +24,7 @@ import type { ValiderModificationRessourcesCommand } from '../valider-modificati
 import type { ValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
 import type { MutationsState } from '../projection-mutations/projection';
 import type { TodolistState } from '../projection-todolist/projection';
+import type { EcrituresState } from '../projection-ecritures/projection';
 
 // =================================
 // 1. DÉFINITIONS DU DOMAINE (ÉVÉNEMENTS & COMMANDES)
@@ -89,11 +90,26 @@ export interface Todo {
     status: TodoStatus;
 }
 
+export type EcritureType = 'revenu' | 'dépense';
+
+export interface Ecriture {
+    id: string; // ecritureId
+    mutationId: string;
+    ressourceVersionId: string;
+    type: EcritureType;
+    code: string;
+    libelle: string;
+    montant: number;
+    dateDebut: string; // MM-yyyy
+    dateFin: string; // MM-yyyy
+}
+
+
 // =================================
 // 3. ÉTAT GLOBAL DE L'APPLICATION (STATE)
 // =================================
 
 // L'état global est la somme de toutes les projections.
-export interface AppState extends ValidatedPeriodsState, MutationsState, TodolistState {
+export interface AppState extends ValidatedPeriodsState, MutationsState, TodolistState, EcrituresState {
   eventStream: AppEvent[];
 }
