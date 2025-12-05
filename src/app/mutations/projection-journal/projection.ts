@@ -2,6 +2,7 @@
 "use client";
 
 import type { AppEvent, AppCommand, AppState, MutationType } from '../mutation-lifecycle/domain';
+import { parse, format } from 'date-fns';
 
 // 1. State Slice and Initial State
 export interface JournalEntry {
@@ -9,12 +10,14 @@ export interface JournalEntry {
     mutationType: MutationType;
     timestamp: string;
     // For DROITS mutations
-    dateDebut?: string;
-    dateFin?: string;
+    droitsDateDebut?: string;
+    droitsDateFin?: string;
     // For RESSOURCES mutations
     addedRevenus: number;
     addedDepenses: number;
     deletedEcritures: number;
+    ressourcesDateDebut?: string; // min date
+    ressourcesDateFin?: string; // max date
 }
 
 export interface JournalState {
@@ -52,22 +55,43 @@ function applyDroitsAnalyses(state: JournalState, event: AppEvent): JournalState
         ...state,
         journal: state.journal.map(entry =>
             entry.mutationId === event.mutationId
-                ? { ...entry, dateDebut: event.payload.dateDebut, dateFin: event.payload.dateFin }
+                ? { ...entry, droitsDateDebut: event.payload.dateDebut, droitsDateFin: event.payload.dateFin }
                 : entry
         ),
     };
 }
+
+function updateRessourcesDateRange(entry: JournalEntry, newStartDate: Date, newEndDate: Date): Partial<JournalEntry> {
+    const updates: Partial<JournalEntry> = {};
+
+    const currentStart = entry.ressourcesDateDebut ? parse(entry.ressourcesDateDebut, 'MM-yyyy', new Date()) : null;
+    const currentEnd = entry.ressourcesDateFin ? parse(entry.ressourcesDateFin, 'MM-yyyy', new Date()) : null;
+
+    if (!currentStart || newStartDate < currentStart) {
+        updates.ressourcesDateDebut = format(newStartDate, 'MM-yyyy');
+    }
+    if (!currentEnd || newEndDate > currentEnd) {
+        updates.ressourcesDateFin = format(newEndDate, 'MM-yyyy');
+    }
+
+    return updates;
+}
+
 
 function applyRevenuAjoute(state: JournalState, event: AppEvent): JournalState {
     if (event.type !== 'REVENU_AJOUTE') return state;
     
     return {
         ...state,
-        journal: state.journal.map(entry =>
-            entry.mutationId === event.mutationId
-                ? { ...entry, addedRevenus: entry.addedRevenus + 1 }
-                : entry
-        ),
+        journal: state.journal.map(entry => {
+            if (entry.mutationId === event.mutationId) {
+                const dateDebut = parse(event.payload.dateDebut, 'MM-yyyy', new Date());
+                const dateFin = parse(event.payload.dateFin, 'MM-yyyy', new Date());
+                const dateUpdates = updateRessourcesDateRange(entry, dateDebut, dateFin);
+                return { ...entry, addedRevenus: entry.addedRevenus + 1, ...dateUpdates };
+            }
+            return entry;
+        }),
     };
 }
 
@@ -76,17 +100,23 @@ function applyDepenseAjoutee(state: JournalState, event: AppEvent): JournalState
     
     return {
         ...state,
-        journal: state.journal.map(entry =>
-            entry.mutationId === event.mutationId
-                ? { ...entry, addedDepenses: entry.addedDepenses + 1 }
-                : entry
-        ),
+        journal: state.journal.map(entry => {
+            if (entry.mutationId === event.mutationId) {
+                const dateDebut = parse(event.payload.dateDebut, 'MM-yyyy', new Date());
+                const dateFin = parse(event.payload.dateFin, 'MM-yyyy', new Date());
+                const dateUpdates = updateRessourcesDateRange(entry, dateDebut, dateFin);
+                return { ...entry, addedDepenses: entry.addedDepenses + 1, ...dateUpdates };
+            }
+            return entry;
+        }),
     };
 }
 
 function applyEcritureSupprimee(state: JournalState, event: AppEvent): JournalState {
     if (event.type !== 'ECRITURE_SUPPRIMEE') return state;
-    
+    // Note: This event doesn't carry date info. Recalculating the whole range would be inefficient.
+    // The current approach assumes the date range only expands or stays the same.
+    // To handle shrinking, we would need to re-scan all related events on deletion.
     return {
         ...state,
         journal: state.journal.map(entry =>
