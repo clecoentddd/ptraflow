@@ -3,7 +3,7 @@
 
 import React from 'react';
 import { useCqrs } from '@/app/mutations/mutation-lifecycle/cqrs';
-import { queryAllEcritures, queryEcrituresForRessourceVersion } from '@/app/mutations/projection-ecritures/projection';
+import { queryEcrituresForRessourceVersion, queryEcrituresByMonth } from '@/app/mutations/projection-ecritures/projection';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
@@ -82,12 +82,12 @@ export function EcrituresForMutationListUI({ mutationId, ressourceVersionId, can
 }
 
 
-// This component shows ALL ecritures
+// This component shows ALL ecritures pivoted by month
 export function AllEcrituresListView() {
     const { state } = useCqrs();
-    const allEcritures = queryAllEcritures(state);
+    const { months, rows, totals } = queryEcrituresByMonth(state);
 
-    if (allEcritures.length === 0) {
+    if (rows.length === 0) {
         return (
             <Card className="flex items-center justify-center h-48 border-dashed">
                 <p className="text-muted-foreground">Aucune écriture enregistrée.</p>
@@ -101,27 +101,42 @@ export function AllEcrituresListView() {
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead>Type</TableHead>
-                            <TableHead>Libellé</TableHead>
-                            <TableHead>Période</TableHead>
-                            <TableHead>Mutation ID</TableHead>
-                            <TableHead className="text-right">Montant</TableHead>
+                            <TableHead className="min-w-[200px]">Écriture</TableHead>
+                            {months.map(month => (
+                                <TableHead key={month} className="text-right font-mono min-w-[100px]">
+                                    {month}
+                                </TableHead>
+                            ))}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {allEcritures.map((ecriture) => (
-                            <TableRow key={ecriture.id}>
+                        {rows.map(row => (
+                             <TableRow key={row.ecriture.id}>
                                 <TableCell>
-                                     <Badge variant={ecriture.type === 'revenu' ? 'default' : 'destructive'} className="text-xs">
-                                        {ecriture.type}
-                                    </Badge>
+                                    <div className="flex flex-col">
+                                        <span className="font-medium">{row.ecriture.libelle}</span>
+                                        <span className="text-xs text-muted-foreground">{row.ecriture.code} - {row.ecriture.type}</span>
+                                    </div>
                                 </TableCell>
-                                <TableCell>{ecriture.libelle} ({ecriture.code})</TableCell>
-                                <TableCell className="text-xs">{ecriture.dateDebut} - {ecriture.dateFin}</TableCell>
-                                <TableCell className="font-mono text-xs">{ecriture.mutationId}</TableCell>
-                                <TableCell className="text-right font-mono">{ecriture.montant.toFixed(2)} €</TableCell>
+                                {months.map(month => (
+                                    <TableCell key={`${row.ecriture.id}-${month}`} className="text-right font-mono">
+                                        {row.monthlyAmounts[month] 
+                                            ? <span className={row.ecriture.type === 'dépense' ? 'text-destructive' : ''}>{row.monthlyAmounts[month]?.toFixed(2)} €</span>
+                                            : <span className="text-muted-foreground">-</span>}
+                                    </TableCell>
+                                ))}
                             </TableRow>
                         ))}
+                        <TableRow className="bg-muted/50 font-bold">
+                             <TableCell>Total</TableCell>
+                             {months.map(month => (
+                                <TableCell key={`total-${month}`} className="text-right font-mono">
+                                    <span className={totals[month] < 0 ? 'text-destructive' : ''}>
+                                        {totals[month].toFixed(2)} €
+                                    </span>
+                                </TableCell>
+                             ))}
+                        </TableRow>
                     </TableBody>
                 </Table>
             </ScrollArea>

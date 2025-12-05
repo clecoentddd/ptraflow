@@ -2,6 +2,7 @@
 "use client";
 
 import type { AppEvent, AppCommand, AppState, Ecriture } from '../mutation-lifecycle/domain';
+import { parse, eachMonthOfInterval, format, differenceInCalendarMonths } from 'date-fns';
 
 // 1. State Slice and Initial State
 export interface EcrituresState {
@@ -68,21 +69,64 @@ export function ecrituresProjectionReducer<T extends EcrituresState>(
 
 // 4. Queries (Selectors)
 
-// Returns ALL ecritures from the state
-export function queryAllEcritures(state: AppState): Ecriture[] {
-    // Sort by timestamp from the related event for chronological order
-    const eventMap = new Map(state.eventStream.map(e => [e.id, e.timestamp]));
-    return [...state.ecritures].sort((a, b) => {
-         const eventA = state.eventStream.find(e => (e.type === 'REVENU_AJOUTE' || e.type === 'DEPENSE_AJOUTEE') && e.payload.ecritureId === a.id);
-         const eventB = state.eventStream.find(e => (e.type === 'REVENU_AJOUTE' || e.type === 'DEPENSE_AJOUTEE') && e.payload.ecritureId === b.id);
-         const timeA = eventA ? new Date(eventA.timestamp).getTime() : 0;
-         const timeB = eventB ? new Date(eventB.timestamp).getTime() : 0;
-         return timeB - timeA; // most recent first
-    });
-}
-
-
 // Returns ecritures for a specific ressourceVersionId
 export function queryEcrituresForRessourceVersion(state: AppState, ressourceVersionId: string): Ecriture[] {
     return state.ecritures.filter(e => e.ressourceVersionId === ressourceVersionId);
+}
+
+// Pivots the ecritures data to a monthly view
+export function queryEcrituresByMonth(state: AppState): {
+    months: string[];
+    rows: { ecriture: Ecriture; monthlyAmounts: Record<string, number> }[];
+    totals: Record<string, number>;
+} {
+    if (state.ecritures.length === 0) {
+        return { months: [], rows: [], totals: {} };
+    }
+
+    // Get all unique months across all ecritures
+    const allMonths = new Set<string>();
+    state.ecritures.forEach(e => {
+        const start = parse(e.dateDebut, 'MM-yyyy', new Date());
+        const end = parse(e.dateFin, 'MM-yyyy', new Date());
+        const interval = eachMonthOfInterval({ start, end });
+        interval.forEach(monthDate => {
+            allMonths.add(format(monthDate, 'MM-yyyy'));
+        });
+    });
+
+    const sortedMonths = Array.from(allMonths).sort((a, b) => {
+        const dateA = parse(a, 'MM-yyyy', new Date()).getTime();
+        const dateB = parse(b, 'MM-yyyy', new Date()).getTime();
+        return dateA - dateB;
+    });
+
+    // Build rows for the pivot table
+    const rows = state.ecritures.map(ecriture => {
+        const monthlyAmounts: Record<string, number> = {};
+        const start = parse(ecriture.dateDebut, 'MM-yyyy', new Date());
+        const end = parse(ecriture.dateFin, 'MM-yyyy', new Date());
+        const interval = eachMonthOfInterval({ start, end });
+
+        interval.forEach(monthDate => {
+            const monthKey = format(monthDate, 'MM-yyyy');
+            const amount = ecriture.type === 'dépense' ? -ecriture.montant : ecriture.montant;
+            monthlyAmounts[monthKey] = (monthlyAmounts[monthKey] || 0) + amount;
+        });
+
+        return { ecriture, monthlyAmounts };
+    });
+
+    // Calculate totals for each month
+    const totals: Record<string, number> = {};
+    sortedMonths.forEach(month => {
+        totals[month] = 0;
+        rows.forEach(row => {
+            if (row.monthlyAmounts[month]) {
+                totals[month] += row.monthlyAmounts[month];
+            }
+        });
+    });
+
+    return { months: sortedMonths, rows, totals };
 }
