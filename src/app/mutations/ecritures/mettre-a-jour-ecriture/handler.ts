@@ -5,7 +5,6 @@ import type { MettreAJourEcritureCommand } from './command';
 import type { EcritureSupprimeeEvent } from '../supprimer-ecriture/event';
 import type { RevenuAjouteEvent } from '../ajouter-revenu/event';
 import type { DepenseAjouteeEvent } from '../ajouter-depense/event';
-import type { EcritureMiseAJourEvent } from './event';
 import { toast } from 'react-hot-toast';
 import { format } from 'date-fns';
 
@@ -107,21 +106,7 @@ export function mettreAJourEcritureCommandHandler(
         };
     }
 
-    // This is an "orchestration" event, it doesn't have a projector
-    // but it is useful for tracing what happened.
-    const miseAJourEvent: EcritureMiseAJourEvent = {
-        id: crypto.randomUUID(),
-        type: 'ECRITURE_MISE_A_JOUR',
-        mutationId,
-        ressourceVersionId,
-        timestamp: new Date(now.getTime() + 2).toISOString(), // ensure it's last
-        payload: {
-            originalEcritureId,
-            newEcritureId,
-        }
-    };
-
-    // Add the two (or three) new events to the stream.
-    // Order is important: delete first, then add, then the meta-event.
-    return { ...state, eventStream: [miseAJourEvent, ajoutEvent, suppressionEvent, ...state.eventStream] };
+    // Add the two new events to the stream.
+    // Order is important: delete first, then add.
+    return { ...state, eventStream: [ajoutEvent, suppressionEvent, ...state.eventStream] };
 }

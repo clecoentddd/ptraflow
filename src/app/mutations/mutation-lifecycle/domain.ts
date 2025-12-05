@@ -10,7 +10,6 @@ import type { RevenuAjouteEvent } from '../ecritures/ajouter-revenu/event';
 import type { DepenseAjouteeEvent } from '../ecritures/ajouter-depense/event';
 import type { ModificationRessourcesValideeEvent } from '../valider-modification-ressources/event';
 import type { EcritureSupprimeeEvent } from '../ecritures/supprimer-ecriture/event';
-import type { EcritureMiseAJourEvent } from '../ecritures/mettre-a-jour-ecriture/event';
 
 
 import type { CreateDroitsMutationCommand } from '../create-mutation/command';
@@ -55,8 +54,7 @@ export type AppEvent =
     | RevenuAjouteEvent
     | DepenseAjouteeEvent
     | ModificationRessourcesValideeEvent
-    | EcritureSupprimeeEvent
-    | EcritureMiseAJourEvent;
+    | EcritureSupprimeeEvent;
 
 // Command Union (Le "registre central" des commandes)
 export type AppCommand = 
