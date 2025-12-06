@@ -42,105 +42,106 @@ export const initialState: AppState = {
 // 2. PROJECTION LOGIC (Le "Subscriber")
 // ======================================
 
-// Cette fonction applique un SEUL événement à toutes les projections.
+// This function applies ONE event to all projections that need to react.
 function applyEventToProjections(state: AppState, event: AppEvent): AppState {
     let nextState = state;
     
-    // Chaque projection met à jour sa propre slice de l'état.
+    // Each projection updates its own slice of the state.
     nextState = mutationsProjectionReducer(nextState, event);
     nextState = todolistProjectionReducer(nextState, event);
     nextState = validatedPeriodsProjectionReducer(nextState, event);
     nextState = ecrituresProjectionReducer(nextState, event);
     nextState = planCalculProjectionReducer(nextState, event);
-    // Le journal est calculé à la fin, car il peut dépendre d'autres projections.
+    // The journal is calculated at the end, as it depends on other projections.
     nextState = journalProjectionReducer(nextState, event);
     
     return nextState;
 }
 
-// Cette fonction reconstruit l'état complet à partir du flux d'événements.
-// Utile pour l'hydratation initiale ou les tests.
+// This function rebuilds the complete state from the event stream.
+// It's the core of ensuring consistency.
 function rebuildStateFromEvents(events: AppState['eventStream']): AppState {
     let state: AppState = { ...initialState, eventStream: events };
-    // Les événements doivent être traités par ordre chronologique (du plus ancien au plus récent)
+    // Events must be processed in chronological order (oldest to newest)
     const sortedEvents = [...events].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
     for (const event of sortedEvents) {
         state = applyEventToProjections(state, event);
     }
-    // After all individual events are projected, we run a final projection step
+    // After all individual events are projected, run a final projection step
     // for projections that depend on the final state of other projections (like the journal).
     state = journalProjectionReducer(state, { type: 'REPLAY_COMPLETE' });
     return state;
 }
 
-// 3. AGGREGATE REDUCER (Le "Bus" d'événements + Routeur de commandes legacy)
+// 3. AGGREGATE REDUCER (The main bus for commands and events)
 // ===========================================================================
 
 export function cqrsReducer(state: AppState, action: AppCommand): AppState {
 
-    // Nouveau pattern : on reçoit directement un événement à dispatcher
+    // New pattern: directly dispatch an event
     if (action.type === 'DISPATCH_EVENT') {
-        const newState = {
-            ...state,
-            eventStream: [action.event, ...state.eventStream]
-        };
-        // On reconstruit l'état complet pour garantir la cohérence entre les projections.
-        return rebuildStateFromEvents(newState.eventStream);
+        const newEventStream = [action.event, ...state.eventStream];
+        // Rebuild the state from scratch to ensure consistency after the new event.
+        return rebuildStateFromEvents(newEventStream);
     }
 
-    // --- Legacy Command Handling ---
-    let newStateWithEvents: AppState = state;
+    // --- Legacy & BDD Command Handling ---
+    let stateAfterCommand: AppState;
     switch (action.type) {
+        // These are handled by the new Pub/Sub flow and should not be dispatched here.
         case 'CREATE_DROITS_MUTATION':
         case 'CREATE_RESSOURCES_MUTATION':
         case 'SUSPEND_PAIEMENTS':
-            // Ces cas sont gérés par le nouveau flux Pub/Sub.
             return state; 
+        
+        // These command handlers return a new state with new events.
         case 'AUTORISER_MODIFICATION_DROITS':
-            newStateWithEvents = autoriserModificationDroitsCommandHandler(state, action);
+            stateAfterCommand = autoriserModificationDroitsCommandHandler(state, action);
             break;
         case 'AUTORISER_MODIFICATION_RESSOURCES':
-            newStateWithEvents = autoriserModificationRessourcesCommandHandler(state, action);
+            stateAfterCommand = autoriserModificationRessourcesCommandHandler(state, action);
             break;
         case 'ANALYZE_DROITS':
-            newStateWithEvents = analyzeDroitsCommandHandler(state, action);
+            stateAfterCommand = analyzeDroitsCommandHandler(state, action);
             break;
         case 'VALIDATE_MUTATION':
-            newStateWithEvents = validateMutationCommandHandler(state, action);
+            stateAfterCommand = validateMutationCommandHandler(state, action);
             break;
         case 'VALIDER_PLAN_CALCUL':
-            newStateWithEvents = validerPlanCalculCommandHandler(state, action);
+            stateAfterCommand = validerPlanCalculCommandHandler(state, action);
             break;
         case 'AJOUTER_REVENU':
-            newStateWithEvents = ajouterRevenuCommandHandler(state, action);
+            stateAfterCommand = ajouterRevenuCommandHandler(state, action);
             break;
         case 'AJOUTER_DEPENSE':
-            newStateWithEvents = ajouterDepenseCommandHandler(state, action);
+            stateAfterCommand = ajouterDepenseCommandHandler(state, action);
             break;
         case 'VALIDER_MODIFICATION_RESSOURCES':
-            newStateWithEvents = validerModificationRessourcesCommandHandler(state, action);
+            stateAfterCommand = validerModificationRessourcesCommandHandler(state, action);
             break;
         case 'SUPPRIMER_ECRITURE':
-             newStateWithEvents = supprimerEcritureCommandHandler(state, action);
+             stateAfterCommand = supprimerEcritureCommandHandler(state, action);
              break;
         case 'METTRE_A_JOUR_ECRITURE':
-             newStateWithEvents = mettreAJourEcritureCommandHandler(state, action);
+             stateAfterCommand = mettreAJourEcritureCommandHandler(state, action);
              break;
-        case 'REPLAY': // Uniquement pour les tests BDD
+        
+        // --- BDD Test Actions ---
+        case 'REPLAY': // Applies a single event for projection testing
              return applyEventToProjections({ ...state, eventStream: [action.event, ...state.eventStream] }, action.event);
-        case 'REPLAY_COMPLETE': // Uniquement pour les tests BDD
+        case 'REPLAY_COMPLETE': // Rebuilds the full state from the current stream for testing
             return rebuildStateFromEvents(state.eventStream);
         default:
             return state;
     }
     
-    // Si de nouveaux événements ont été ajoutés par le legacy system, on reconstruit tout.
-    if (newStateWithEvents.eventStream.length > state.eventStream.length) {
-        return rebuildStateFromEvents(newStateWithEvents.eventStream);
+    // If the command handler added new events, we must rebuild the entire state.
+    if (stateAfterCommand.eventStream.length > state.eventStream.length) {
+        return rebuildStateFromEvents(stateAfterCommand.eventStream);
     }
 
-    return newStateWithEvents;
+    return stateAfterCommand;
 }
 
 
@@ -151,14 +152,13 @@ const CqrsContext = createContext<{ state: AppState; dispatchEvent: (event: AppE
 export function CqrsProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(cqrsReducer, initialState);
 
-  // Wrapper `dispatch` pour le nouveau pattern.
-  // Les composants UI n'appelleront que cette fonction.
+  // This is the single entry point for all UI interactions.
   const dispatchEvent = (eventOrCommand: AppEvent | AppCommand) => {
     if ('type' in eventOrCommand && 'mutationId' in eventOrCommand && 'id' in eventOrCommand) {
-        // C'est un événement
+        // It's an event, use the pub/sub dispatcher
         dispatch({ type: 'DISPATCH_EVENT', event: eventOrCommand as AppEvent });
     } else {
-        // C'est une commande (legacy ou test)
+        // It's a command (for BDD tests or legacy handlers)
         dispatch(eventOrCommand as AppCommand);
     }
   };
@@ -179,5 +179,3 @@ export function useCqrs() {
   }
   return context;
 }
-
-    
