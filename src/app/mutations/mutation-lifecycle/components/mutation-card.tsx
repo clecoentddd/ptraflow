@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Mutation, MutationStatus, MutationType } from "@/app/mutations/mutation-lifecycle/domain";
-import { Users, Gem, CheckSquare, CheckCircle2, ArrowRightCircle, Circle, ArrowRight, Check } from "lucide-react";
+import { Users, Gem, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
 import { queryTodos } from "../../projection-todolist/projection";
@@ -23,7 +23,6 @@ import { AutoriserModificationRessourcesButton, AutoriserModificationRessourcesT
 import { ValiderModificationRessourcesButton, ValiderModificationRessourcesTodoItem } from "../../valider-modification-ressources/components/valider-modification-ressources-ui";
 import { CalculerPlanButton, CalculerPlanTodoItem } from "../../calculer-plan/components/calculer-plan-ui";
 import { ValiderDecisionButton, ValiderDecisionTodoItem } from "../../valider-decision/components/valider-decision-ui";
-import { Button } from "@/components/ui/button";
 
 
 const statusStyles: Record<MutationStatus, string> = {

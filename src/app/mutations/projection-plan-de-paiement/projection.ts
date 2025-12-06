@@ -3,11 +3,17 @@
 
 import type { AppEvent, AppCommand, AppState } from '../mutation-lifecycle/domain';
 
-// 1. State Slice and Initial State
+// --- State ---
+export interface PaiementMensuel {
+    planDePaiementId: string;
+    mois: string; // "MM-yyyy"
+    montant: number;
+}
+
 export interface PlanDePaiement {
-    id: string;
+    id: string; // planDePaiementId
     mutationId: string;
-    // ... autres propriétés du plan de paiement
+    paiements: PaiementMensuel[];
 }
 
 export interface PlanDePaiementState {
@@ -19,21 +25,85 @@ export const initialPlanDePaiementState: PlanDePaiementState = {
 };
 
 
-// 2. Projection Logic for this Slice
-// Pour l'instant, cette projection ne réagit à aucun événement.
-// Elle sera développée dans une future itération.
+// --- Projection Logic ---
+
+function applyPlanPaiementRemplace(state: PlanDePaiementState, event: AppEvent): PlanDePaiementState {
+    if (event.type !== 'PLAN_PAIEMENT_REMPLACE') return state;
+
+    const { planDePaiementId, paiements } = event.payload;
+
+    const newPaiements = paiements.map(p => ({
+        planDePaiementId,
+        mois: p.month,
+        montant: p.aPayer
+    }));
+
+    // For a replacement, we remove all previous payments for the same plan ID and add the new ones.
+    const otherPlans = state.plansDePaiement.filter(p => p.id !== planDePaiementId);
+    
+    const newPlan: PlanDePaiement = {
+        id: planDePaiementId,
+        mutationId: event.mutationId,
+        paiements: newPaiements
+    };
+
+    return { ...state, plansDePaiement: [...otherPlans, newPlan] };
+}
+
+function applyPlanPaiementPatched(state: PlanDePaiementState, event: AppEvent): PlanDePaiementState {
+    if (event.type !== 'PLAN_PAIEMENT_PATCHE') return state;
+
+    const { planDePaiementId, paiements } = event.payload;
+    
+    let plan = state.plansDePaiement.find(p => p.id === planDePaiementId);
+
+    if (!plan) { // First time we see this plan
+        plan = { id: planDePaiementId, mutationId: event.mutationId, paiements: [] };
+    }
+
+    const updatedPaiements = [...plan.paiements];
+    const monthsToPatch = new Set(paiements.map(p => p.month));
+    
+    // Remove old payments for the patched months
+    const filteredPaiements = updatedPaiements.filter(p => !monthsToPatch.has(p.mois));
+    
+    // Add new payments for the patched months
+    const newPaiements = paiements.map(p => ({
+        planDePaiementId,
+        mois: p.month,
+        montant: p.aPayer
+    }));
+    
+    const finalPaiements = [...filteredPaiements, ...newPaiements];
+    
+    const updatedPlan = { ...plan, paiements: finalPaiements };
+
+    const otherPlans = state.plansDePaiement.filter(p => p.id !== planDePaiementId);
+
+    return { ...state, plansDePaiement: [...otherPlans, updatedPlan] };
+}
 
 
-// 3. Slice Reducer
+// --- Reducer ---
+
 export function planDePaiementProjectionReducer<T extends PlanDePaiementState>(
     state: T, 
     eventOrCommand: AppEvent | AppCommand
 ): T {
-    // Aucune logique pour le moment
+    if ('type' in eventOrCommand && 'payload' in eventOrCommand) {
+        const event = eventOrCommand;
+        switch (event.type) {
+            case 'PLAN_PAIEMENT_REMPLACE':
+                return applyPlanPaiementRemplace(state, event) as T;
+            case 'PLAN_PAIEMENT_PATCHE':
+                return applyPlanPaiementPatched(state, event) as T;
+        }
+    }
     return state;
 }
 
-// 4. Queries (Selectors)
+// --- Queries ---
+
 export function queryPlanDePaiement(state: AppState): PlanDePaiement[] {
     return state.plansDePaiement;
 }

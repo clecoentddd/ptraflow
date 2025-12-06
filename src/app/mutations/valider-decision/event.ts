@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { BaseEvent } from '../mutation-lifecycle/domain';
@@ -16,8 +17,10 @@ export interface DecisionValideeEvent extends BaseEvent {
     payload: {
         decisionId: string;
         mutationType: MutationType;
-        planDeCalculId?: string;
         ressourceVersionId: string;
+        planDePaiementId: string;
+        periodeDroits?: { dateDebut: string; dateFin: string };
+        periodeModifications?: { dateDebut: string; dateFin: string };
         detailCalcul: DecisionDetail[];
     }
 }

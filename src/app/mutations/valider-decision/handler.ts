@@ -1,3 +1,4 @@
+
 "use client";
     
 import type { AppState, AppEvent } from '../mutation-lifecycle/domain';
@@ -48,8 +49,10 @@ export function validerDecisionCommandHandler(state: AppState, command: ValiderD
     payload: {
         decisionId,
         mutationType: decision.mutationType,
-        planDeCalculId: decision.planDeCalcul?.calculId,
         ressourceVersionId: lastRessourceVersionIdEvent.ressourceVersionId,
+        planDePaiementId: `pp-${mutationId.substring(0, 8)}`, // Generate a stable ID
+        periodeDroits: decision.periodeDroits,
+        periodeModifications: decision.periodeModifications,
         detailCalcul: detailCalcul,
     }
   };

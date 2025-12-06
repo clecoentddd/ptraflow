@@ -193,7 +193,7 @@ export function todolistProjectionReducer<T extends TodolistState & { mutations:
                 return applyPlanCalcule(state, event) as T;
             case 'DECISION_VALIDEE':
                 return applyDecisionValidee(state, event) as T;
-            case 'PLAN_PAIEMENT_VALIDE':
+            case 'PLAN_PAIEMENT_VALIDEE':
                 return applyPlanPaiementValide(state, event) as T;
         }
     }

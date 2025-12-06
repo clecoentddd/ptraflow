@@ -72,6 +72,9 @@ function rebuildStateFromEvents(eventStream: AppState['eventStream']): AppState 
     // After all individual events are projected, run final projection steps
     // for projections that depend on the final state of other projections (like the journal).
     stateWithStream = journalProjectionReducer(stateWithStream, { type: 'REPLAY_COMPLETE' });
+    
+    // The decision projection *always* runs after any event has been processed.
+    stateWithStream = decisionAPrendreProjectionReducer(stateWithStream, { type: 'REPLAY_COMPLETE' });
 
     return stateWithStream;
 }
@@ -151,12 +154,8 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
             return stateAfterCommand;
         }
     }
-    
-    // --- Final Projection Step ---
-    // The decision projection *always* runs after any event has been processed.
-    const finalState = decisionAPrendreProjectionReducer(stateAfterEvents, { type: 'REPLAY_COMPLETE' });
 
-    return finalState;
+    return stateAfterEvents;
 }
 
 
