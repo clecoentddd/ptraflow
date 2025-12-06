@@ -47,7 +47,7 @@ export function validerDecisionCommandHandler(state: AppState, command: ValiderD
     mutationId,
     decisionId: decision.decisionId,
     ressourceVersionId: lastRessourceVersionIdEvent.ressourceVersionId,
-    planDePaiementId: decision.planDePaiementId, // Can be null
+    planDePaiementId: decision.planDePaiementId, // This will be null if no plan exists yet
     timestamp: new Date().toISOString(),
     payload: {
         mutationType: decision.mutationType,
