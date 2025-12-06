@@ -8,51 +8,20 @@ import { format } from 'date-fns';
 import type { RevenuAjouteEvent } from '../ajouter-revenu/event';
 import type { DepenseAjouteeEvent } from '../ajouter-depense/event';
 import type { EcritureSupprimeeEvent } from '../supprimer-ecriture/event';
+import type { EcritureDateFinModifieeEvent } from './event';
 
-
-function createAjoutEvent(
-    type: EcritureType,
-    commandPayload: MettreAJourEcritureCommand['payload'],
-    timestamp: string,
-): RevenuAjouteEvent | DepenseAjouteeEvent {
-    const { mutationId, ressourceVersionId, newEcritureId, code, libelle, montant, dateDebut, dateFin } = commandPayload;
-    
-    const payload = {
-        ecritureId: newEcritureId,
-        code,
-        libelle,
-        montant,
-        dateDebut: format(new Date(dateDebut), 'MM-yyyy'),
-        dateFin: format(new Date(dateFin), 'MM-yyyy'),
-    };
-
-    if (type === 'revenu') {
-        return {
-            id: crypto.randomUUID(),
-            type: 'REVENU_AJOUTE',
-            mutationId, ressourceVersionId, timestamp,
-            payload
-        };
-    } else {
-        return {
-            id: crypto.randomUUID(),
-            type: 'DEPENSE_AJOUTEE',
-            mutationId, ressourceVersionId, timestamp,
-            payload
-        };
-    }
-}
-
-
-// Command Handler for "Update" using a "replace" (delete + add) pattern
+// Command Handler for "Update"
 export function mettreAJourEcritureCommandHandler(
     state: AppState,
     command: MettreAJourEcritureCommand
 ): AppState {
     const {
         originalEcritureId,
-        montant,
+        newEcritureId,
         ecritureType,
+        code,
+        libelle,
+        montant,
         mutationId,
         ressourceVersionId,
     } = command.payload;
@@ -76,22 +45,67 @@ export function mettreAJourEcritureCommandHandler(
     const events: AppEvent[] = [];
     const now = new Date();
 
-    // Step 1: Create a "delete" event for the old ecriture.
-    const deleteEvent: EcritureSupprimeeEvent = {
-        id: crypto.randomUUID(),
-        type: 'ECRITURE_SUPPRIMEE',
-        mutationId,
-        ressourceVersionId,
-        timestamp: now.toISOString(),
-        payload: {
-            ecritureId: originalEcritureId,
-        }
-    };
-    events.push(deleteEvent);
+    const isOnlyEndDateChanged =
+        ecritureToUpdate.code === code &&
+        ecritureToUpdate.montant === montant &&
+        ecritureToUpdate.dateDebut === format(newDateDebut, 'MM-yyyy');
 
-    // Step 2: Create an "add" event for the new version of the ecriture.
-    const addEvent = createAjoutEvent(ecritureType, command.payload, new Date(now.getTime() + 1).toISOString());
-    events.push(addEvent);
+    if (isOnlyEndDateChanged) {
+        // --- SCENARIO 1: Only the end date is modified ---
+        const dateFinModifieeEvent: EcritureDateFinModifieeEvent = {
+            id: crypto.randomUUID(),
+            type: 'ECRITURE_DATE_FIN_MODIFIEE',
+            mutationId,
+            ressourceVersionId,
+            timestamp: now.toISOString(),
+            payload: {
+                ecritureId: originalEcritureId,
+                ancienneDateFin: ecritureToUpdate.dateFin,
+                nouvelleDateFin: format(newDateFin, 'MM-yyyy'),
+            }
+        };
+        events.push(dateFinModifieeEvent);
+    } else {
+        // --- SCENARIO 2: Other fields changed, use the "replace" pattern ---
+
+        // Step 1: Create a "delete" event for the old ecriture.
+        const deleteEvent: EcritureSupprimeeEvent = {
+            id: crypto.randomUUID(),
+            type: 'ECRITURE_SUPPRIMEE',
+            mutationId,
+            ressourceVersionId,
+            timestamp: now.toISOString(),
+            payload: {
+                ecritureId: originalEcritureId,
+            }
+        };
+        events.push(deleteEvent);
+
+        // Step 2: Create an "add" event for the new version of the ecriture.
+        const addPayload = {
+            ecritureId: newEcritureId,
+            code, libelle, montant,
+            dateDebut: format(newDateDebut, 'MM-yyyy'),
+            dateFin: format(newDateFin, 'MM-yyyy'),
+        };
+
+        const addEvent: RevenuAjouteEvent | DepenseAjouteeEvent = ecritureType === 'revenu'
+            ? {
+                id: crypto.randomUUID(),
+                type: 'REVENU_AJOUTE',
+                mutationId, ressourceVersionId,
+                timestamp: new Date(now.getTime() + 1).toISOString(), // Ensure order
+                payload: addPayload
+              }
+            : {
+                id: crypto.randomUUID(),
+                type: 'DEPENSE_AJOUTEE',
+                mutationId, ressourceVersionId,
+                timestamp: new Date(now.getTime() + 1).toISOString(), // Ensure order
+                payload: addPayload
+              };
+        events.push(addEvent);
+    }
     
     // The reducer will handle rebuilding the state from the new event stream
     return { ...state, eventStream: [...events, ...state.eventStream] };

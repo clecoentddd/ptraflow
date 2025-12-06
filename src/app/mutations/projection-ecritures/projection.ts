@@ -3,7 +3,7 @@
 
 import type { AppEvent, AppCommand, AppState, Ecriture } from '../mutation-lifecycle/domain';
 import { parse, eachMonthOfInterval, format, differenceInCalendarMonths } from 'date-fns';
-import type { EcriturePeriodeCorrigeeEvent } from '../ecritures/corriger-periode-ecriture/event';
+import type { EcritureDateFinModifieeEvent } from '../ecritures/mettre-a-jour-ecriture/event';
 
 // 1. State Slice and Initial State
 export interface EcrituresState {
@@ -48,12 +48,12 @@ function applyEcritureSupprimee(state: EcrituresState, event: AppEvent): Ecritur
     };
 }
 
-function applyEcriturePeriodeCorrigee(state: EcrituresState, event: EcriturePeriodeCorrigeeEvent): EcrituresState {
+function applyEcritureDateFinModifiee(state: EcrituresState, event: EcritureDateFinModifieeEvent): EcrituresState {
     return {
         ...state,
         ecritures: state.ecritures.map(e => 
             e.id === event.payload.ecritureId
-                ? { ...e, dateDebut: event.payload.newDateDebut, dateFin: event.payload.newDateFin }
+                ? { ...e, dateFin: event.payload.nouvelleDateFin }
                 : e
         )
     };
@@ -74,8 +74,8 @@ export function ecrituresProjectionReducer<T extends EcrituresState>(
                 return applyDepenseAjoutee(state, event) as T;
             case 'ECRITURE_SUPPRIMEE':
                 return applyEcritureSupprimee(state, event) as T;
-            case 'ECRITURE_PERIODE_CORRIGEE':
-                return applyEcriturePeriodeCorrigee(state, event) as T;
+            case 'ECRITURE_DATE_FIN_MODIFIEE':
+                return applyEcritureDateFinModifiee(state, event) as T;
         }
     }
     return state;
@@ -95,13 +95,17 @@ export function queryEcrituresByMonth(state: AppState): {
     // Get all unique months across all ecritures
     const allMonths = new Set<string>();
     state.ecritures.forEach(e => {
-        const start = parse(e.dateDebut, 'MM-yyyy', new Date());
-        const end = parse(e.dateFin, 'MM-yyyy', new Date());
-        if (!start || !end || isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) return; // Ignore invalid data
-        const interval = eachMonthOfInterval({ start, end });
-        interval.forEach(monthDate => {
-            allMonths.add(format(monthDate, 'MM-yyyy'));
-        });
+        try {
+            const start = parse(e.dateDebut, 'MM-yyyy', new Date());
+            const end = parse(e.dateFin, 'MM-yyyy', new Date());
+            if (isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) return; // Ignore invalid data
+            const interval = eachMonthOfInterval({ start, end });
+            interval.forEach(monthDate => {
+                allMonths.add(format(monthDate, 'MM-yyyy'));
+            });
+        } catch(error) {
+            console.warn(`Invalid date format for ecriture ${e.id}:`, e);
+        }
     });
 
     const sortedMonths = Array.from(allMonths).sort((a, b) => {
@@ -113,16 +117,20 @@ export function queryEcrituresByMonth(state: AppState): {
     // Build rows for the pivot table
     const rows = state.ecritures.map(ecriture => {
         const monthlyAmounts: Record<string, number> = {};
-        const start = parse(ecriture.dateDebut, 'MM-yyyy', new Date());
-        const end = parse(ecriture.dateFin, 'MM-yyyy', new Date());
-        
-        if (start && end && !isNaN(start.getTime()) && !isNaN(end.getTime()) && start <= end) {
-            const interval = eachMonthOfInterval({ start, end });
-            interval.forEach(monthDate => {
-                const monthKey = format(monthDate, 'MM-yyyy');
-                const amount = ecriture.type === 'dépense' ? -ecriture.montant : ecriture.montant;
-                monthlyAmounts[monthKey] = (monthlyAmounts[monthKey] || 0) + amount;
-            });
+         try {
+            const start = parse(ecriture.dateDebut, 'MM-yyyy', new Date());
+            const end = parse(ecriture.dateFin, 'MM-yyyy', new Date());
+            
+            if (!isNaN(start.getTime()) && !isNaN(end.getTime()) && start <= end) {
+                const interval = eachMonthOfInterval({ start, end });
+                interval.forEach(monthDate => {
+                    const monthKey = format(monthDate, 'MM-yyyy');
+                    const amount = ecriture.type === 'dépense' ? -ecriture.montant : ecriture.montant;
+                    monthlyAmounts[monthKey] = (monthlyAmounts[monthKey] || 0) + amount;
+                });
+            }
+        } catch(error) {
+            console.warn(`Invalid date format for ecriture monthly calc ${ecriture.id}:`, ecriture);
         }
 
         return { ecriture, monthlyAmounts };

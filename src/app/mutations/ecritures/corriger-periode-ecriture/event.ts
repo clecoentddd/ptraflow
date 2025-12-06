@@ -1,22 +1,6 @@
 
 "use client";
 
-import type { BaseEvent } from '../../mutation-lifecycle/domain';
-
-// This event is no longer used and will be removed. 
-// The "replace" pattern (delete + add) is now used for all updates.
-
-// Event
-export interface EcriturePeriodeCorrigeeEvent extends BaseEvent {
-    type: 'ECRITURE_PERIODE_CORRIGEE';
-    ressourceVersionId: string;
-    payload: {
-        ecritureId: string;
-        // The original period before the correction
-        originalDateDebut: string; // format MM-yyyy
-        originalDateFin: string; // format MM-yyyy
-        // The new, corrected period
-        newDateDebut: string; // format MM-yyyy
-        newDateFin: string; // format MM-yyyy
-    }
-}
+// This file is obsolete as the logic has been merged into
+// src/app/mutations/ecritures/mettre-a-jour-ecriture/event.ts
+// It can be removed in a future iteration.
