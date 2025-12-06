@@ -155,7 +155,7 @@ const EventsVisualizer: React.FC<{events: AppEvent[], title: string}> = ({ event
     });
 
     return (
-         <details className="mt-4 text-xs" open>
+         <details className="mt-4 text-xs">
             <summary className="cursor-pointer font-medium">{title}</summary>
              <div className="overflow-x-auto mt-2">
                 <Table>
@@ -216,13 +216,11 @@ export const TestComponent: React.FC<TestComponentProps> = ({ title, description
 
         // GIVEN: Set up the initial state by projecting past events
         const initialSetup = given();
-        // Do NOT sort events here to preserve the natural stream order (most recent first)
         setGivenEvents(initialSetup.eventStream); 
         const projectedGivenState = projectEvents(initialSetup.eventStream);
         
         // WHEN: The command handler or projection logic is called
         const stateAfterWhen = when(projectedGivenState);
-        // Do NOT sort final events
         setFinalEvents(stateAfterWhen.eventStream);
         
         // THEN: The result is checked
@@ -261,3 +259,5 @@ export const TestComponent: React.FC<TestComponentProps> = ({ title, description
         </Card>
     );
 };
+
+    
