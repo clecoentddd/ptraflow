@@ -10,9 +10,11 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Mutation, MutationStatus, MutationType, AppEvent } from "@/app/mutations/mutation-lifecycle/domain";
-import { Users, Gem, CheckSquare } from "lucide-react";
+import type { Mutation, MutationStatus, MutationType } from "@/app/mutations/mutation-lifecycle/domain";
+import { Users, Gem, CheckSquare, CheckCircle2, ArrowRightCircle, Circle, ArrowRight, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
+import { queryTodos } from "../../projection-todolist/projection";
 import { SuspendPaiementsButton, SuspendPaiementsTodoItem } from "@/app/mutations/suspend-paiements/components/suspend-paiements-ui";
 import { AnalyzeDroitsButton, AnalyzeDroitsTodoItem } from "@/app/mutations/analyze-droits/components/analyze-droits-ui";
 import { ValidateMutationButton, ValidateMutationTodoItem } from "@/app/mutations/validate-mutation/components/validate-mutation-ui";
@@ -20,6 +22,7 @@ import { AutoriserModificationDroitsButton, AutoriserModificationDroitsTodoItem 
 import { AutoriserModificationRessourcesButton, AutoriserModificationRessourcesTodoItem } from "../../autoriser-modification-des-ressources/components/autoriser-modification-ressources-ui";
 import { ValiderModificationRessourcesButton, ValiderModificationRessourcesTodoItem } from "../../valider-modification-ressources/components/valider-modification-ressources-ui";
 import { CalculerPlanButton, CalculerPlanTodoItem } from "../../calculer-plan/components/calculer-plan-ui";
+import { Button } from "@/components/ui/button";
 
 
 const statusStyles: Record<MutationStatus, string> = {
