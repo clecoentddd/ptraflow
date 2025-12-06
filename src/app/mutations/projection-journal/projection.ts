@@ -2,7 +2,8 @@
 "use client";
 
 import type { AppEvent, AppCommand, AppState, MutationType } from '../mutation-lifecycle/domain';
-import { parse, format } from 'date-fns';
+import { parse, format, min, max } from 'date-fns';
+import type { EcriturePeriodeCorrigeeEvent } from '../ecritures/corriger-periode-ecriture/event';
 
 // 1. State Slice and Initial State
 export interface JournalEntry {
@@ -16,6 +17,7 @@ export interface JournalEntry {
     addedRevenus: number;
     addedDepenses: number;
     deletedEcritures: number;
+    correctedEcritures: number;
     ressourcesDateDebut?: string; // min date
     ressourcesDateFin?: string; // max date
 }
@@ -44,6 +46,7 @@ function applyMutationCreated(state: JournalState, event: AppEvent): JournalStat
         addedRevenus: 0,
         addedDepenses: 0,
         deletedEcritures: 0,
+        correctedEcritures: 0,
     };
     return { ...state, journal: [newEntry, ...state.journal] };
 }
@@ -61,17 +64,22 @@ function applyDroitsAnalyses(state: JournalState, event: AppEvent): JournalState
     };
 }
 
-function updateRessourcesDateRange(entry: JournalEntry, newStartDate: Date, newEndDate: Date): Partial<JournalEntry> {
+function updateRessourcesDateRange(entry: JournalEntry, newDates: Date[]): Partial<JournalEntry> {
+    if (newDates.length === 0) return {};
+    
     const updates: Partial<JournalEntry> = {};
 
     const currentStart = entry.ressourcesDateDebut ? parse(entry.ressourcesDateDebut, 'MM-yyyy', new Date()) : null;
     const currentEnd = entry.ressourcesDateFin ? parse(entry.ressourcesDateFin, 'MM-yyyy', new Date()) : null;
 
-    if (!currentStart || newStartDate < currentStart) {
-        updates.ressourcesDateDebut = format(newStartDate, 'MM-yyyy');
+    const newMinDate = min(newDates);
+    const newMaxDate = max(newDates);
+
+    if (!currentStart || newMinDate < currentStart) {
+        updates.ressourcesDateDebut = format(newMinDate, 'MM-yyyy');
     }
-    if (!currentEnd || newEndDate > currentEnd) {
-        updates.ressourcesDateFin = format(newEndDate, 'MM-yyyy');
+    if (!currentEnd || newMaxDate > currentEnd) {
+        updates.ressourcesDateFin = format(newMaxDate, 'MM-yyyy');
     }
 
     return updates;
@@ -87,7 +95,7 @@ function applyRevenuAjoute(state: JournalState, event: AppEvent): JournalState {
             if (entry.mutationId === event.mutationId) {
                 const dateDebut = parse(event.payload.dateDebut, 'MM-yyyy', new Date());
                 const dateFin = parse(event.payload.dateFin, 'MM-yyyy', new Date());
-                const dateUpdates = updateRessourcesDateRange(entry, dateDebut, dateFin);
+                const dateUpdates = updateRessourcesDateRange(entry, [dateDebut, dateFin]);
                 return { ...entry, addedRevenus: entry.addedRevenus + 1, ...dateUpdates };
             }
             return entry;
@@ -104,7 +112,7 @@ function applyDepenseAjoutee(state: JournalState, event: AppEvent): JournalState
             if (entry.mutationId === event.mutationId) {
                 const dateDebut = parse(event.payload.dateDebut, 'MM-yyyy', new Date());
                 const dateFin = parse(event.payload.dateFin, 'MM-yyyy', new Date());
-                const dateUpdates = updateRessourcesDateRange(entry, dateDebut, dateFin);
+                const dateUpdates = updateRessourcesDateRange(entry, [dateDebut, dateFin]);
                 return { ...entry, addedDepenses: entry.addedDepenses + 1, ...dateUpdates };
             }
             return entry;
@@ -112,24 +120,53 @@ function applyDepenseAjoutee(state: JournalState, event: AppEvent): JournalState
     };
 }
 
-function applyEcritureSupprimee(state: JournalState, event: AppEvent): JournalState {
+function applyEcritureSupprimee(state: JournalState, event: AppEvent, allEcritures: AppState['ecritures']): JournalState {
     if (event.type !== 'ECRITURE_SUPPRIMEE') return state;
-    // Note: This event doesn't carry date info. Recalculating the whole range would be inefficient.
-    // The current approach assumes the date range only expands or stays the same.
-    // To handle shrinking, we would need to re-scan all related events on deletion.
+    
+    const deletedEcriture = allEcritures.find(e => e.id === event.payload.ecritureId);
+    if (!deletedEcriture) return state;
+
     return {
         ...state,
-        journal: state.journal.map(entry =>
-            entry.mutationId === event.mutationId
-                ? { ...entry, deletedEcritures: entry.deletedEcritures + 1 }
-                : entry
-        ),
+        journal: state.journal.map(entry => {
+            if (entry.mutationId === event.mutationId) {
+                const dateDebut = parse(deletedEcriture.dateDebut, 'MM-yyyy', new Date());
+                const dateFin = parse(deletedEcriture.dateFin, 'MM-yyyy', new Date());
+                const dateUpdates = updateRessourcesDateRange(entry, [dateDebut, dateFin]);
+                return { ...entry, deletedEcritures: entry.deletedEcritures + 1, ...dateUpdates };
+            }
+            return entry;
+        }),
+    };
+}
+
+function applyEcriturePeriodeCorrigee(state: JournalState, event: EcriturePeriodeCorrigeeEvent, allEcritures: AppState['ecritures']): JournalState {
+    const originalEcriture = allEcritures.find(e => e.id === event.payload.ecritureId);
+    if (!originalEcriture) return state;
+
+    return {
+        ...state,
+        journal: state.journal.map(entry => {
+            if (entry.mutationId === event.mutationId) {
+                const originalStart = parse(originalEcriture.dateDebut, 'MM-yyyy', new Date());
+                const originalEnd = parse(originalEcriture.dateFin, 'MM-yyyy', new Date());
+                const newStart = parse(event.payload.dateDebut, 'MM-yyyy', new Date());
+                const newEnd = parse(event.payload.dateFin, 'MM-yyyy', new Date());
+                
+                // We find the dates that were in the original but not in the new period, and vice-versa
+                const affectedDates = [originalStart, originalEnd, newStart, newEnd];
+                const dateUpdates = updateRessourcesDateRange(entry, affectedDates);
+
+                return { ...entry, correctedEcritures: entry.correctedEcritures + 1, ...dateUpdates };
+            }
+            return entry;
+        }),
     };
 }
 
 
 // 3. Slice Reducer
-export function journalProjectionReducer<T extends JournalState>(
+export function journalProjectionReducer<T extends JournalState & { ecritures: AppState['ecritures'] }>(
     state: T, 
     eventOrCommand: AppEvent | AppCommand
 ): T {
@@ -152,7 +189,12 @@ export function journalProjectionReducer<T extends JournalState>(
                 nextState = applyDepenseAjoutee(state, event);
                 break;
             case 'ECRITURE_SUPPRIMEE':
-                nextState = applyEcritureSupprimee(state, event);
+                // We need the full ecritures list to know the date range of the deleted item
+                nextState = applyEcritureSupprimee(state, event, state.ecritures);
+                break;
+             case 'ECRITURE_PERIODE_CORRIGEE':
+                // We need the full ecritures list to get the original date range
+                nextState = applyEcriturePeriodeCorrigee(state, event, state.ecritures);
                 break;
         }
         return nextState as T;

@@ -1,7 +1,9 @@
+
 "use client";
 
 import type { AppEvent, AppCommand, AppState, Ecriture } from '../mutation-lifecycle/domain';
 import { parse, eachMonthOfInterval, format, differenceInCalendarMonths } from 'date-fns';
+import type { EcriturePeriodeCorrigeeEvent } from '../ecritures/corriger-periode-ecriture/event';
 
 // 1. State Slice and Initial State
 export interface EcrituresState {
@@ -46,6 +48,17 @@ function applyEcritureSupprimee(state: EcrituresState, event: AppEvent): Ecritur
     };
 }
 
+function applyEcriturePeriodeCorrigee(state: EcrituresState, event: EcriturePeriodeCorrigeeEvent): EcrituresState {
+    return {
+        ...state,
+        ecritures: state.ecritures.map(e => 
+            e.id === event.payload.ecritureId
+                ? { ...e, dateDebut: event.payload.dateDebut, dateFin: event.payload.dateFin }
+                : e
+        )
+    };
+}
+
 
 // 3. Slice Reducer
 export function ecrituresProjectionReducer<T extends EcrituresState>(
@@ -61,6 +74,8 @@ export function ecrituresProjectionReducer<T extends EcrituresState>(
                 return applyDepenseAjoutee(state, event) as T;
             case 'ECRITURE_SUPPRIMEE':
                 return applyEcritureSupprimee(state, event) as T;
+            case 'ECRITURE_PERIODE_CORRIGEE':
+                return applyEcriturePeriodeCorrigee(state, event) as T;
         }
     }
     return state;
@@ -82,7 +97,7 @@ export function queryEcrituresByMonth(state: AppState): {
     state.ecritures.forEach(e => {
         const start = parse(e.dateDebut, 'MM-yyyy', new Date());
         const end = parse(e.dateFin, 'MM-yyyy', new Date());
-        if (start > end) return; // Ignore invalid data
+        if (!start || !end || isNaN(start.getTime()) || isNaN(end.getTime()) || start > end) return; // Ignore invalid data
         const interval = eachMonthOfInterval({ start, end });
         interval.forEach(monthDate => {
             allMonths.add(format(monthDate, 'MM-yyyy'));
@@ -101,7 +116,7 @@ export function queryEcrituresByMonth(state: AppState): {
         const start = parse(ecriture.dateDebut, 'MM-yyyy', new Date());
         const end = parse(ecriture.dateFin, 'MM-yyyy', new Date());
         
-        if (start <= end) {
+        if (start && end && !isNaN(start.getTime()) && !isNaN(end.getTime()) && start <= end) {
             const interval = eachMonthOfInterval({ start, end });
             interval.forEach(monthDate => {
                 const monthKey = format(monthDate, 'MM-yyyy');

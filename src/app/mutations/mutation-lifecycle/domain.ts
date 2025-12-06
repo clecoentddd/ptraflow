@@ -1,4 +1,5 @@
 
+
 import type { DroitsMutationCreatedEvent } from '../create-mutation/event';
 import type { PaiementsSuspendusEvent } from '../suspend-paiements/event';
 import type { DroitsAnalysesEvent } from '../analyze-droits/event';
@@ -11,6 +12,7 @@ import type { DepenseAjouteeEvent } from '../ecritures/ajouter-depense/event';
 import type { ModificationRessourcesValideeEvent } from '../valider-modification-ressources/event';
 import type { EcritureSupprimeeEvent } from '../ecritures/supprimer-ecriture/event';
 import type { PlanCalculeEvent } from '../calculer-plan/event';
+import type { EcriturePeriodeCorrigeeEvent } from '../ecritures/corriger-periode-ecriture/event';
 
 
 import type { CreateDroitsMutationCommand } from '../create-mutation/command';
@@ -59,6 +61,7 @@ export type AppEvent =
     | DepenseAjouteeEvent
     | ModificationRessourcesValideeEvent
     | EcritureSupprimeeEvent
+    | EcriturePeriodeCorrigeeEvent
     | PlanCalculeEvent;
 
 // Command Union (Le "registre central" des commandes)

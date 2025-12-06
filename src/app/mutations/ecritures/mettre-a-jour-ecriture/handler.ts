@@ -1,22 +1,55 @@
+
 "use client";
 
-import type { AppState } from '../../mutation-lifecycle/domain';
+import type { AppState, AppEvent } from '../../mutation-lifecycle/domain';
 import type { MettreAJourEcritureCommand } from './command';
-import type { EcritureSupprimeeEvent } from '../supprimer-ecriture/event';
+import type { EcriturePeriodeCorrigeeEvent } from '../corriger-periode-ecriture/event';
 import type { RevenuAjouteEvent } from '../ajouter-revenu/event';
 import type { DepenseAjouteeEvent } from '../ajouter-depense/event';
 import { toast } from 'react-hot-toast';
-import { format } from 'date-fns';
+import { format, parse, isSameMonth, isBefore, isAfter, endOfMonth, addMonths, subMonths } from 'date-fns';
+
+function createAjoutEvent(
+    type: 'revenu' | 'dépense',
+    commandPayload: MettreAJourEcritureCommand['payload'],
+    dateDebut: Date,
+    dateFin: Date,
+    timestamp: string,
+): RevenuAjouteEvent | DepenseAjouteeEvent {
+    const { mutationId, ressourceVersionId, newEcritureId, code, libelle, montant } = commandPayload;
+    const commonPayload = {
+        ecritureId: newEcritureId,
+        code,
+        libelle,
+        montant,
+        dateDebut: format(dateDebut, 'MM-yyyy'),
+        dateFin: format(dateFin, 'MM-yyyy'),
+    };
+
+    if (type === 'revenu') {
+        return {
+            id: crypto.randomUUID(),
+            type: 'REVENU_AJOUTE',
+            mutationId, ressourceVersionId, timestamp,
+            payload: commonPayload
+        };
+    } else {
+        return {
+            id: crypto.randomUUID(),
+            type: 'DEPENSE_AJOUTEE',
+            mutationId, ressourceVersionId, timestamp,
+            payload: commonPayload
+        };
+    }
+}
+
 
 // Command Handler for "Update"
-// This handler is special: it creates TWO events in sequence:
-// 1. EcritureSupprimeeEvent to "remove" the old one.
-// 2. RevenuAjouteEvent or DepenseAjouteeEvent to add the new one.
 export function mettreAJourEcritureCommandHandler(
     state: AppState,
     command: MettreAJourEcritureCommand
 ): AppState {
-    const { 
+    const {
         mutationId,
         ressourceVersionId,
         originalEcritureId,
@@ -25,88 +58,92 @@ export function mettreAJourEcritureCommandHandler(
         code,
         libelle,
         montant,
-        dateDebut,
-        dateFin
     } = command.payload;
+
+    const dateDebut = new Date(command.payload.dateDebut);
+    const dateFin = new Date(command.payload.dateFin);
 
     // --- Validations ---
     const ecritureToUpdate = state.ecritures.find(e => e.id === originalEcritureId);
     if (!ecritureToUpdate) {
-        toast.error("L'écriture que vous essayez de mettre à jour n'existe pas.");
+        toast.error("L'écriture à mettre à jour n'existe pas.");
         return state;
     }
 
-    if (montant <= 0) {
-        toast.error("Le montant doit être positif.");
-        return state;
-    }
-    if (new Date(dateDebut) > new Date(dateFin)) {
-        toast.error("La date de début ne peut pas être après la date de fin.");
-        return state;
-    }
-    if (ecritureType === 'revenu' && !code.startsWith('1')) {
-        toast.error("Le code d'un revenu doit commencer par '1'.");
-        return state;
-    }
-    if (ecritureType === 'dépense' && !code.startsWith('2')) {
-        toast.error("Le code d'une dépense doit commencer par '2'.");
+    if (montant <= 0 || new Date(dateDebut) > new Date(dateFin)) {
+        toast.error("Données de mise à jour invalides.");
         return state;
     }
     // --- End Validations ---
-
-    // Create the "delete" event
-    const suppressionEvent: EcritureSupprimeeEvent = {
-        id: crypto.randomUUID(),
-        type: 'ECRITURE_SUPPRIMEE',
-        mutationId,
-        ressourceVersionId,
-        timestamp: new Date().toISOString(),
-        payload: {
-            ecritureId: originalEcritureId,
-        }
-    };
     
-    // Create the "add" event based on the type
-    let ajoutEvent: RevenuAjouteEvent | DepenseAjouteeEvent;
+    const originalDateDebut = parse(ecritureToUpdate.dateDebut, 'MM-yyyy', new Date());
+    const originalDateFin = parse(ecritureToUpdate.dateFin, 'MM-yyyy', new Date());
+    
+    const events: AppEvent[] = [];
     const now = new Date();
-    // Add 1ms to ensure the add event is always after the delete event
-    const timestampAjout = new Date(now.getTime() + 1).toISOString(); 
 
-    if (ecritureType === 'revenu') {
-        ajoutEvent = {
+    // Case 1: The amount changes. This is not a "correction", it's a new fact.
+    // We shorten the original period and create a new entry for the new amount's period.
+    if (ecritureToUpdate.montant !== montant || ecritureToUpdate.code !== code) {
+         // This is a simplification: we replace the old with the new.
+         // A more complex logic could handle splitting periods. For now, we "correct" the original
+         // to end just before the new one starts if there is an overlap.
+        
+        // Event 1: Correct the original entry's period to end before the new one starts
+        if (isBefore(dateDebut, originalDateFin) || isSameMonth(dateDebut, originalDateFin)) {
+            const newEndDateForOriginal = subMonths(dateDebut, 1);
+            if (isBefore(originalDateDebut, newEndDateForOriginal) || isSameMonth(originalDateDebut, newEndDateForOriginal)) {
+                 const correctionEvent: EcriturePeriodeCorrigeeEvent = {
+                    id: crypto.randomUUID(),
+                    type: 'ECRITURE_PERIODE_CORRIGEE',
+                    mutationId,
+                    ressourceVersionId,
+                    timestamp: now.toISOString(),
+                    payload: {
+                        ecritureId: originalEcritureId,
+                        dateDebut: ecritureToUpdate.dateDebut, // Keep original start
+                        dateFin: format(newEndDateForOriginal, 'MM-yyyy')
+                    }
+                };
+                events.push(correctionEvent);
+            } else {
+                 // The new period completely covers the old one, so we effectively delete the old one by setting its period to zero length.
+                 // This is a conceptual delete for the projection.
+                 const correctionEvent: EcriturePeriodeCorrigeeEvent = {
+                    id: crypto.randomUUID(),
+                    type: 'ECRITURE_PERIODE_CORRIGEE',
+                    mutationId,
+                    ressourceVersionId,
+                    timestamp: now.toISOString(),
+                    payload: {
+                        ecritureId: originalEcritureId,
+                        dateDebut: ecritureToUpdate.dateDebut,
+                        dateFin: format(subMonths(parse(ecritureToUpdate.dateDebut, 'MM-yyyy', new Date()), 1), 'MM-yyyy')
+                    }
+                };
+                 events.push(correctionEvent);
+            }
+        }
+        
+        // Event 2: Add the new entry for its full period
+        const ajoutEvent = createAjoutEvent(ecritureType, command.payload, dateDebut, dateFin, new Date(now.getTime() + 1).toISOString());
+        events.push(ajoutEvent);
+
+    } else { // Case 2: Only the period changes. This is a true period correction.
+        const correctionEvent: EcriturePeriodeCorrigeeEvent = {
             id: crypto.randomUUID(),
-            type: 'REVENU_AJOUTE',
+            type: 'ECRITURE_PERIODE_CORRIGEE',
             mutationId,
             ressourceVersionId,
-            timestamp: timestampAjout,
+            timestamp: now.toISOString(),
             payload: {
-                ecritureId: newEcritureId,
-                code,
-                libelle,
-                montant,
-                dateDebut: format(new Date(dateDebut), 'MM-yyyy'),
-                dateFin: format(new Date(dateFin), 'MM-yyyy'),
+                ecritureId: originalEcritureId,
+                dateDebut: format(dateDebut, 'MM-yyyy'),
+                dateFin: format(dateFin, 'MM-yyyy'),
             }
         };
-    } else { // dépense
-        ajoutEvent = {
-            id: crypto.randomUUID(),
-            type: 'DEPENSE_AJOUTEE',
-            mutationId,
-            ressourceVersionId,
-            timestamp: timestampAjout,
-            payload: {
-                ecritureId: newEcritureId,
-                code,
-                libelle,
-                montant,
-                dateDebut: format(new Date(dateDebut), 'MM-yyyy'),
-                dateFin: format(new Date(dateFin), 'MM-yyyy'),
-            }
-        };
+        events.push(correctionEvent);
     }
-
-    // Add the two new events to the stream.
-    // Order is important: delete first, then add.
-    return { ...state, eventStream: [ajoutEvent, suppressionEvent, ...state.eventStream] };
+    
+    return { ...state, eventStream: [...events, ...state.eventStream] };
 }

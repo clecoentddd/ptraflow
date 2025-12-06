@@ -50,8 +50,9 @@ function applyEventToProjections(state: AppState, event: AppEvent): AppState {
     nextState = mutationsProjectionReducer(nextState, event);
     nextState = todolistProjectionReducer(nextState, event);
     nextState = validatedPeriodsProjectionReducer(nextState, event);
-    nextState = ecrituresProjectionReducer(nextState, event);
-    nextState = journalProjectionReducer(nextState, event);
+    // journalProjectionReducer needs the full ecritures list to properly calculate date ranges on delete/correct
+    nextState = journalProjectionReducer(nextState, event); 
+    nextState = ecrituresProjectionReducer(nextState, event); // Ecritures must be projected AFTER journal
     nextState = planCalculProjectionReducer(nextState, event);
     
     return nextState;
@@ -133,7 +134,7 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
             return state;
     }
     
-    // Si un nouvel événement a été ajouté par le legacy system, on reconstruit tout.
+    // Si de nouveaux événements ont été ajoutés par le legacy system, on reconstruit tout.
     if (newStateWithEvent.eventStream.length > state.eventStream.length) {
         return rebuildStateFromEvents(newStateWithEvent.eventStream);
     }

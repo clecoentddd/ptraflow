@@ -30,7 +30,8 @@ const baseEvents: AppEvent[] = [
 const runTestScenario = (
     when: (state: AppState) => AppState,
     expectedRessourcesDateDebut: string | undefined,
-    expectedRessourcesDateFin: string | undefined
+    expectedRessourcesDateFin: string | undefined,
+    mutationId: string = 'mut-2'
 ) => {
     // GIVEN: A state built from the base events
     let givenState = { ...initialState, eventStream: baseEvents };
@@ -43,14 +44,14 @@ const runTestScenario = (
 
     // THEN: The journal projection for the mutation is checked
     const journal = queryJournal(finalState);
-    const journalEntry = journal.find(j => j.mutationId === 'mut-2');
+    const journalEntry = journal.find(j => j.mutationId === mutationId);
 
     const pass = journalEntry?.ressourcesDateDebut === expectedRessourcesDateDebut && journalEntry?.ressourcesDateFin === expectedRessourcesDateFin;
     const message = pass
-        ? `Succès: La période de modification est bien de ${expectedRessourcesDateDebut} à ${expectedRessourcesDateFin}.`
+        ? `Succès: La période de modification est bien [${expectedRessourcesDateDebut} - ${expectedRessourcesDateFin}].`
         : `Échec: Période attendue [${expectedRessourcesDateDebut} - ${expectedRessourcesDateFin}], mais reçu [${journalEntry?.ressourcesDateDebut} - ${journalEntry?.ressourcesDateFin}].`;
 
-    return { pass, message };
+    return { pass, message, finalState };
 };
 
 // --- TEST SCENARIOS ---
@@ -58,7 +59,7 @@ const runTestScenario = (
 const TestRaccourcirFin: React.FC = () => (
     <TestComponent
         title="Test 1: Raccourcir la fin d'une période"
-        description="Quand on modifie une écriture pour raccourcir sa date de fin, la période de modification dans le journal ne doit refléter que les mois effectivement créés."
+        description="Quand on modifie une écriture pour raccourcir sa date de fin, la période de modification du journal doit refléter uniquement le mois qui a changé (l'ancien mois de fin)."
         given={() => ({ eventStream: baseEvents })}
         when={(initialState) => mettreAJourEcritureCommandHandler(initialState, {
             type: 'METTRE_A_JOUR_ECRITURE',
@@ -76,10 +77,9 @@ const TestRaccourcirFin: React.FC = () => (
             }
         })}
         then={(state) => runTestScenario(
-            (s) => state, // 'when' is already applied
-            "06-2025", // La période de modif est 06-08 (création)
-            "08-2025"  // puis on la corrige à 06-07. L'impact est sur Aout qui est supprimé.
-                       // Le test va échouer car l'implémentation actuelle va recréer de 06 à 07.
+            (s) => state,
+            "08-2025", // La période de modif est seulement le mois supprimé
+            "08-2025"
         )}
     />
 );
@@ -87,7 +87,7 @@ const TestRaccourcirFin: React.FC = () => (
 const TestRaccourcirDebut: React.FC = () => (
     <TestComponent
         title="Test 2: Raccourcir le début d'une période"
-        description="Quand on modifie une écriture pour avancer sa date de début, la période de modification dans le journal est inchangée."
+        description="Quand on modifie une écriture pour avancer sa date de début, la période de modification du journal doit refléter le mois qui a changé (l'ancien mois de début)."
         given={() => ({ eventStream: baseEvents })}
         when={(initialState) => mettreAJourEcritureCommandHandler(initialState, {
             type: 'METTRE_A_JOUR_ECRITURE',
@@ -106,8 +106,8 @@ const TestRaccourcirDebut: React.FC = () => (
         })}
         then={(state) => runTestScenario(
             (s) => state,
-            "06-2025", // La période de modif reste 06-2025 à 08-2025.
-            "08-2025"  // La période de modif doit être Juin
+            "06-2025", // La période de modif est seulement le mois supprimé
+            "06-2025"
         )}
     />
 );
@@ -134,8 +134,8 @@ const TestEtendreFin: React.FC = () => (
         })}
         then={(state) => runTestScenario(
             (s) => state,
-            "06-2025",
-            "09-2025" // La période doit maintenant inclure Septembre
+            "09-2025",
+            "09-2025" // La période doit seulement refléter le nouveau mois
         )}
     />
 );
@@ -162,8 +162,8 @@ const TestEtendreDebut: React.FC = () => (
         })}
         then={(state) => runTestScenario(
             (s) => state,
-            "05-2025", // La période doit maintenant inclure Mai
-            "08-2025"
+            "05-2025", // La période doit seulement refléter le nouveau mois
+            "05-2025"
         )}
     />
 );
@@ -171,7 +171,7 @@ const TestEtendreDebut: React.FC = () => (
 const TestDeplacerPeriode: React.FC = () => (
      <TestComponent
         title="Test 5: Déplacer complètement la période"
-        description="Quand on déplace la période, le journal doit refléter la nouvelle période complète comme étant la zone de modification."
+        description="Quand on déplace la période, le journal doit refléter la nouvelle période ET l'ancienne période comme zone de modification."
         given={() => ({ eventStream: baseEvents })}
         when={(initialState) => mettreAJourEcritureCommandHandler(initialState, {
             type: 'METTRE_A_JOUR_ECRITURE',
@@ -190,8 +190,8 @@ const TestDeplacerPeriode: React.FC = () => (
         })}
         then={(state) => runTestScenario(
             (s) => state,
-            "06-2025", // La période modifiée devrait être la nouvelle ET l'ancienne
-            "11-2025"  // car on supprime 06-08 et on ajoute 10-11
+            "06-2025", // La période modifiée devrait être l'union de l'ancienne et la nouvelle
+            "11-2025"
         )}
     />
 );

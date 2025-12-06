@@ -10,6 +10,8 @@ import { initialState, cqrsReducer } from '../mutations/mutation-lifecycle/cqrs'
 import type { ValidatedPeriodsState } from '../mutations/projection-periodes-de-droits/projection';
 import type { MutationsState } from '../mutations/projection-mutations/projection';
 import type { TodolistState } from '../mutations/projection-todolist/projection';
+import { queryEcrituresByMonth } from '../mutations/projection-ecritures/projection';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 
 
 // Mocked toast for testing purposes
@@ -39,41 +41,88 @@ const projectEvents = (eventStream: AppEvent[]): FullProjectionState => {
     return { ...finalProjection, eventStream }; // Ensure eventStream is the original one
 }
 
+interface TestResult {
+    pass: boolean;
+    message: string;
+    finalState?: FullProjectionState;
+}
+
 interface TestComponentProps {
     title: string;
     description: string;
     given: () => { eventStream: AppEvent[] };
     when: (initialState: FullProjectionState) => FullProjectionState;
-    then: (finalState: FullProjectionState, toasts: typeof mockToasts) => { pass: boolean; message: string };
+    then: (finalState: FullProjectionState, toasts: typeof mockToasts) => TestResult;
+}
+
+const EcrituresVisualizer: React.FC<{state: AppState, title: string}> = ({ state, title }) => {
+    const { months, rows } = queryEcrituresByMonth(state);
+    if (rows.length === 0) return null;
+
+    return (
+        <details className="mt-4 text-xs">
+            <summary className="cursor-pointer font-medium">{title}</summary>
+             <div className="overflow-x-auto mt-2">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead className="min-w-[150px]">Écriture</TableHead>
+                            {months.map(month => (
+                                <TableHead key={month} className="text-right font-mono min-w-[80px]">
+                                    {month}
+                                </TableHead>
+                            ))}
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {rows.map(row => (
+                             <TableRow key={row.ecriture.id}>
+                                <TableCell>
+                                    <div className="flex flex-col">
+                                        <span className="font-medium">{row.ecriture.libelle}</span>
+                                        <span className="text-muted-foreground">{row.ecriture.id.substring(0, 8)}...</span>
+                                    </div>
+                                </TableCell>
+                                {months.map(month => (
+                                    <TableCell key={`${row.ecriture.id}-${month}`} className="text-right font-mono">
+                                        {row.monthlyAmounts[month] 
+                                            ? <span className={row.ecriture.type === 'dépense' ? 'text-blue-600' : 'text-green-600'}>{row.monthlyAmounts[month]?.toFixed(0)}</span>
+                                            : <span className="text-muted-foreground">-</span>}
+                                    </TableCell>
+                                ))}
+                            </TableRow>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+        </details>
+    )
 }
 
 export const TestComponent: React.FC<TestComponentProps> = ({ title, description, given, when, then }) => {
-    const [result, setResult] = useState<{ pass: boolean; message: string } | null>(null);
-    const [finalEventStreamForDisplay, setFinalEventStreamForDisplay] = useState<AppEvent[] | null>(null);
+    const [result, setResult] = useState<TestResult | null>(null);
+    const [givenState, setGivenState] = useState<FullProjectionState | null>(null);
 
     const runTest = () => {
         mockToasts.length = 0; // Clear toasts for each run
 
         // GIVEN: Set up the initial state by projecting past events
         const initialSetup = given();
-        // The events must be processed in chronological order.
         const sortedGivenEvents = [...initialSetup.eventStream].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-        const givenState = projectEvents(sortedGivenEvents);
+        const projectedGivenState = projectEvents(sortedGivenEvents);
+        setGivenState(projectedGivenState);
 
         // WHEN: The command handler or projection logic is called
-        const stateAfterWhen = when(givenState);
+        const stateAfterWhen = when(projectedGivenState);
         
         // We project the final event stream to get the final read model for assertion
         const finalProjectedState = projectEvents(stateAfterWhen.eventStream);
         
-        // Special case for projection tests: merge the manually projected state from 'when' block
         const finalStateForAssertion = { ...finalProjectedState, ...stateAfterWhen };
-
-        setFinalEventStreamForDisplay(finalStateForAssertion.eventStream);
 
         // THEN: The result is checked
         const testResult = then(finalStateForAssertion, mockToasts);
-        setResult(testResult);
+        setResult({ ...testResult, finalState: finalStateForAssertion });
     };
 
     return (
@@ -90,12 +139,14 @@ export const TestComponent: React.FC<TestComponentProps> = ({ title, description
                 {result && (
                     <div>
                         <p className={result.pass ? 'text-green-700' : 'text-red-700'}>{result.message}</p>
-                        {finalEventStreamForDisplay && (
-                             <details className="mt-4 text-xs text-muted-foreground">
-                                <summary>Voir le flux d'événements final</summary>
-                                <pre className="mt-2 p-2 bg-muted rounded-md overflow-x-auto">{JSON.stringify(finalEventStreamForDisplay, null, 2)}</pre>
-                            </details>
-                        )}
+                        <div className="space-y-4">
+                            {givenState && <EcrituresVisualizer state={givenState} title="Voir état initial des écritures" />}
+                            {result.finalState && <EcrituresVisualizer state={result.finalState} title="Voir état final des écritures" />}
+                        </div>
+                         <details className="mt-4 text-xs text-muted-foreground">
+                            <summary>Voir le flux d'événements final</summary>
+                            <pre className="mt-2 p-2 bg-muted rounded-md overflow-x-auto">{JSON.stringify(result.finalState?.eventStream ?? [], null, 2)}</pre>
+                        </details>
                     </div>
                 )}
             </CardContent>
