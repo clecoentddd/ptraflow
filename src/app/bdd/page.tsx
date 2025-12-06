@@ -5,6 +5,7 @@ import React from 'react';
 import { BDDTest1, BDDTest2 } from './creation-de-mutation';
 import { BDDTestProjectionPeriodes } from './projection-periodes-validees';
 import { BDDTestCreationRessources, BDDTestCreationRessourcesAvecPeriode } from './creation-ressources-mutation';
+import { BDDTestsMiseAJourEcritures } from './mise-a-jour-ecritures';
 
 export default function BDDPage() {
     return (
@@ -19,6 +20,7 @@ export default function BDDPage() {
                 <BDDTestProjectionPeriodes />
                 <BDDTestCreationRessources />
                 <BDDTestCreationRessourcesAvecPeriode />
+                <BDDTestsMiseAJourEcritures />
             </main>
         </div>
     );
