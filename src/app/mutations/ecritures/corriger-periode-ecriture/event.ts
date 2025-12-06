@@ -3,8 +3,8 @@
 
 import type { BaseEvent } from '../../mutation-lifecycle/domain';
 
-// This event is no longer used, but kept for reference or potential future use.
-// We are now using a simpler "replace" (delete + add) pattern.
+// This event is no longer used and will be removed. 
+// The "replace" pattern (delete + add) is now used for all updates.
 
 // Event
 export interface EcriturePeriodeCorrigeeEvent extends BaseEvent {

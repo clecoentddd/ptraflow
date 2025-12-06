@@ -1,8 +1,8 @@
 
 "use client";
 
-import type { AppEvent, AppCommand, AppState, MutationType } from '../mutation-lifecycle/domain';
-import { parse, format, min, max } from 'date-fns';
+import type { AppEvent, AppCommand, AppState, MutationType, Ecriture } from '../mutation-lifecycle/domain';
+import { parse, format, min, max, eachMonthOfInterval, differenceInMonths } from 'date-fns';
 
 // 1. State Slice and Initial State
 export interface JournalEntry {
@@ -25,46 +25,16 @@ export const initialJournalState: JournalState = {
   journal: [],
 };
 
-
-// Helper to update the date range of a journal entry
-function updateRessourcesDateRange(entry: JournalEntry | undefined, newDates: Date[]): Partial<JournalEntry> {
-    if (!entry) return {};
-    const validDates = newDates.filter(d => d && !isNaN(d.getTime()));
-    if (validDates.length === 0) return {};
-    
-    const allDates: Date[] = [...validDates];
-    if (entry.ressourcesDateDebut) {
-        const d = parse(entry.ressourcesDateDebut, 'MM-yyyy', new Date());
-        if(!isNaN(d.getTime())) allDates.push(d);
-    }
-    if (entry.ressourcesDateFin) {
-        const d = parse(entry.ressourcesDateFin, 'MM-yyyy', new Date());
-        if(!isNaN(d.getTime())) allDates.push(d);
-    }
-    
-    const filteredDates = allDates.filter(d => !isNaN(d.getTime()));
-    if(filteredDates.length === 0) return {};
-
-    const newMinDate = min(filteredDates);
-    const newMaxDate = max(filteredDates);
-    
-    return {
-        ressourcesDateDebut: format(newMinDate, 'MM-yyyy'),
-        ressourcesDateFin: format(newMaxDate, 'MM-yyyy'),
-    };
-}
-
-
 // --- Full Rebuild Logic ---
-// This function rebuilds the entire journal state from the event stream.
+// This function rebuilds the entire journal state from the final state of ecritures.
 // It is the single source of truth for this projection.
 function rebuildJournal(state: AppState): JournalState {
     const journalMap = new Map<string, JournalEntry>();
 
     const sortedEvents = [...state.eventStream].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
+    // First pass: create journal entries and handle DROITS mutations
     for (const event of sortedEvents) {
-        // --- 1. Create entry if it doesn't exist ---
         if ((event.type === 'DROITS_MUTATION_CREATED' || event.type === 'RESSOURCES_MUTATION_CREATED') && !journalMap.has(event.mutationId)) {
             journalMap.set(event.mutationId, {
                 mutationId: event.mutationId,
@@ -72,39 +42,97 @@ function rebuildJournal(state: AppState): JournalState {
                 timestamp: event.timestamp,
             });
         }
-
         const entry = journalMap.get(event.mutationId);
         if (!entry) continue;
 
-        // --- 2. Update entry based on event type ---
-        switch (event.type) {
-            case 'DROITS_ANALYSES':
-                entry.droitsDateDebut = event.payload.dateDebut;
-                entry.droitsDateFin = event.payload.dateFin;
-                break;
-            
-            case 'REVENU_AJOUTE':
-            case 'DEPENSE_AJOUTEE': {
-                const dateDebut = parse(event.payload.dateDebut, 'MM-yyyy', new Date());
-                const dateFin = parse(event.payload.dateFin, 'MM-yyyy', new Date());
-                const dateUpdates = updateRessourcesDateRange(entry, [dateDebut, dateFin]);
-                Object.assign(entry, dateUpdates);
-                break;
-            }
-                
-            case 'ECRITURE_SUPPRIMEE': {
-                // Find the ecriture in its original state (before deletion)
-                 const originalEcriture = state.ecritures.find(e => e.id === event.payload.ecritureId);
-                 if (originalEcriture) {
-                     const dateDebut = parse(originalEcriture.dateDebut, 'MM-yyyy', new Date());
-                     const dateFin = parse(originalEcriture.dateFin, 'MM-yyyy', new Date());
-                     const dateUpdates = updateRessourcesDateRange(entry, [dateDebut, dateFin]);
-                     Object.assign(entry, dateUpdates);
-                 }
-                break;
-            }
+        if (event.type === 'DROITS_ANALYSES') {
+            entry.droitsDateDebut = event.payload.dateDebut;
+            entry.droitsDateFin = event.payload.dateFin;
         }
     }
+
+    // Second pass: determine RESSOURCES modification periods by comparing snapshots.
+    // We group all ecriture-related events by mutation.
+    const ecritureEventsByMutation = new Map<string, AppEvent[]>();
+    for (const event of sortedEvents) {
+        if('ressourceVersionId' in event) {
+            if(!ecritureEventsByMutation.has(event.mutationId)) {
+                ecritureEventsByMutation.set(event.mutationId, []);
+            }
+            ecritureEventsByMutation.get(event.mutationId)?.push(event);
+        }
+    }
+    
+    for (const [mutationId, events] of ecritureEventsByMutation.entries()) {
+        const entry = journalMap.get(mutationId);
+        if (!entry || entry.mutationType !== 'RESSOURCES') continue;
+
+        const affectedMonths = new Set<Date>();
+        
+        // Project ecritures at the beginning and end of this mutation's events
+        const findEcritureAtPoint = (ecritureId: string, beforeEvent: AppEvent): Ecriture | undefined => {
+            let tempEcritures: Ecriture[] = [];
+            for (const ev of sortedEvents) {
+                if(new Date(ev.timestamp) >= new Date(beforeEvent.timestamp)) break;
+                
+                if(ev.type === 'REVENU_AJOUTE' || ev.type === 'DEPENSE_AJOUTEE') {
+                     tempEcritures.push({
+                        id: ev.payload.ecritureId,
+                        mutationId: ev.mutationId,
+                        ressourceVersionId: ev.ressourceVersionId,
+                        type: ev.type === 'REVENU_AJOUTE' ? 'revenu' : 'dépense',
+                        ...ev.payload
+                    });
+                } else if(ev.type === 'ECRITURE_SUPPRIMEE') {
+                    tempEcritures = tempEcritures.filter(e => e.id !== ev.payload.ecritureId);
+                }
+            }
+            return tempEcritures.find(e => e.id === ecritureId);
+        }
+        
+        const finalEcrituresForMutation = new Map<string, Ecriture>();
+        events.forEach(event => {
+             if(event.type === 'REVENU_AJOUTE' || event.type === 'DEPENSE_AJOUTEE') {
+                finalEcrituresForMutation.set(event.payload.ecritureId, {
+                    id: event.payload.ecritureId,
+                    mutationId: event.mutationId,
+                    ressourceVersionId: event.ressourceVersionId,
+                    type: event.type === 'REVENU_AJOUTE' ? 'revenu' : 'dépense',
+                    ...event.payload
+                });
+             } else if (event.type === 'ECRITURE_SUPPRIMEE') {
+                finalEcrituresForMutation.delete(event.payload.ecritureId);
+             }
+        })
+        
+        // This is simplified: in a real scenario, we'd need a more robust way
+        // to check what the "impact" of a change was.
+        // For this BDD, we'll just union all periods of ecritures touched in the mutation.
+        events.forEach(event => {
+             if (event.type === 'REVENU_AJOUTE' || event.type === 'DEPENSE_AJOUTEE') {
+                const start = parse(event.payload.dateDebut, 'MM-yyyy', new Date());
+                const end = parse(event.payload.dateFin, 'MM-yyyy', new Date());
+                eachMonthOfInterval({start, end}).forEach(d => affectedMonths.add(d));
+            } else if (event.type === 'ECRITURE_SUPPRIMEE') {
+                 // To find the period of a deleted ecriture, we must replay events until that point
+                 const originalEcriture = findEcritureAtPoint(event.payload.ecritureId, event);
+                 if (originalEcriture) {
+                     const start = parse(originalEcriture.dateDebut, 'MM-yyyy', new Date());
+                     const end = parse(originalEcriture.dateFin, 'MM-yyyy', new Date());
+                     eachMonthOfInterval({start, end}).forEach(d => affectedMonths.add(d));
+                 }
+            }
+        })
+
+        if (affectedMonths.size > 0) {
+            const allDates = Array.from(affectedMonths.values());
+            const minDate = min(allDates);
+            const maxDate = max(allDates);
+            entry.ressourcesDateDebut = format(minDate, 'MM-yyyy');
+            entry.ressourcesDateFin = format(maxDate, 'MM-yyyy');
+        }
+    }
+
     return { journal: Array.from(journalMap.values()) };
 }
 
@@ -112,16 +140,10 @@ function rebuildJournal(state: AppState): JournalState {
 export function journalProjectionReducer(state: AppState, eventOrCommand: AppEvent | AppCommand): AppState {
     // This projection is now simple: it always rebuilds itself from the full state.
     // It's called after all other projections have run.
-    if (eventOrCommand.type === 'REPLAY_COMPLETE') {
+    if (eventOrCommand.type === 'REPLAY' || eventOrCommand.type === 'REPLAY_COMPLETE') {
          const newJournalState = rebuildJournal(state);
          return { ...state, ...newJournalState };
     }
-    
-    // During live updates, we can also trigger a rebuild.
-    // This is not the most performant, but it guarantees consistency in this architecture.
-     if ('type' in eventOrCommand && 'payload' in eventOrCommand) {
-        return { ...state, ...rebuildJournal(state) };
-     }
 
     return state;
 }

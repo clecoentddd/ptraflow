@@ -93,5 +93,6 @@ export function mettreAJourEcritureCommandHandler(
     const addEvent = createAjoutEvent(ecritureType, command.payload, new Date(now.getTime() + 1).toISOString());
     events.push(addEvent);
     
+    // The reducer will handle rebuilding the state from the new event stream
     return { ...state, eventStream: [...events, ...state.eventStream] };
 }

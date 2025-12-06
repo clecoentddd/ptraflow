@@ -2,17 +2,13 @@
 "use client";
 
 import React, { useState } from 'react';
-import type { AppState, AppEvent, Ecriture } from '../mutations/mutation-lifecycle/domain';
+import type { AppState, AppEvent } from '../mutations/mutation-lifecycle/domain';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, XCircle } from 'lucide-react';
 import { initialState, cqrsReducer } from '../mutations/mutation-lifecycle/cqrs';
-import type { ValidatedPeriodsState } from '../mutations/projection-periodes-de-droits/projection';
-import type { MutationsState } from '../mutations/projection-mutations/projection';
-import type { TodolistState } from '../mutations/projection-todolist/projection';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { eachMonthOfInterval, format, parse } from 'date-fns';
-
 
 // Mocked toast for testing purposes
 export const mockToasts: { message: string; type: 'error' | 'success' }[] = [];
@@ -23,44 +19,35 @@ export const mockToast = {
   },
 };
 
-type FullProjectionState = AppState & ValidatedPeriodsState & MutationsState & TodolistState;
-
-// This function rebuilds the read model (projection) from an event stream.
-// It's used to set up the 'given' state and to get the final state for assertions.
-const projectEvents = (eventStream: AppEvent[]): FullProjectionState => {
-    let projectedState: AppState = { ...initialState, eventStream };
-    // We use a simple reducer to apply projection logic.
-    // The events must be processed in chronological order for the projection to be correct
-    const sortedEvents = [...eventStream].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-
-    // This is a simplified version of the full cqrsReducer, focusing only on projection.
-    for (const event of sortedEvents) {
-        projectedState = cqrsReducer(projectedState, { type: 'REPLAY', event } as any);
-    }
-    // After all individual events are projected, we run a final projection step
-    // for projections that depend on the final state of other projections (like the journal).
-    const finalProjection = cqrsReducer(projectedState, { type: 'REPLAY_COMPLETE' } as any);
-    return { ...finalProjection, eventStream }; // Ensure eventStream is the original one
+const projectEvents = (eventStream: AppEvent[]): AppState => {
+    let projectedState = cqrsReducer({ ...initialState, eventStream }, { type: 'REPLAY' });
+    return projectedState;
 }
 
 interface TestResult {
     pass: boolean;
     message: string;
-    finalState?: FullProjectionState;
+    finalState?: AppState;
 }
 
 interface TestComponentProps {
     title: string;
     description: string;
     given: () => { eventStream: AppEvent[] };
-    when: (initialState: FullProjectionState) => FullProjectionState;
-    then: (finalState: FullProjectionState, toasts: typeof mockToasts) => TestResult;
+    when: (initialState: AppState) => AppState;
+    then: (finalState: AppState, toasts: typeof mockToasts) => TestResult;
 }
 
 
 const EventsVisualizer: React.FC<{events: AppEvent[], title: string}> = ({ events, title }) => {
+    const relevantEventTypes = new Set([
+        'REVENU_AJOUTE', 'DEPENSE_AJOUTEE', 'ECRITURE_SUPPRIMEE', 'ECRITURE_PERIODE_CORRIGEE'
+    ]);
+
+    const relevantEvents = events.filter(e => relevantEventTypes.has(e.type));
+    
     // 1. Find all unique ecriture IDs from the events
-    const ecritureIds = Array.from(new Set(events.map(e => {
+    const ecritureIds = Array.from(new Set(relevantEvents.map(e => {
         if ('payload' in e && e.payload && typeof e.payload === 'object' && 'ecritureId' in e.payload) {
             return (e.payload as { ecritureId: string }).ecritureId;
         }
@@ -71,19 +58,17 @@ const EventsVisualizer: React.FC<{events: AppEvent[], title: string}> = ({ event
 
     // 2. Determine the full date range to display
     const allDates: Date[] = [];
-    events.forEach(e => {
+    relevantEvents.forEach(e => {
         if ('payload' in e && e.payload && typeof e.payload === 'object') {
             const payload = e.payload as any;
             if (payload.dateDebut) allDates.push(parse(payload.dateDebut, 'MM-yyyy', new Date()));
             if (payload.dateFin) allDates.push(parse(payload.dateFin, 'MM-yyyy', new Date()));
             if (payload.originalDateDebut) allDates.push(parse(payload.originalDateDebut, 'MM-yyyy', new Date()));
             if (payload.originalDateFin) allDates.push(parse(payload.originalDateFin, 'MM-yyyy', new Date()));
-            if (payload.newDateDebut) allDates.push(parse(payload.newDateDebut, 'MM-yyyy', new Date()));
-            if (payload.newDateFin) allDates.push(parse(payload.newDateFin, 'MM-yyyy', new Date()));
         }
     });
 
-    if (allDates.length < 2) return null; // Not enough data for a range
+    if (allDates.length < 1) return null; // Not enough data for a range
 
     const minDate = new Date(Math.min(...allDates.map(d => d.getTime())));
     const maxDate = new Date(Math.max(...allDates.map(d => d.getTime())));
@@ -102,47 +87,52 @@ const EventsVisualizer: React.FC<{events: AppEvent[], title: string}> = ({ event
         }
     }
 
-    events.forEach(event => {
+    relevantEvents.forEach(event => {
         if (!('payload' in event) || !event.payload || typeof event.payload !== 'object' || !('ecritureId' in event.payload)) return;
         
         const payload = event.payload as any;
         const ecritureId = payload.ecritureId;
 
-        // Define which dates to use for period calculation for each event type
-        let startDateStr, endDateStr;
-        if (event.type === 'ECRITURE_PERIODE_CORRIGEE') {
-            // For correction, we want to see the effect on both old and new periods
-            const oldStart = parse(payload.originalDateDebut, 'MM-yyyy', new Date());
-            const oldEnd = parse(payload.originalDateFin, 'MM-yyyy', new Date());
-            const newStart = parse(payload.newDateDebut, 'MM-yyyy', new Date());
-            const newEnd = parse(payload.newDateFin, 'MM-yyyy', new Date());
-            const start = new Date(Math.min(oldStart.getTime(), newStart.getTime()));
-            const end = new Date(Math.max(oldEnd.getTime(), newEnd.getTime()));
-            startDateStr = format(start, 'MM-yyyy');
-            endDateStr = format(end, 'MM-yyyy');
+        let affectedMonths: string[] = [];
+
+        if (event.type === 'ECRITURE_SUPPRIMEE') {
+            // Can't know the period from the delete event alone. This visualizer is limited.
+            // We could find the original 'add' event, but that's complex for a simple view.
+            return;
+        } else if (event.type === 'ECRITURE_PERIODE_CORRIGEE') {
+             const oldMonths = eachMonthOfInterval({
+                start: parse(payload.originalDateDebut, 'MM-yyyy', new Date()),
+                end: parse(payload.originalDateFin, 'MM-yyyy', new Date()),
+            }).map(d => format(d, 'MM-yyyy'));
+             const newMonths = eachMonthOfInterval({
+                start: parse(payload.newDateDebut, 'MM-yyyy', new Date()),
+                end: parse(payload.newDateFin, 'MM-yyyy', new Date()),
+            }).map(d => format(d, 'MM-yyyy'));
+
+            const oldSet = new Set(oldMonths);
+            const newSet = new Set(newMonths);
+            
+            affectedMonths = [
+                ...oldMonths.filter(m => !newSet.has(m)),
+                ...newMonths.filter(m => !oldSet.has(m)),
+            ];
 
         } else if (payload.dateDebut && payload.dateFin) {
-            startDateStr = payload.dateDebut;
-            endDateStr = payload.dateFin;
+             affectedMonths = eachMonthOfInterval({ 
+                start: parse(payload.dateDebut, 'MM-yyyy', new Date()),
+                end: parse(payload.dateFin, 'MM-yyyy', new Date())
+             }).map(m => format(m, 'MM-yyyy'));
         }
 
-        if (startDateStr && endDateStr) {
-            const start = parse(startDateStr, 'MM-yyyy', new Date());
-            const end = parse(endDateStr, 'MM-yyyy', new Date());
-            if (start <= end) {
-                const interval = eachMonthOfInterval({ start, end });
-                interval.forEach(monthDate => {
-                    const monthKey = format(monthDate, 'MM-yyyy');
-                    if (eventMap[ecritureId] && eventMap[ecritureId][monthKey]) {
-                        eventMap[ecritureId][monthKey].push(event);
-                    }
-                });
+        affectedMonths.forEach(monthKey => {
+            if (eventMap[ecritureId] && eventMap[ecritureId][monthKey]) {
+                eventMap[ecritureId][monthKey].push(event);
             }
-        }
+        });
     });
 
     return (
-         <details className="mt-4 text-xs">
+         <details className="mt-4 text-xs" open>
             <summary className="cursor-pointer font-medium">{title}</summary>
              <div className="overflow-x-auto mt-2">
                 <Table>
@@ -165,14 +155,20 @@ const EventsVisualizer: React.FC<{events: AppEvent[], title: string}> = ({ event
                                     </div>
                                 </TableCell>
                                 {months.map(month => (
-                                    <TableCell key={`${ecritureId}-${month}`} className="text-center font-mono align-top">
-                                        {eventMap[ecritureId][month].length > 0 ? (
+                                    <TableCell key={`${ecritureId}-${month}`} className="text-center font-mono align-top h-12">
+                                        {eventMap[ecritureId] && eventMap[ecritureId][month] && eventMap[ecritureId][month].length > 0 ? (
                                             <div className="flex flex-col gap-1 items-center">
-                                                {eventMap[ecritureId][month].map(e => (
-                                                    <div key={e.id} className={`text-white text-[10px] rounded-full px-2 py-0.5 ${e.type === 'ECRITURE_PERIODE_CORRIGEE' ? 'bg-orange-500' : 'bg-purple-500'}`}>
-                                                        {e.type.split('_').pop()?.substring(0,3)}
-                                                    </div>
-                                                ))}
+                                                {eventMap[ecritureId][month].map(e => {
+                                                    let color = 'bg-gray-500';
+                                                    if (e.type.includes('AJOUTE')) color = 'bg-green-500';
+                                                    if (e.type.includes('SUPPRIMEE')) color = 'bg-red-500';
+                                                    if (e.type.includes('CORRIGEE')) color = 'bg-yellow-500 text-black';
+                                                    return (
+                                                        <div key={e.id} className={`text-white text-[10px] rounded-full px-2 py-0.5 ${color}`}>
+                                                            {e.type.replace('ECRITURE_', '').replace('PERIODE_', '').split('_').map(s=>s[0]).join('')}
+                                                        </div>
+                                                    )
+                                                })}
                                             </div>
                                         ) : <span className="text-muted-foreground">-</span>}
                                     </TableCell>
@@ -190,27 +186,27 @@ const EventsVisualizer: React.FC<{events: AppEvent[], title: string}> = ({ event
 export const TestComponent: React.FC<TestComponentProps> = ({ title, description, given, when, then }) => {
     const [result, setResult] = useState<TestResult | null>(null);
     const [givenEvents, setGivenEvents] = useState<AppEvent[] | null>(null);
+    const [finalEvents, setFinalEvents] = useState<AppEvent[] | null>(null);
 
     const runTest = () => {
         mockToasts.length = 0; // Clear toasts for each run
 
         // GIVEN: Set up the initial state by projecting past events
         const initialSetup = given();
-        const sortedGivenEvents = [...initialSetup.eventStream].sort((a, b) => new Date(a.timestamp).getTime() - new Date(a.timestamp).getTime());
-        setGivenEvents(sortedGivenEvents); // Store raw events for visualization
+        const sortedGivenEvents = [...initialSetup.eventStream].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+        setGivenEvents(sortedGivenEvents);
         const projectedGivenState = projectEvents(sortedGivenEvents);
         
         // WHEN: The command handler or projection logic is called
         const stateAfterWhen = when(projectedGivenState);
+        setFinalEvents(stateAfterWhen.eventStream);
         
-        // We project the final event stream to get the final read model for assertion
+        // THEN: The result is checked
+        // The final projection is done inside the `then` to ensure it has the latest state.
         const finalProjectedState = projectEvents(stateAfterWhen.eventStream);
         
-        const finalStateForAssertion = { ...finalProjectedState, ...stateAfterWhen };
-
-        // THEN: The result is checked
-        const testResult = then(finalStateForAssertion, mockToasts);
-        setResult({ ...testResult, finalState: finalStateForAssertion });
+        const testResult = then(finalProjectedState, mockToasts);
+        setResult({ ...testResult, finalState: finalProjectedState });
     };
 
     return (
@@ -229,7 +225,7 @@ export const TestComponent: React.FC<TestComponentProps> = ({ title, description
                         <p className={result.pass ? 'text-green-700' : 'text-red-700'}>{result.message}</p>
                         <div className="space-y-4">
                            {givenEvents && <EventsVisualizer events={givenEvents} title="Voir événements initiaux" />}
-                           {result.finalState && <EventsVisualizer events={result.finalState.eventStream} title="Voir événements finaux" />}
+                           {finalEvents && <EventsVisualizer events={finalEvents} title="Voir événements finaux" />}
                         </div>
                          <details className="mt-4 text-xs text-muted-foreground">
                             <summary>Voir le flux d'événements final (JSON)</summary>

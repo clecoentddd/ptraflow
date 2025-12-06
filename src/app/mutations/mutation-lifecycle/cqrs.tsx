@@ -6,7 +6,7 @@ import React, { createContext, useContext, useReducer, type Dispatch } from 'rea
 // Importation des types de commandes, événements et état depuis le domaine
 import type { AppCommand, AppEvent, AppState } from './domain';
 
-// Importation des command handlers (seront appelés différemment maintenant)
+// Importation des command handlers
 import { analyzeDroitsCommandHandler } from '../analyze-droits/handler';
 import { validateMutationCommandHandler } from '../validate-mutation/handler';
 import { autoriserModificationDroitsCommandHandler } from '../autoriser-modification-des-droits/handler';
@@ -25,7 +25,6 @@ import { todolistProjectionReducer, initialTodolistState } from '../projection-t
 import { ecrituresProjectionReducer, initialEcrituresState } from '../projection-ecritures/projection';
 import { journalProjectionReducer, initialJournalState } from '../projection-journal/projection';
 import { planCalculProjectionReducer, initialPlanCalculState } from '../projection-plan-calcul/projection';
-
 
 // 1. INITIAL STATE
 // ==================
@@ -52,8 +51,6 @@ function applyEventToProjections(state: AppState, event: AppEvent): AppState {
     nextState = validatedPeriodsProjectionReducer(nextState, event);
     nextState = ecrituresProjectionReducer(nextState, event);
     nextState = planCalculProjectionReducer(nextState, event);
-    // The journal is calculated at the end, as it depends on other projections.
-    nextState = journalProjectionReducer(nextState, event);
     
     return nextState;
 }
@@ -86,7 +83,7 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
         return rebuildStateFromEvents(newEventStream);
     }
 
-    // --- Legacy & BDD Command Handling ---
+    // --- Command Handling ---
     let stateAfterCommand: AppState;
     switch (action.type) {
         // These are handled by the new Pub/Sub flow and should not be dispatched here.
@@ -128,10 +125,10 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
              break;
         
         // --- BDD Test Actions ---
-        case 'REPLAY': // Applies a single event for projection testing
-             return applyEventToProjections({ ...state, eventStream: [action.event, ...state.eventStream] }, action.event);
-        case 'REPLAY_COMPLETE': // Rebuilds the full state from the current stream for testing
-            return rebuildStateFromEvents(state.eventStream);
+        case 'REPLAY': // Applies all events to rebuild projections for testing.
+             return rebuildStateFromEvents(state.eventStream);
+        case 'REPLAY_COMPLETE': // This is now the source of truth for the journal
+            return journalProjectionReducer(state, action);
         default:
             return state;
     }
@@ -154,13 +151,8 @@ export function CqrsProvider({ children }: { children: React.ReactNode }) {
 
   // This is the single entry point for all UI interactions.
   const dispatchEvent = (eventOrCommand: AppEvent | AppCommand) => {
-    if ('type' in eventOrCommand && 'mutationId' in eventOrCommand && 'id' in eventOrCommand) {
-        // It's an event, use the pub/sub dispatcher
-        dispatch({ type: 'DISPATCH_EVENT', event: eventOrCommand as AppEvent });
-    } else {
-        // It's a command (for BDD tests or legacy handlers)
-        dispatch(eventOrCommand as AppCommand);
-    }
+    // This is the main entry point for commands that will generate events.
+    dispatch(eventOrCommand as AppCommand);
   };
 
   return (
