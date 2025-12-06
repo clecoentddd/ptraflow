@@ -10,7 +10,7 @@ import { cqrsReducer } from '../mutations/mutation-lifecycle/cqrs';
 // Import event types for correct test data creation
 import type { DroitsMutationCreatedEvent } from '../mutations/create-mutation/event';
 import type { PaiementsSuspendusEvent } from '../mutations/suspend-paiements/event';
-import type { PlanDeCalculValideEvent } from '../mutations/valider-plan-paiement/event';
+import type { PlanDePaiementValideEvent } from '../mutations/valider-plan-paiement/event';
 
 
 // Definition of Test 1
@@ -54,7 +54,7 @@ export const BDDTest2: React.FC = () => (
             const mutationId = "mut-1";
             // The events are in reverse chronological order (as in the real app state)
             const events: AppEvent[] = [
-                 { id: 'evt-3', mutationId, type: 'PLAN_DE_CALCUL_VALIDE', timestamp: new Date().toISOString(), payload: { userEmail: 'test' } } as any,
+                 { id: 'evt-3', mutationId, type: 'PLAN_DE_PAIEMENT_VALIDE', timestamp: new Date().toISOString(), payload: { userEmail: 'test' } } as any,
                  { id: 'evt-2', mutationId, type: 'PAIEMENTS_SUSPENDUS', timestamp: new Date().toISOString(), payload: { userEmail: 'test' } } as PaiementsSuspendusEvent,
                  { id: 'evt-1', mutationId, type: 'DROITS_MUTATION_CREATED', timestamp: new Date().toISOString(), payload: { mutationType: 'DROITS' } } as DroitsMutationCreatedEvent,
             ];

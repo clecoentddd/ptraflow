@@ -3,7 +3,7 @@
 "use client";
 
 import type { AppEvent, AppCommand, AppState } from '../mutation-lifecycle/domain';
-import type { PlanDeCalculValideEvent } from '../valider-plan-paiement/event';
+import type { PlanDePaiementValideEvent } from '../valider-plan-paiement/event';
 
 // 1. State Slice and Initial State
 export interface ValidatedPeriod {
@@ -22,7 +22,7 @@ export const initialValidatedPeriodsState: ValidatedPeriodsState = {
 
 
 // 2. Projection Logic for this Slice
-function applyPlanDeCalculValide(state: ValidatedPeriodsState, event: PlanDeCalculValideEvent): ValidatedPeriodsState {
+function applyPlanDePaiementValide(state: ValidatedPeriodsState, event: PlanDePaiementValideEvent): ValidatedPeriodsState {
     if (event.payload.dateDebut && event.payload.dateFin) {
         const newValidatedPeriod: ValidatedPeriod = {
             mutationId: event.mutationId,
@@ -45,8 +45,8 @@ export function validatedPeriodsProjectionReducer<T extends ValidatedPeriodsStat
         if ('payload' in eventOrCommand) {
             const event = eventOrCommand;
             switch (event.type) {
-                case 'PLAN_DE_CALCUL_VALIDE':
-                    return applyPlanDeCalculValide(state, event) as T;
+                case 'PLAN_DE_PAIEMENT_VALIDE':
+                    return applyPlanDePaiementValide(state, event) as T;
             }
         }
     }

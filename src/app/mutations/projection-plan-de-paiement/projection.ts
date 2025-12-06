@@ -9,6 +9,7 @@ export interface PaiementMensuel {
     planDePaiementId: string;
     mois: string; // "MM-yyyy"
     montant: number;
+    transactionId: string;
 }
 
 export interface PlanDePaiement {
@@ -29,8 +30,8 @@ export const initialPlanDePaiementState: PlanDePaiementState = {
 
 // --- Projection Logic ---
 
-function applyPlanDeCalculValide(state: PlanDePaiementState, event: AppEvent): PlanDePaiementState {
-    if (event.type !== 'PLAN_DE_CALCUL_VALIDE') return state;
+function applyPlanDePaiementValide(state: PlanDePaiementState, event: AppEvent): PlanDePaiementState {
+    if (event.type !== 'PLAN_DE_PAIEMENT_VALIDE') return state;
     
     const { planDePaiementId, paiements, dateDebut, dateFin } = event.payload;
 
@@ -49,6 +50,7 @@ function applyPlanDeCalculValide(state: PlanDePaiementState, event: AppEvent): P
             planDePaiementId,
             mois: p.month,
             montant: p.aPayer,
+            transactionId: p.transactionId,
         }));
     } else { // This implies a RESSOURCES mutation (patch)
         const basePaiements = previousPlanForMutation ? previousPlanForMutation.paiements : [];
@@ -62,7 +64,8 @@ function applyPlanDeCalculValide(state: PlanDePaiementState, event: AppEvent): P
         const newPaiements = paiements.map(p => ({
             planDePaiementId,
             mois: p.month,
-            montant: p.aPayer
+            montant: p.aPayer,
+            transactionId: p.transactionId,
         }));
 
         finalPaiements = [...filteredPaiements, ...newPaiements];
@@ -88,8 +91,8 @@ export function planDePaiementProjectionReducer<T extends PlanDePaiementState>(
     if ('type' in eventOrCommand && 'payload' in eventOrCommand) {
         const event = eventOrCommand;
         switch (event.type) {
-            case 'PLAN_DE_CALCUL_VALIDE':
-                return applyPlanDeCalculValide(state, event) as T;
+            case 'PLAN_DE_PAIEMENT_VALIDE':
+                return applyPlanDePaiementValide(state, event) as T;
         }
     }
     return state;

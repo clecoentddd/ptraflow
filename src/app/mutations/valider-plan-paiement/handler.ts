@@ -3,7 +3,7 @@
 
 import type { AppState } from '../mutation-lifecycle/domain';
 import type { ValiderPlanPaiementCommand } from './command';
-import type { PlanDeCalculValideEvent } from './event';
+import type { PlanDePaiementValideEvent } from './event';
 import type { DecisionValideeEvent } from '../valider-decision/event';
 import { toast } from 'react-hot-toast';
 import { eachMonthOfInterval, parse, format } from 'date-fns';
@@ -50,13 +50,13 @@ export function validerPlanPaiementCommandHandler(state: AppState, command: Vali
   }));
 
 
-  let finalEvent: PlanDeCalculValideEvent;
+  let finalEvent: PlanDePaiementValideEvent;
 
   if (mutationType === 'DROITS') {
     // --- DROITS: The event contains the full payment plan to replace the old one ---
     finalEvent = {
         id: crypto.randomUUID(),
-        type: 'PLAN_DE_CALCUL_VALIDE',
+        type: 'PLAN_DE_PAIEMENT_VALIDE',
         mutationId,
         timestamp: new Date().toISOString(),
         payload: {
@@ -82,7 +82,7 @@ export function validerPlanPaiementCommandHandler(state: AppState, command: Vali
 
     finalEvent = {
       id: crypto.randomUUID(),
-      type: 'PLAN_DE_CALCUL_VALIDE',
+      type: 'PLAN_DE_PAIEMENT_VALIDE',
       mutationId,
       timestamp: new Date().toISOString(),
       payload: {
