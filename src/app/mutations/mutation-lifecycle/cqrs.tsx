@@ -50,10 +50,10 @@ function applyEventToProjections(state: AppState, event: AppEvent): AppState {
     nextState = mutationsProjectionReducer(nextState, event);
     nextState = todolistProjectionReducer(nextState, event);
     nextState = validatedPeriodsProjectionReducer(nextState, event);
-    // journalProjectionReducer needs the full ecritures list to properly calculate date ranges on delete/correct
-    nextState = journalProjectionReducer(nextState, event); 
-    nextState = ecrituresProjectionReducer(nextState, event); // Ecritures must be projected AFTER journal
+    nextState = ecrituresProjectionReducer(nextState, event);
     nextState = planCalculProjectionReducer(nextState, event);
+    // Le journal est calculé à la fin, car il peut dépendre d'autres projections.
+    nextState = journalProjectionReducer(nextState, event);
     
     return nextState;
 }
@@ -63,11 +63,14 @@ function applyEventToProjections(state: AppState, event: AppEvent): AppState {
 function rebuildStateFromEvents(events: AppState['eventStream']): AppState {
     let state: AppState = { ...initialState, eventStream: events };
     // Les événements doivent être traités par ordre chronologique (du plus ancien au plus récent)
-    const sortedEvents = [...events].reverse();
+    const sortedEvents = [...events].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
     for (const event of sortedEvents) {
         state = applyEventToProjections(state, event);
     }
+    // After all individual events are projected, we run a final projection step
+    // for projections that depend on the final state of other projections (like the journal).
+    state = journalProjectionReducer(state, { type: 'REPLAY_COMPLETE' });
     return state;
 }
 
@@ -82,64 +85,62 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
             ...state,
             eventStream: [action.event, ...state.eventStream]
         };
-        // On applique le nouvel événement aux projections existantes
-        return applyEventToProjections(newState, action.event);
+        // On reconstruit l'état complet pour garantir la cohérence entre les projections.
+        return rebuildStateFromEvents(newState.eventStream);
     }
 
-    // --- Legacy Command Handling (à refactoriser progressivement) ---
-    // Ce switch est conservé pour les commandes non encore migrées.
-    let newStateWithEvent = state;
+    // --- Legacy Command Handling ---
+    let newStateWithEvents: AppState = state;
     switch (action.type) {
         case 'CREATE_DROITS_MUTATION':
         case 'CREATE_RESSOURCES_MUTATION':
         case 'SUSPEND_PAIEMENTS':
-            // Ces cas sont maintenant gérés par le nouveau flux, donc on ne fait plus rien ici.
+            // Ces cas sont gérés par le nouveau flux Pub/Sub.
             return state; 
         case 'AUTORISER_MODIFICATION_DROITS':
-            newStateWithEvent = autoriserModificationDroitsCommandHandler(state, action);
+            newStateWithEvents = autoriserModificationDroitsCommandHandler(state, action);
             break;
         case 'AUTORISER_MODIFICATION_RESSOURCES':
-            newStateWithEvent = autoriserModificationRessourcesCommandHandler(state, action);
+            newStateWithEvents = autoriserModificationRessourcesCommandHandler(state, action);
             break;
         case 'ANALYZE_DROITS':
-            newStateWithEvent = analyzeDroitsCommandHandler(state, action);
+            newStateWithEvents = analyzeDroitsCommandHandler(state, action);
             break;
         case 'VALIDATE_MUTATION':
-            newStateWithEvent = validateMutationCommandHandler(state, action);
+            newStateWithEvents = validateMutationCommandHandler(state, action);
             break;
         case 'VALIDER_PLAN_CALCUL':
-            newStateWithEvent = validerPlanCalculCommandHandler(state, action);
+            newStateWithEvents = validerPlanCalculCommandHandler(state, action);
             break;
         case 'AJOUTER_REVENU':
-            newStateWithEvent = ajouterRevenuCommandHandler(state, action);
+            newStateWithEvents = ajouterRevenuCommandHandler(state, action);
             break;
         case 'AJOUTER_DEPENSE':
-            newStateWithEvent = ajouterDepenseCommandHandler(state, action);
+            newStateWithEvents = ajouterDepenseCommandHandler(state, action);
             break;
         case 'VALIDER_MODIFICATION_RESSOURCES':
-            newStateWithEvent = validerModificationRessourcesCommandHandler(state, action);
+            newStateWithEvents = validerModificationRessourcesCommandHandler(state, action);
             break;
         case 'SUPPRIMER_ECRITURE':
-            newStateWithEvent = supprimerEcritureCommandHandler(state, action);
-            break;
+             newStateWithEvents = supprimerEcritureCommandHandler(state, action);
+             break;
         case 'METTRE_A_JOUR_ECRITURE':
-            newStateWithEvent = mettreAJourEcritureCommandHandler(state, action);
-            break;
+             newStateWithEvents = mettreAJourEcritureCommandHandler(state, action);
+             break;
         case 'REPLAY': // Uniquement pour les tests BDD
-             return applyEventToProjections(state, action.event);
+             return applyEventToProjections({ ...state, eventStream: [action.event, ...state.eventStream] }, action.event);
         case 'REPLAY_COMPLETE': // Uniquement pour les tests BDD
-            // This rebuilds the state for journal projection which depends on the final ecritures state
             return rebuildStateFromEvents(state.eventStream);
         default:
             return state;
     }
     
     // Si de nouveaux événements ont été ajoutés par le legacy system, on reconstruit tout.
-    if (newStateWithEvent.eventStream.length > state.eventStream.length) {
-        return rebuildStateFromEvents(newStateWithEvent.eventStream);
+    if (newStateWithEvents.eventStream.length > state.eventStream.length) {
+        return rebuildStateFromEvents(newStateWithEvents.eventStream);
     }
 
-    return newStateWithEvent;
+    return newStateWithEvents;
 }
 
 
@@ -157,7 +158,7 @@ export function CqrsProvider({ children }: { children: React.ReactNode }) {
         // C'est un événement
         dispatch({ type: 'DISPATCH_EVENT', event: eventOrCommand as AppEvent });
     } else {
-        // C'est une commande (legacy)
+        // C'est une commande (legacy ou test)
         dispatch(eventOrCommand as AppCommand);
     }
   };
@@ -178,3 +179,5 @@ export function useCqrs() {
   }
   return context;
 }
+
+    
