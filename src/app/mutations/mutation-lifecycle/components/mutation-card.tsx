@@ -22,6 +22,7 @@ import { AutoriserModificationDroitsButton, AutoriserModificationDroitsTodoItem 
 import { AutoriserModificationRessourcesButton, AutoriserModificationRessourcesTodoItem } from "../../autoriser-modification-des-ressources/components/autoriser-modification-ressources-ui";
 import { ValiderModificationRessourcesButton, ValiderModificationRessourcesTodoItem } from "../../valider-modification-ressources/components/valider-modification-ressources-ui";
 import { CalculerPlanButton, CalculerPlanTodoItem } from "../../calculer-plan/components/calculer-plan-ui";
+import { ValiderDecisionButton, ValiderDecisionTodoItem } from "../../valider-decision/components/valider-decision-ui";
 import { Button } from "@/components/ui/button";
 
 
@@ -69,7 +70,8 @@ const PrendreDecisionButton = ({ mutationId }: { mutationId: string }) => {
     const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Prendre la décision');
 
      const handleClick = () => {
-        // For now, this button simply completes the todo step by dispatching the final validation event
+        // This button now triggers the VALIDATE_MUTATION command which serves as 'making the decision' in a simplified workflow.
+        // For the full workflow, this would trigger a DECISION_PRISE event.
         dispatchEvent({ type: 'VALIDATE_MUTATION', payload: { mutationId } });
     };
 
@@ -82,6 +84,11 @@ const PrendreDecisionButton = ({ mutationId }: { mutationId: string }) => {
         return 'outline';
     }
 
+    // Simplified logic: The 'Prendre la décision' step is now implicitly completed by 'Valider la mutation'.
+    // The button remains to represent the conceptual step.
+    if (isDone) return null;
+
+
     return (
          <Button 
             onClick={handleClick} 
@@ -90,7 +97,7 @@ const PrendreDecisionButton = ({ mutationId }: { mutationId: string }) => {
             className="w-full"
         >
             {isDone ? <Check className="mr-2 h-4 w-4" /> : <CheckSquare className="mr-2 h-4 w-4" />}
-            Prendre la décision
+            Prendre la décision (simplifié)
         </Button>
     )
 }
@@ -130,6 +137,7 @@ export function MutationCard({ mutation }: { mutation: Mutation }) {
               <ValiderModificationRessourcesTodoItem mutationId={mutation.id} />
               <CalculerPlanTodoItem mutationId={mutation.id} />
               <PrendreDecisionTodoItem mutationId={mutation.id} />
+              <ValiderDecisionTodoItem mutationId={mutation.id} />
               <ValidateMutationTodoItem mutationId={mutation.id} />
           </ul>
         </div>
@@ -145,7 +153,8 @@ export function MutationCard({ mutation }: { mutation: Mutation }) {
          <AutoriserModificationRessourcesButton mutationId={mutation.id} />
          <ValiderModificationRessourcesButton mutationId={mutation.id} />
          <CalculerPlanButton mutationId={mutation.id} />
-         <PrendreDecisionButton mutationId={mutation.id} />
+         {/* <PrendreDecisionButton mutationId={mutation.id} /> */}
+         <ValiderDecisionButton mutationId={mutation.id} />
          <ValidateMutationButton mutationId={mutation.id} />
       </CardFooter>
     </Card>

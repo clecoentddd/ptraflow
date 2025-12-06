@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import type { AppEvent, AppCommand, AppState, Todo, MutationType } from '../mutation-lifecycle/domain';
@@ -11,6 +12,7 @@ import type { MutationValidatedEvent } from '../validate-mutation/event';
 import type { ModificationRessourcesAutoriseeEvent } from '../autoriser-modification-des-ressources/event';
 import type { ModificationRessourcesValideeEvent } from '../valider-modification-ressources/event';
 import type { PlanCalculeEvent } from '../calculer-plan/event';
+import type { DecisionValideeEvent } from '../valider-decision/event';
 
 
 // 1. State Slice and Initial State
@@ -34,6 +36,7 @@ function applyDroitsMutationCreated(state: TodolistState, event: DroitsMutationC
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la modification des ressources", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Calculer le plan", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Prendre la décision", status: 'en attente' },
+        { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la décision", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la mutation", status: 'en attente' },
     ];
     return { ...state, todos: [...state.todos.filter(t => t.mutationId !== event.mutationId), ...newTodos] };
@@ -46,6 +49,7 @@ function applyRessourcesMutationCreated(state: TodolistState, event: RessourcesM
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la modification des ressources", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Calculer le plan", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Prendre la décision", status: 'en attente' },
+        { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la décision", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la mutation", status: 'en attente' },
     ];
     return { ...state, todos: [...state.todos.filter(t => t.mutationId !== event.mutationId), ...newTodos] };
@@ -139,15 +143,25 @@ function applyPlanCalcule(state: TodolistState, event: PlanCalculeEvent): Todoli
     };
 }
 
+function applyDecisionValidee(state: TodolistState, event: DecisionValideeEvent): TodolistState {
+    return {
+        ...state,
+        todos: state.todos.map(t => {
+            if (t.mutationId !== event.mutationId) return t;
+            if (t.description === "Valider la décision") return { ...t, status: 'fait' };
+            if (t.description === "Valider la mutation") return { ...t, status: 'à faire' };
+            return t;
+        })
+    };
+}
+
 
 function applyMutationValidated(state: TodolistState, event: MutationValidatedEvent): TodolistState {
     return {
         ...state,
         todos: state.todos.map(t => {
-            if (t.mutationId === event.mutationId && t.description === "Valider la mutation") {
-                return { ...t, status: 'fait' };
-            }
-             if (t.mutationId === event.mutationId && t.description === "Prendre la décision") {
+            // Also mark 'Prendre la décision' as 'fait' for backward compatibility or UI simplification
+            if (t.mutationId === event.mutationId && (t.description === "Valider la mutation" || t.description === "Prendre la décision")) {
                 return { ...t, status: 'fait' };
             }
             return t;
@@ -180,6 +194,8 @@ export function todolistProjectionReducer<T extends TodolistState & { mutations:
                 return applyModificationRessourcesValidee(state, event) as T;
             case 'PLAN_CALCUL_EFFECTUE':
                 return applyPlanCalcule(state, event) as T;
+            case 'DECISION_VALIDEE':
+                return applyDecisionValidee(state, event) as T;
             case 'MUTATION_VALIDATED':
                 return applyMutationValidated(state, event) as T;
         }

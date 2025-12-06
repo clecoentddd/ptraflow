@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import React, { createContext, useContext, useReducer, type Dispatch } from 'react';
@@ -20,6 +21,8 @@ import { ajouterDepenseCommandHandler } from '../ecritures/ajouter-depense/handl
 import { supprimerEcritureCommandHandler } from '../ecritures/supprimer-ecriture/handler';
 import { mettreAJourEcritureCommandHandler } from '../ecritures/mettre-a-jour-ecriture/handler';
 import { validerPlanCalculCommandHandler } from '../calculer-plan/handler';
+import { validerDecisionCommandHandler } from '../valider-decision/handler';
+
 
 // Importation des logiques de projection
 import { validatedPeriodsProjectionReducer, initialValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
@@ -51,30 +54,29 @@ export const initialState: AppState = {
 // This function rebuilds the complete state from the event stream.
 // It's the core of ensuring consistency.
 function rebuildStateFromEvents(eventStream: AppState['eventStream']): AppState {
-    const stateWithStream: AppState = { ...initialState, eventStream };
+    let stateWithStream: AppState = { ...initialState, eventStream };
     
     // For projections, events must be processed in chronological order (oldest to newest)
     const sortedEventsForProjection = [...eventStream].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
     // Apply each event to all projections that are independent
-    let stateAfterIndependentProjections = stateWithStream;
     for (const event of sortedEventsForProjection) {
-        stateAfterIndependentProjections = mutationsProjectionReducer(stateAfterIndependentProjections, event);
-        stateAfterIndependentProjections = todolistProjectionReducer(stateAfterIndependentProjections, event);
-        stateAfterIndependentProjections = validatedPeriodsProjectionReducer(stateAfterIndependentProjections, event);
-        stateAfterIndependentProjections = ecrituresProjectionReducer(stateAfterIndependentProjections, event);
-        stateAfterIndependentProjections = planCalculProjectionReducer(stateAfterIndependentProjections, event);
-        stateAfterIndependentProjections = planDePaiementProjectionReducer(stateAfterIndependentProjections, event);
+        stateWithStream = mutationsProjectionReducer(stateWithStream, event);
+        stateWithStream = todolistProjectionReducer(stateWithStream, event);
+        stateWithStream = validatedPeriodsProjectionReducer(stateWithStream, event);
+        stateWithStream = ecrituresProjectionReducer(stateWithStream, event);
+        stateWithStream = planCalculProjectionReducer(stateWithStream, event);
+        stateWithStream = planDePaiementProjectionReducer(stateWithStream, event);
     }
     
     // After all individual events are projected, run final projection steps
     // for projections that depend on the final state of other projections (like the journal or decision).
-    let finalState = stateAfterIndependentProjections;
-    finalState = journalProjectionReducer(finalState, { type: 'REPLAY_COMPLETE' });
-    finalState = decisionAPrendreProjectionReducer(finalState, { type: 'REPLAY_COMPLETE' });
+    stateWithStream = journalProjectionReducer(stateWithStream, { type: 'REPLAY_COMPLETE' });
+    stateWithStream = decisionAPrendreProjectionReducer(stateWithStream, { type: 'REPLAY_COMPLETE' });
 
-    return finalState;
+    return stateWithStream;
 }
+
 
 // 3. AGGREGATE REDUCER (The main bus for commands and events)
 // ===========================================================================
@@ -90,19 +92,26 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
     if (action.type === 'REPLAY') {
          return rebuildStateFromEvents(action.eventStream);
     }
+     if (action.type === 'REPLAY_COMPLETE') {
+        return state;
+    }
     
     // --- Command Handling ---
-    let stateAfterCommand: AppState;
+    let stateAfterCommand: AppState = state;
+
     switch (action.type) {
+        // Pub/Sub style handlers
         case 'CREATE_DROITS_MUTATION':
+            createDroitsMutationCommandHandler(state, (e) => stateAfterCommand = { ...state, eventStream: [e, ...state.eventStream] });
+            break;
         case 'CREATE_RESSOURCES_MUTATION':
+            createRessourcesMutationCommandHandler(state, (e) => stateAfterCommand = { ...state, eventStream: [e, ...state.eventStream] });
+            break;
         case 'SUSPEND_PAIEMENTS':
-            // These cases are handled by the UI which calls the handlers directly.
-            // The handlers then use the `dispatch` function provided by the context,
-            // which will trigger the 'DISPATCH_EVENT' action.
-            return state; 
-        
-        // These command handlers return a new state with new events.
+             suspendPaiementsCommandHandler(state, action, (e) => stateAfterCommand = { ...state, eventStream: [e, ...state.eventStream] });
+             break;
+
+        // "Legacy" handlers returning a new state
         case 'AUTORISER_MODIFICATION_DROITS':
             stateAfterCommand = autoriserModificationDroitsCommandHandler(state, action);
             break;
@@ -133,6 +142,9 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
         case 'METTRE_A_JOUR_ECRITURE':
              stateAfterCommand = mettreAJourEcritureCommandHandler(state, action);
              break;
+        case 'VALIDER_DECISION':
+            stateAfterCommand = validerDecisionCommandHandler(state, action);
+            break;
         default:
              console.warn("Unknown command type in cqrsReducer:", (action as any).type);
              return state;

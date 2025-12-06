@@ -13,6 +13,7 @@ import type { ModificationRessourcesValideeEvent } from '../valider-modification
 import type { EcritureSupprimeeEvent } from '../ecritures/supprimer-ecriture/event';
 import type { PlanCalculeEvent } from '../calculer-plan/event';
 import type { EcriturePeriodeCorrigeeEvent } from '../ecritures/mettre-a-jour-ecriture/event';
+import type { DecisionValideeEvent } from '../valider-decision/event';
 
 
 import type { CreateDroitsMutationCommand } from '../create-mutation/command';
@@ -28,6 +29,7 @@ import type { ValiderModificationRessourcesCommand } from '../valider-modificati
 import type { SupprimerEcritureCommand } from '../ecritures/supprimer-ecriture/command';
 import type { MettreAJourEcritureCommand } from '../ecritures/mettre-a-jour-ecriture/command';
 import type { ValiderPlanCalculCommand } from '../calculer-plan/command';
+import type { ValiderDecisionCommand } from '../valider-decision/command';
 
 import type { ValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
 import type { MutationsState } from '../projection-mutations/projection';
@@ -64,7 +66,8 @@ export type AppEvent =
     | ModificationRessourcesValideeEvent
     | EcritureSupprimeeEvent
     | EcriturePeriodeCorrigeeEvent
-    | PlanCalculeEvent;
+    | PlanCalculeEvent
+    | DecisionValideeEvent;
 
 // Command Union (Le "registre central" des commandes)
 export type AppCommand = 
@@ -84,6 +87,7 @@ export type AppCommand =
     | SupprimerEcritureCommand
     | MettreAJourEcritureCommand
     | ValiderPlanCalculCommand
+    | ValiderDecisionCommand
     // Actions pour les tests
     | { type: 'REPLAY', eventStream: AppEvent[] } 
     | { type: 'REPLAY_COMPLETE' };
