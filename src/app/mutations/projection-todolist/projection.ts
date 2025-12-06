@@ -8,7 +8,7 @@ import type { RessourcesMutationCreatedEvent } from '../create-ressources-mutati
 import type { PaiementsSuspendusEvent } from '../suspend-paiements/event';
 import type { ModificationDroitsAutoriseeEvent } from '../autoriser-modification-des-droits/event';
 import type { DroitsAnalysesEvent } from '../analyze-droits/event';
-import type { MutationValidatedEvent } from '../validate-mutation/event';
+import type { PlanPaiementValideEvent } from '../valider-plan-paiement/event';
 import type { ModificationRessourcesAutoriseeEvent } from '../autoriser-modification-des-ressources/event';
 import type { ModificationRessourcesValideeEvent } from '../valider-modification-ressources/event';
 import type { PlanCalculeEvent } from '../calculer-plan/event';
@@ -36,7 +36,7 @@ function applyDroitsMutationCreated(state: TodolistState, event: DroitsMutationC
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la modification des ressources", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Calculer le plan", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la décision", status: 'en attente' },
-        { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la mutation", status: 'en attente' },
+        { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider le plan de paiement", status: 'en attente' },
     ];
     return { ...state, todos: [...state.todos.filter(t => t.mutationId !== event.mutationId), ...newTodos] };
 }
@@ -48,7 +48,7 @@ function applyRessourcesMutationCreated(state: TodolistState, event: RessourcesM
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la modification des ressources", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Calculer le plan", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la décision", status: 'en attente' },
-        { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la mutation", status: 'en attente' },
+        { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider le plan de paiement", status: 'en attente' },
     ];
     return { ...state, todos: [...state.todos.filter(t => t.mutationId !== event.mutationId), ...newTodos] };
 }
@@ -147,18 +147,18 @@ function applyDecisionValidee(state: TodolistState, event: DecisionValideeEvent)
         todos: state.todos.map(t => {
             if (t.mutationId !== event.mutationId) return t;
             if (t.description === "Valider la décision") return { ...t, status: 'fait' };
-            if (t.description === "Valider la mutation") return { ...t, status: 'à faire' };
+            if (t.description === "Valider le plan de paiement") return { ...t, status: 'à faire' };
             return t;
         })
     };
 }
 
 
-function applyMutationValidated(state: TodolistState, event: MutationValidatedEvent): TodolistState {
+function applyPlanPaiementValide(state: TodolistState, event: PlanPaiementValideEvent): TodolistState {
     return {
         ...state,
         todos: state.todos.map(t => {
-            if (t.mutationId === event.mutationId && t.description === "Valider la mutation") {
+            if (t.mutationId === event.mutationId && t.description === "Valider le plan de paiement") {
                 return { ...t, status: 'fait' };
             }
             return t;
@@ -193,8 +193,8 @@ export function todolistProjectionReducer<T extends TodolistState & { mutations:
                 return applyPlanCalcule(state, event) as T;
             case 'DECISION_VALIDEE':
                 return applyDecisionValidee(state, event) as T;
-            case 'MUTATION_VALIDATED':
-                return applyMutationValidated(state, event) as T;
+            case 'PLAN_PAIEMENT_VALIDE':
+                return applyPlanPaiementValide(state, event) as T;
         }
     }
     return state;

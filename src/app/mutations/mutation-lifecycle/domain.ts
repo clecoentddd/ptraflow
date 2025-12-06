@@ -3,7 +3,7 @@
 import type { DroitsMutationCreatedEvent } from '../create-mutation/event';
 import type { PaiementsSuspendusEvent } from '../suspend-paiements/event';
 import type { DroitsAnalysesEvent } from '../analyze-droits/event';
-import type { MutationValidatedEvent } from '../validate-mutation/event';
+import type { PlanPaiementValideEvent } from '../valider-plan-paiement/event';
 import type { RessourcesMutationCreatedEvent } from '../create-ressources-mutation/event';
 import type { ModificationDroitsAutoriseeEvent } from '../autoriser-modification-des-droits/event';
 import type { ModificationRessourcesAutoriseeEvent } from '../autoriser-modification-des-ressources/event';
@@ -19,7 +19,7 @@ import type { DecisionValideeEvent } from '../valider-decision/event';
 import type { CreateDroitsMutationCommand } from '../create-mutation/command';
 import type { SuspendPaiementsCommand } from '../suspend-paiements/command';
 import type { AnalyzeDroitsCommand } from '../analyze-droits/command';
-import type { ValidateMutationCommand } from '../validate-mutation/command';
+import type { ValiderPlanPaiementCommand } from '../valider-plan-paiement/command';
 import type { CreateRessourcesMutationCommand } from '../create-ressources-mutation/command';
 import type { AutoriserModificationDroitsCommand } from '../autoriser-modification-des-droits/command';
 import type { AutoriserModificationRessourcesCommand } from '../autoriser-modification-des-ressources/command';
@@ -57,7 +57,7 @@ export type AppEvent =
     | DroitsMutationCreatedEvent 
     | PaiementsSuspendusEvent 
     | DroitsAnalysesEvent 
-    | MutationValidatedEvent 
+    | PlanPaiementValideEvent 
     | RessourcesMutationCreatedEvent 
     | ModificationDroitsAutoriseeEvent
     | ModificationRessourcesAutoriseeEvent
@@ -77,7 +77,7 @@ export type AppCommand =
     | CreateDroitsMutationCommand 
     | SuspendPaiementsCommand 
     | AnalyzeDroitsCommand 
-    | ValidateMutationCommand 
+    | ValiderPlanPaiementCommand 
     | CreateRessourcesMutationCommand
     | AutoriserModificationDroitsCommand
     | AutoriserModificationRessourcesCommand

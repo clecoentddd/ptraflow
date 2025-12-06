@@ -1,8 +1,9 @@
 
+
 "use client";
 
 import type { AppEvent, AppCommand, AppState } from '../mutation-lifecycle/domain';
-import type { MutationValidatedEvent } from '../validate-mutation/event';
+import type { PlanPaiementValideEvent } from '../valider-plan-paiement/event';
 
 // 1. State Slice and Initial State
 export interface ValidatedPeriod {
@@ -21,7 +22,7 @@ export const initialValidatedPeriodsState: ValidatedPeriodsState = {
 
 
 // 2. Projection Logic for this Slice
-function applyMutationValidated(state: ValidatedPeriodsState, event: MutationValidatedEvent): ValidatedPeriodsState {
+function applyPlanPaiementValide(state: ValidatedPeriodsState, event: PlanPaiementValideEvent): ValidatedPeriodsState {
     if (event.payload.dateDebut && event.payload.dateFin) {
         const newValidatedPeriod: ValidatedPeriod = {
             mutationId: event.mutationId,
@@ -44,8 +45,8 @@ export function validatedPeriodsProjectionReducer<T extends ValidatedPeriodsStat
         if ('payload' in eventOrCommand) {
             const event = eventOrCommand;
             switch (event.type) {
-                case 'MUTATION_VALIDATED':
-                    return applyMutationValidated(state, event) as T;
+                case 'PLAN_PAIEMENT_VALIDE':
+                    return applyPlanPaiementValide(state, event) as T;
             }
         }
     }

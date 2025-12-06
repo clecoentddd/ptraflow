@@ -4,13 +4,13 @@
 import React from 'react';
 import type { AppEvent } from '../mutations/mutation-lifecycle/domain';
 import { createDroitsMutationCommandHandler } from '../mutations/create-mutation/handler';
-import { TestComponent, mockToast } from './test-harness';
+import { TestComponent, mockToast } from '../mutations/bdd/test-harness';
 import { cqrsReducer } from '../mutations/mutation-lifecycle/cqrs';
 
 // Import event types for correct test data creation
 import type { DroitsMutationCreatedEvent } from '../mutations/create-mutation/event';
 import type { PaiementsSuspendusEvent } from '../mutations/suspend-paiements/event';
-import type { MutationValidatedEvent } from '../mutations/validate-mutation/event';
+import type { PlanPaiementValideEvent } from '../mutations/valider-plan-paiement/event';
 
 
 // Definition of Test 1
@@ -54,7 +54,7 @@ export const BDDTest2: React.FC = () => (
             const mutationId = "mut-1";
             // The events are in reverse chronological order (as in the real app state)
             const events: AppEvent[] = [
-                 { id: 'evt-3', mutationId, type: 'MUTATION_VALIDATED', timestamp: new Date().toISOString(), payload: { userEmail: 'test' } } as MutationValidatedEvent,
+                 { id: 'evt-3', mutationId, type: 'PLAN_PAIEMENT_VALIDE', timestamp: new Date().toISOString(), payload: { userEmail: 'test' } } as PlanPaiementValideEvent,
                  { id: 'evt-2', mutationId, type: 'PAIEMENTS_SUSPENDUS', timestamp: new Date().toISOString(), payload: { userEmail: 'test' } } as PaiementsSuspendusEvent,
                  { id: 'evt-1', mutationId, type: 'DROITS_MUTATION_CREATED', timestamp: new Date().toISOString(), payload: { mutationType: 'DROITS' } } as DroitsMutationCreatedEvent,
             ];

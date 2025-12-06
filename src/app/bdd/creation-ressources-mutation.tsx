@@ -3,10 +3,10 @@
 
 import React from 'react';
 import type { AppEvent } from '../mutations/mutation-lifecycle/domain';
-import { TestComponent, mockToast } from './test-harness';
+import { TestComponent, mockToast } from '../mutations/bdd/test-harness';
 import { createRessourcesMutationCommandHandler } from '../mutations/create-ressources-mutation/handler';
 import { cqrsReducer } from '../mutations/mutation-lifecycle/cqrs';
-import type { MutationValidatedEvent } from '../mutations/validate-mutation/event';
+import type { PlanPaiementValideEvent } from '../mutations/valider-plan-paiement/event';
 
 // Definition of Test for Resource Mutation Creation
 export const BDDTestCreationRessources: React.FC = () => (
@@ -48,10 +48,10 @@ export const BDDTestCreationRessourcesAvecPeriode: React.FC = () => (
         title="Test Création Mutation Ressources avec Période de Droits validée"
         description="Etant donné qu'une période de droits a été validée, quand l'utilisateur crée une mutation de ressources, alors un événement RESSOURCES_MUTATION_CREATED est créé."
         given={() => {
-            const event: MutationValidatedEvent = { 
+            const event: PlanPaiementValideEvent = { 
                 id: 'evt-1', 
                 mutationId: 'mut-droits', 
-                type: 'MUTATION_VALIDATED', 
+                type: 'PLAN_PAIEMENT_VALIDE', 
                 timestamp: new Date().toISOString(), 
                 payload: { userEmail: 'test', dateDebut: '01-2025', dateFin: '12-2025' } 
             };

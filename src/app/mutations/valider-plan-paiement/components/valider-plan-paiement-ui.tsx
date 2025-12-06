@@ -7,10 +7,10 @@ import { cn } from "@/lib/utils";
 import { ArrowRight, ArrowRightCircle, Check, CheckCircle2, Circle } from "lucide-react";
 import { queryTodos } from "../../projection-todolist/projection";
 
-export function ValidateMutationTodoItem({ mutationId }: { mutationId: string }) {
+export function ValiderPlanPaiementTodoItem({ mutationId }: { mutationId: string }) {
     const { state } = useCqrs();
     const todos = queryTodos(state);
-    const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Valider la mutation');
+    const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Valider le plan de paiement');
 
     if (!todo) return null;
 
@@ -33,13 +33,13 @@ export function ValidateMutationTodoItem({ mutationId }: { mutationId: string })
     )
 }
 
-export function ValidateMutationButton({ mutationId }: { mutationId: string }) {
+export function ValiderPlanPaiementButton({ mutationId }: { mutationId: string }) {
     const { state, dispatchEvent } = useCqrs();
     const todos = queryTodos(state);
-    const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Valider la mutation');
+    const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Valider le plan de paiement');
     
     const handleClick = () => {
-        dispatchEvent({ type: 'VALIDATE_MUTATION', payload: { mutationId } });
+        dispatchEvent({ type: 'VALIDER_PLAN_PAIEMENT', payload: { mutationId } });
     };
 
     const isTodo = todo?.status === 'à faire';
@@ -59,7 +59,7 @@ export function ValidateMutationButton({ mutationId }: { mutationId: string }) {
             className="w-full"
         >
             {isDone ? <Check className="mr-2 h-4 w-4" /> : <ArrowRight className="mr-2 h-4 w-4" />}
-            Valider la mutation
+            Valider le plan de paiement
         </Button>
     )
 }

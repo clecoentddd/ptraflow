@@ -3,10 +3,10 @@
 
 import React from 'react';
 import type { AppState, AppEvent } from '../mutations/mutation-lifecycle/domain';
-import { TestComponent } from './test-harness';
+import { TestComponent } from '../mutations/bdd/test-harness';
 
 // Import event types for correct test data creation
-import type { MutationValidatedEvent } from '../mutations/validate-mutation/event';
+import type { PlanPaiementValideEvent } from '../mutations/valider-plan-paiement/event';
 import { validatedPeriodsProjectionReducer, initialValidatedPeriodsState, queryValidatedPeriods } from '../mutations/projection-periodes-de-droits/projection';
 
 
@@ -19,7 +19,7 @@ export const BDDTestProjectionPeriodes: React.FC = () => (
             const events: AppEvent[] = [
                  {
                     id: "78b8ad33-31cb-4428-9c57-3652e6412a7c",
-                    type: "MUTATION_VALIDATED",
+                    type: "PLAN_PAIEMENT_VALIDE",
                     mutationId: "6cce8359-c6b5-4497-8c88-7356230c544f",
                     timestamp: "2025-12-03T19:29:40.062Z",
                     payload: {
@@ -27,10 +27,10 @@ export const BDDTestProjectionPeriodes: React.FC = () => (
                         dateDebut: "01-2025",
                         dateFin: "08-2025"
                     }
-                } as MutationValidatedEvent,
+                } as PlanPaiementValideEvent,
                 {
                     id: "77e6e5ce-f9ce-492c-bc4c-0622fa4cbff0",
-                    type: "MUTATION_VALIDATED",
+                    type: "PLAN_PAIEMENT_VALIDE",
                     mutationId: "0789426d-b6a8-46fb-ab76-8b86b2a423f4",
                     timestamp: "2025-12-03T19:28:58.675Z",
                     payload: {
@@ -38,7 +38,7 @@ export const BDDTestProjectionPeriodes: React.FC = () => (
                         dateDebut: "05-2025",
                         dateFin: "12-2025"
                     }
-                } as MutationValidatedEvent,
+                } as PlanPaiementValideEvent,
             ];
             // We provide the events in reverse chronological order to simulate the event stream
             // But the projection logic will sort them by timestamp implicitly via replay order.

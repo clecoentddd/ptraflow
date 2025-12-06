@@ -12,7 +12,7 @@ import { createDroitsMutationCommandHandler } from '../create-mutation/handler';
 import { createRessourcesMutationCommandHandler } from '../create-ressources-mutation/handler';
 import { suspendPaiementsCommandHandler } from '../suspend-paiements/handler';
 import { analyzeDroitsCommandHandler } from '../analyze-droits/handler';
-import { validateMutationCommandHandler } from '../validate-mutation/handler';
+import { validerPlanPaiementCommandHandler } from '../valider-plan-paiement/handler';
 import { autoriserModificationDroitsCommandHandler } from '../autoriser-modification-des-droits/handler';
 import { autoriserModificationRessourcesCommandHandler } from '../autoriser-modification-des-ressources/handler';
 import { ajouterRevenuCommandHandler } from '../ecritures/ajouter-revenu/handler';
@@ -116,8 +116,8 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
             case 'ANALYZE_DROITS':
                 stateAfterCommand = analyzeDroitsCommandHandler(state, action);
                 break;
-            case 'VALIDATE_MUTATION':
-                stateAfterCommand = validateMutationCommandHandler(state, action);
+            case 'VALIDER_PLAN_PAIEMENT':
+                stateAfterCommand = validerPlanPaiementCommandHandler(state, action);
                 break;
             case 'VALIDER_PLAN_CALCUL':
                 stateAfterCommand = validerPlanCalculCommandHandler(state, action);
