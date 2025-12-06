@@ -39,8 +39,13 @@ export function DecisionAPrendreView() {
                     <CardHeader>
                         <div className="flex justify-between items-start">
                             <div>
-                                <CardTitle>Décision pour la mutation</CardTitle>
-                                <CardDescription className="font-mono text-xs">{decision.mutationId}</CardDescription>
+                                <CardTitle>Décision pour la mutation - MUTATION DE {decision.mutationType}</CardTitle>
+                                <CardDescription className="font-mono text-xs mt-1">
+                                    DecisionId: {decision.decisionId}
+                                </CardDescription>
+                                <CardDescription className="font-mono text-xs mt-1">
+                                    MutationId: {decision.mutationId}
+                                </CardDescription>
                             </div>
                             <Badge variant={decision.mutationType === 'DROITS' ? 'default' : 'secondary'}>
                                 {decision.mutationType}

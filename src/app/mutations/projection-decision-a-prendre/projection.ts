@@ -10,6 +10,7 @@ import { queryPlanDePaiement } from '../projection-plan-de-paiement/projection';
 
 // 1. State Slice and Initial State
 export interface DecisionData {
+    decisionId: string;
     mutationId: string;
     mutationType: MutationType;
     planDeCalcul?: {
@@ -46,6 +47,7 @@ function rebuildDecisionState(state: AppState): DecisionAPrendreState {
 
     const decisions: DecisionData[] = journal.map(entry => {
         const decision: DecisionData = {
+            decisionId: crypto.randomUUID(),
             mutationId: entry.mutationId,
             mutationType: entry.mutationType,
         };
