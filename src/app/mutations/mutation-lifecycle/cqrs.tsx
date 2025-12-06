@@ -82,7 +82,13 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
         const newEventStream = [action.event, ...state.eventStream];
         return rebuildStateFromEvents(newEventStream);
     }
-
+    
+    // --- BDD Test Actions ---
+    // This is the main entrypoint for BDD tests to rebuild state.
+    if (action.type === 'REPLAY') {
+         return rebuildStateFromEvents(state.eventStream);
+    }
+    
     // --- Command Handling ---
     let stateAfterCommand: AppState;
     switch (action.type) {
@@ -123,21 +129,17 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
         case 'METTRE_A_JOUR_ECRITURE':
              stateAfterCommand = mettreAJourEcritureCommandHandler(state, action);
              break;
-        
-        // --- BDD Test Actions ---
-        case 'REPLAY': // Applies all events to rebuild projections for testing.
-             return rebuildStateFromEvents(state.eventStream);
-        case 'REPLAY_COMPLETE': // This is now the source of truth for the journal
-            return journalProjectionReducer(state, action);
         default:
             return state;
     }
     
-    // If the command handler added new events, we must rebuild the entire state.
+    // If the command handler added new events, we must rebuild the entire state
+    // to ensure all projections are consistent.
     if (stateAfterCommand.eventStream.length > state.eventStream.length) {
         return rebuildStateFromEvents(stateAfterCommand.eventStream);
     }
 
+    // If no new events were generated, return the state as is (e.g., a validation failed).
     return stateAfterCommand;
 }
 
@@ -171,5 +173,3 @@ export function useCqrs() {
   }
   return context;
 }
-
-    
