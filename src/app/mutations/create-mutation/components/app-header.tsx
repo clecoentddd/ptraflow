@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
 import { CircleDotDashed, Plus } from "lucide-react";
 import { queryMutations } from "../../projection-mutations/projection";
-import { toast } from "react-hot-toast";
 import { createDroitsMutationCommandHandler } from "../handler";
 import { createRessourcesMutationCommandHandler } from "../../create-ressources-mutation/handler";
 
@@ -18,14 +17,19 @@ export function AppHeader() {
   const existingMutation = mutations.find(m => m.status === 'OUVERTE' || m.status === 'EN_COURS');
 
   const handleCreateDroitsMutation = () => {
-    // Le handler est maintenant appelé directement depuis l'UI (ou une slice).
-    // Il ne retourne plus un état, mais publie un événement via la fonction `dispatchEvent`.
-    createDroitsMutationCommandHandler(state, dispatchEvent);
+    // On passe le handler lui-même à l'action.
+    // Le hook `useCqrs` se chargera de l'appeler avec `state` et une fonction `dispatch`.
+    dispatchEvent({
+        type: 'CREATE_DROITS_MUTATION', // The type is still useful for routing/logging
+        handler: createDroitsMutationCommandHandler
+    } as any);
   };
 
   const handleCreateRessourcesMutation = () => {
-    // Ce handler suit maintenant le même pattern.
-    createRessourcesMutationCommandHandler(state, dispatchEvent);
+    dispatchEvent({
+        type: 'CREATE_RESSOURCES_MUTATION',
+        handler: createRessourcesMutationCommandHandler
+    } as any);
   };
 
   return (
@@ -47,4 +51,3 @@ export function AppHeader() {
     </header>
   );
 }
-

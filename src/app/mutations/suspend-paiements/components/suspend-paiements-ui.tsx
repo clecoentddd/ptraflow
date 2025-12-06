@@ -35,13 +35,17 @@ export function SuspendPaiementsTodoItem({ mutationId }: { mutationId: string })
 }
 
 export function SuspendPaiementsButton({ mutationId }: { mutationId: string }) {
-    const { state, dispatchEvent } = useCqrs();
+    const { dispatchEvent } = useCqrs();
+    const { state } = useCqrs();
     const todos = queryTodos(state);
     const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Suspendre les paiements');
     
     const handleClick = () => {
-        const command = { type: 'SUSPEND_PAIEMENTS' as const, payload: { mutationId } };
-        suspendPaiementsCommandHandler(state, command, dispatchEvent);
+        dispatchEvent({
+            type: 'SUSPEND_PAIEMENTS',
+            payload: { mutationId },
+            handler: (state: any, dispatch: any) => suspendPaiementsCommandHandler(state, { type: 'SUSPEND_PAIEMENTS', payload: { mutationId } }, dispatch)
+        } as any);
     };
 
     const isTodo = todo?.status === 'à faire';

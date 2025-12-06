@@ -7,6 +7,9 @@ import React, { createContext, useContext, useReducer, type Dispatch } from 'rea
 import type { AppCommand, AppEvent, AppState } from './domain';
 
 // Importation des command handlers
+import { createDroitsMutationCommandHandler } from '../create-mutation/handler';
+import { createRessourcesMutationCommandHandler } from '../create-ressources-mutation/handler';
+import { suspendPaiementsCommandHandler } from '../suspend-paiements/handler';
 import { analyzeDroitsCommandHandler } from '../analyze-droits/handler';
 import { validateMutationCommandHandler } from '../validate-mutation/handler';
 import { autoriserModificationDroitsCommandHandler } from '../autoriser-modification-des-droits/handler';
@@ -58,12 +61,11 @@ function applyEventToProjections(state: AppState, event: AppEvent): AppState {
 // This function rebuilds the complete state from the event stream.
 // It's the core of ensuring consistency.
 function rebuildStateFromEvents(events: AppState['eventStream']): AppState {
-    // The event stream should be stored most-recent-first.
-    const sortedStream = [...events].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    let state: AppState = { ...initialState, eventStream: sortedStream };
+    const sortedStreamForStorage = [...events].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    let state: AppState = { ...initialState, eventStream: sortedStreamForStorage };
     
     // For projections, events must be processed in chronological order (oldest to newest)
-    const sortedEventsForProjection = [...sortedStream].reverse();
+    const sortedEventsForProjection = [...sortedStreamForStorage].reverse();
 
     for (const event of sortedEventsForProjection) {
         state = applyEventToProjections(state, event);
@@ -77,27 +79,30 @@ function rebuildStateFromEvents(events: AppState['eventStream']): AppState {
 // 3. AGGREGATE REDUCER (The main bus for commands and events)
 // ===========================================================================
 
-export function cqrsReducer(state: AppState, action: AppCommand): AppState {
+export function cqrsReducer(state: AppState, action: AppCommand | AppEvent): AppState {
 
-    // New pattern: directly dispatch an event
+    // Action to handle direct event dispatch (the new Pub/Sub pattern)
     if (action.type === 'DISPATCH_EVENT') {
-        const newEventStream = [action.event, ...state.eventStream];
-        return rebuildStateFromEvents(newEventStream);
+        return rebuildStateFromEvents([action.event, ...state.eventStream]);
     }
     
     // --- BDD Test Actions ---
-    // This is the main entrypoint for BDD tests to rebuild state.
-    if (action.type === 'REPLAY') {
+    if (action.type === 'REPLAY' || action.type === 'REPLAY_COMPLETE') {
          return rebuildStateFromEvents(state.eventStream);
     }
     
     // --- Command Handling ---
     let stateAfterCommand: AppState;
     switch (action.type) {
-        // These are handled by the new Pub/Sub flow and should not be dispatched here.
+        // These are handled by the new Pub/Sub flow, which calls the handler directly.
+        // The handler then dispatches a 'DISPATCH_EVENT' action, handled above.
         case 'CREATE_DROITS_MUTATION':
         case 'CREATE_RESSOURCES_MUTATION':
         case 'SUSPEND_PAIEMENTS':
+            // These cases are now empty because the UI components call the handlers directly.
+            // The handlers then use the `dispatch` function provided by the context,
+            // which will trigger the 'DISPATCH_EVENT' action. We keep the cases
+            // to avoid a 'default' log, but they do nothing.
             return state; 
         
         // These command handlers return a new state with new events.
@@ -132,7 +137,9 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
              stateAfterCommand = mettreAJourEcritureCommandHandler(state, action);
              break;
         default:
-            return state;
+             // If the action is not a known command, it might be a raw event from legacy code.
+             // We can try to rebuild state just in case.
+             return rebuildStateFromEvents(state.eventStream);
     }
     
     // If the command handler added new events, we must rebuild the entire state
@@ -148,19 +155,13 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
 
 // 4. CONTEXT & PROVIDER
 // =======================
-const CqrsContext = createContext<{ state: AppState; dispatchEvent: (event: AppEvent | AppCommand) => void; } | undefined>(undefined);
+const CqrsContext = createContext<{ state: AppState; dispatch: Dispatch<AppCommand | AppEvent>; } | undefined>(undefined);
 
 export function CqrsProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(cqrsReducer, initialState);
 
-  // This is the single entry point for all UI interactions.
-  const dispatchEvent = (eventOrCommand: AppEvent | AppCommand) => {
-    // This is the main entry point for commands that will generate events.
-    dispatch(eventOrCommand as AppCommand);
-  };
-
   return (
-    <CqrsContext.Provider value={{ state, dispatchEvent }}>
+    <CqrsContext.Provider value={{ state, dispatch }}>
       {children}
     </CqrsContext.Provider>
   );
@@ -173,5 +174,18 @@ export function useCqrs() {
   if (context === undefined) {
     throw new Error('useCqrs must be used within a CqrsProvider');
   }
-  return context;
+  
+  // This is the single entry point for all UI interactions.
+  const dispatchEvent = (eventOrCommand: AppEvent | AppCommand) => {
+    // For commands that generate events via handlers (the new pub/sub pattern)
+    if ('handler' in eventOrCommand) {
+        eventOrCommand.handler(context.state, (event: AppEvent) => {
+            context.dispatch({ type: 'DISPATCH_EVENT', event });
+        });
+    } else { // For legacy commands or direct event dispatches
+        context.dispatch(eventOrCommand);
+    }
+  };
+
+  return { state: context.state, dispatchEvent };
 }
