@@ -6,13 +6,14 @@ import { AppHeader } from '@/app/mutations/create-mutation/components/app-header
 import { MutationCard } from '@/app/mutations/mutation-lifecycle/components/mutation-card';
 import { EventStreamView } from '@/app/mutations/mutation-lifecycle/components/event-stream-view';
 import { TodoListView } from '@/app/mutations/mutation-lifecycle/components/todo-list-view';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { ScrollArea } from '@/components/ui/scroll-area';
+import { Card, CardHeader, CardTitle } from '@/components/ui/card';
+import { ScrollArea }from "@/components/ui/scroll-area";
 import { ValidatedPeriodsView } from './validated-periods-view';
 import { queryMutations } from '../../projection-mutations/projection';
 import { AllEcrituresListView } from '../../ecritures/supprimer-ecriture/components/ecritures-list-ui';
 import { JournalView } from '../../projection-journal/components/journal-ui';
 import { PlanCalculView } from '../../projection-plan-calcul/components/plan-calcul-view';
+import { DecisionAPrendreView } from '../../projection-decision-a-prendre/components/decision-a-prendre-view';
 
 function DashboardContent() {
   const { state } = useCqrs();
@@ -61,6 +62,11 @@ function DashboardContent() {
             <h2 className="text-2xl font-bold mb-4 text-foreground">Plan de calcul</h2>
             <PlanCalculView />
           </div>
+          
+          <div>
+            <h2 className="text-2xl font-bold mb-4 text-foreground">Décision à prendre</h2>
+            <DecisionAPrendreView />
+          </div>
 
           <div>
               <h2 className="text-2xl font-bold mb-4 text-foreground">Liste de tâches</h2>
@@ -69,13 +75,9 @@ function DashboardContent() {
 
           <div>
             <h2 className="text-2xl font-bold mb-4 text-foreground">Flux d'événements</h2>
-            <Card className="h-full flex flex-col">
-              <CardContent className="flex-1 p-0">
-                  <ScrollArea className="h-[30rem]">
-                      <EventStreamView />
-                  </ScrollArea>
-              </CardContent>
-            </Card>
+            <ScrollArea className="h-[30rem] w-full rounded-md border">
+              <EventStreamView />
+            </ScrollArea>
           </div>
         </div>
       </main>

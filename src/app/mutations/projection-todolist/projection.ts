@@ -33,6 +33,7 @@ function applyDroitsMutationCreated(state: TodolistState, event: DroitsMutationC
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Autoriser la modification de ressources", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la modification des ressources", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Calculer le plan", status: 'en attente' },
+        { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Prendre la décision", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la mutation", status: 'en attente' },
     ];
     return { ...state, todos: [...state.todos.filter(t => t.mutationId !== event.mutationId), ...newTodos] };
@@ -44,6 +45,7 @@ function applyRessourcesMutationCreated(state: TodolistState, event: RessourcesM
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Autoriser la modification de ressources", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la modification des ressources", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Calculer le plan", status: 'en attente' },
+        { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Prendre la décision", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la mutation", status: 'en attente' },
     ];
     return { ...state, todos: [...state.todos.filter(t => t.mutationId !== event.mutationId), ...newTodos] };
@@ -131,7 +133,7 @@ function applyPlanCalcule(state: TodolistState, event: PlanCalculeEvent): Todoli
         todos: state.todos.map(t => {
             if (t.mutationId !== event.mutationId) return t;
             if (t.description === "Calculer le plan") return { ...t, status: 'fait' };
-            if (t.description === "Valider la mutation") return { ...t, status: 'à faire' };
+            if (t.description === "Prendre la décision") return { ...t, status: 'à faire' };
             return t;
         })
     };
@@ -143,6 +145,9 @@ function applyMutationValidated(state: TodolistState, event: MutationValidatedEv
         ...state,
         todos: state.todos.map(t => {
             if (t.mutationId === event.mutationId && t.description === "Valider la mutation") {
+                return { ...t, status: 'fait' };
+            }
+             if (t.mutationId === event.mutationId && t.description === "Prendre la décision") {
                 return { ...t, status: 'fait' };
             }
             return t;

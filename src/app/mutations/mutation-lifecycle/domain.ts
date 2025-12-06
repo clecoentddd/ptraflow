@@ -35,6 +35,8 @@ import type { TodolistState } from '../projection-todolist/projection';
 import type { EcrituresState } from '../projection-ecritures/projection';
 import type { JournalState } from '../projection-journal/projection';
 import type { PlanCalculState } from '../projection-plan-calcul/projection';
+import type { PlanDePaiementState } from '../projection-plan-de-paiement/projection';
+import type { DecisionAPrendreState } from '../projection-decision-a-prendre/projection';
 
 // =================================
 // 1. DÉFINITIONS DU DOMAINE (ÉVÉNEMENTS & COMMANDES)
@@ -83,7 +85,7 @@ export type AppCommand =
     | MettreAJourEcritureCommand
     | ValiderPlanCalculCommand
     // Actions pour les tests
-    | { type: 'REPLAY', event: AppEvent } 
+    | { type: 'REPLAY', eventStream: AppEvent[] } 
     | { type: 'REPLAY_COMPLETE' };
 
 
@@ -130,6 +132,15 @@ export interface Ecriture {
 // =================================
 
 // L'état global est la somme de toutes les projections.
-export interface AppState extends ValidatedPeriodsState, MutationsState, TodolistState, EcrituresState, JournalState, PlanCalculState {
+export interface AppState extends 
+    ValidatedPeriodsState, 
+    MutationsState, 
+    TodolistState, 
+    EcrituresState, 
+    JournalState, 
+    PlanCalculState,
+    PlanDePaiementState,
+    DecisionAPrendreState
+{
   eventStream: AppEvent[];
 }

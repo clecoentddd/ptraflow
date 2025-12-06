@@ -28,6 +28,9 @@ import { todolistProjectionReducer, initialTodolistState } from '../projection-t
 import { ecrituresProjectionReducer, initialEcrituresState } from '../projection-ecritures/projection';
 import { journalProjectionReducer, initialJournalState } from '../projection-journal/projection';
 import { planCalculProjectionReducer, initialPlanCalculState } from '../projection-plan-calcul/projection';
+import { planDePaiementProjectionReducer, initialPlanDePaiementState } from '../projection-plan-de-paiement/projection';
+import { decisionAPrendreProjectionReducer, initialDecisionAPrendreState } from '../projection-decision-a-prendre/projection';
+
 
 // 1. INITIAL STATE
 // ==================
@@ -39,70 +42,64 @@ export const initialState: AppState = {
   ...initialEcrituresState,
   ...initialJournalState,
   ...initialPlanCalculState,
+  ...initialPlanDePaiementState,
+  ...initialDecisionAPrendreState,
 };
 
 // 2. PROJECTION LOGIC (Le "Subscriber")
 // ======================================
-
-// This function applies ONE event to all projections that need to react.
-function applyEventToProjections(state: AppState, event: AppEvent): AppState {
-    let nextState = state;
-    
-    // Each projection updates its own slice of the state.
-    nextState = mutationsProjectionReducer(nextState, event);
-    nextState = todolistProjectionReducer(nextState, event);
-    nextState = validatedPeriodsProjectionReducer(nextState, event);
-    nextState = ecrituresProjectionReducer(nextState, event);
-    nextState = planCalculProjectionReducer(nextState, event);
-    
-    return nextState;
-}
-
 // This function rebuilds the complete state from the event stream.
 // It's the core of ensuring consistency.
-function rebuildStateFromEvents(events: AppState['eventStream']): AppState {
-    const sortedStreamForStorage = [...events].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-    let state: AppState = { ...initialState, eventStream: sortedStreamForStorage };
+function rebuildStateFromEvents(eventStream: AppState['eventStream']): AppState {
+    const stateWithStream: AppState = { ...initialState, eventStream };
     
     // For projections, events must be processed in chronological order (oldest to newest)
-    const sortedEventsForProjection = [...sortedStreamForStorage].reverse();
+    const sortedEventsForProjection = [...eventStream].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
+    // Apply each event to all projections that are independent
+    let stateAfterIndependentProjections = stateWithStream;
     for (const event of sortedEventsForProjection) {
-        state = applyEventToProjections(state, event);
+        stateAfterIndependentProjections = mutationsProjectionReducer(stateAfterIndependentProjections, event);
+        stateAfterIndependentProjections = todolistProjectionReducer(stateAfterIndependentProjections, event);
+        stateAfterIndependentProjections = validatedPeriodsProjectionReducer(stateAfterIndependentProjections, event);
+        stateAfterIndependentProjections = ecrituresProjectionReducer(stateAfterIndependentProjections, event);
+        stateAfterIndependentProjections = planCalculProjectionReducer(stateAfterIndependentProjections, event);
+        stateAfterIndependentProjections = planDePaiementProjectionReducer(stateAfterIndependentProjections, event);
     }
-    // After all individual events are projected, run a final projection step
-    // for projections that depend on the final state of other projections (like the journal).
-    state = journalProjectionReducer(state, { type: 'REPLAY_COMPLETE' });
-    return state;
+    
+    // After all individual events are projected, run final projection steps
+    // for projections that depend on the final state of other projections (like the journal or decision).
+    let finalState = stateAfterIndependentProjections;
+    finalState = journalProjectionReducer(finalState, { type: 'REPLAY_COMPLETE' });
+    finalState = decisionAPrendreProjectionReducer(finalState, { type: 'REPLAY_COMPLETE' });
+
+    return finalState;
 }
 
 // 3. AGGREGATE REDUCER (The main bus for commands and events)
 // ===========================================================================
-
-export function cqrsReducer(state: AppState, action: AppCommand | AppEvent): AppState {
-
-    // Action to handle direct event dispatch (the new Pub/Sub pattern)
+export function cqrsReducer(state: AppState, action: AppCommand): AppState {
+    
+    // Action to handle direct event dispatch
     if (action.type === 'DISPATCH_EVENT') {
-        return rebuildStateFromEvents([action.event, ...state.eventStream]);
+        const newEventStream = [action.event, ...state.eventStream];
+        return rebuildStateFromEvents(newEventStream);
     }
     
     // --- BDD Test Actions ---
-    if (action.type === 'REPLAY' || action.type === 'REPLAY_COMPLETE') {
-         return rebuildStateFromEvents(state.eventStream);
+    if (action.type === 'REPLAY') {
+         return rebuildStateFromEvents(action.eventStream);
     }
     
     // --- Command Handling ---
     let stateAfterCommand: AppState;
     switch (action.type) {
-        // These are handled by the new Pub/Sub flow, which calls the handler directly.
-        // The handler then dispatches a 'DISPATCH_EVENT' action, handled above.
         case 'CREATE_DROITS_MUTATION':
         case 'CREATE_RESSOURCES_MUTATION':
         case 'SUSPEND_PAIEMENTS':
-            // These cases are now empty because the UI components call the handlers directly.
+            // These cases are handled by the UI which calls the handlers directly.
             // The handlers then use the `dispatch` function provided by the context,
-            // which will trigger the 'DISPATCH_EVENT' action. We keep the cases
-            // to avoid a 'default' log, but they do nothing.
+            // which will trigger the 'DISPATCH_EVENT' action.
             return state; 
         
         // These command handlers return a new state with new events.
@@ -137,9 +134,8 @@ export function cqrsReducer(state: AppState, action: AppCommand | AppEvent): App
              stateAfterCommand = mettreAJourEcritureCommandHandler(state, action);
              break;
         default:
-             // If the action is not a known command, it might be a raw event from legacy code.
-             // We can try to rebuild state just in case.
-             return rebuildStateFromEvents(state.eventStream);
+             console.warn("Unknown command type in cqrsReducer:", (action as any).type);
+             return state;
     }
     
     // If the command handler added new events, we must rebuild the entire state
@@ -155,7 +151,7 @@ export function cqrsReducer(state: AppState, action: AppCommand | AppEvent): App
 
 // 4. CONTEXT & PROVIDER
 // =======================
-const CqrsContext = createContext<{ state: AppState; dispatch: Dispatch<AppCommand | AppEvent>; } | undefined>(undefined);
+const CqrsContext = createContext<{ state: AppState; dispatch: Dispatch<AppCommand>; } | undefined>(undefined);
 
 export function CqrsProvider({ children }: { children: React.ReactNode }) {
   const [state, dispatch] = useReducer(cqrsReducer, initialState);
@@ -176,14 +172,15 @@ export function useCqrs() {
   }
   
   // This is the single entry point for all UI interactions.
-  const dispatchEvent = (eventOrCommand: AppEvent | AppCommand) => {
+  const dispatchEvent = (command: AppCommand) => {
     // For commands that generate events via handlers (the new pub/sub pattern)
-    if ('handler' in eventOrCommand) {
-        eventOrCommand.handler(context.state, (event: AppEvent) => {
+    // The handler is passed to the command object in the UI.
+    if ('handler' in command && typeof command.handler === 'function') {
+        command.handler(context.state, (event: AppEvent) => {
             context.dispatch({ type: 'DISPATCH_EVENT', event });
         });
     } else { // For legacy commands or direct event dispatches
-        context.dispatch(eventOrCommand);
+        context.dispatch(command);
     }
   };
 
