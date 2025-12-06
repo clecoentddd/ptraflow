@@ -9,7 +9,7 @@ export interface PlanDeCalculValideEvent extends BaseEvent {
     type: 'PLAN_DE_CALCUL_VALIDE';
     payload: {
         planDePaiementId: string;
-        paiements: DecisionDetail[];
+        paiements: (DecisionDetail & { transactionId: string })[];
         dateDebut?: string;
         dateFin?: string;
     }

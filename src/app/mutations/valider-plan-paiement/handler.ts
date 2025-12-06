@@ -29,7 +29,6 @@ export function validerPlanPaiementCommandHandler(state: AppState, command: Vali
   // Get the current latest payment plan ID
   const allPlans = queryPlanDePaiement(state);
   const currentPlan = allPlans
-    .filter(p => p.mutationId === mutationId)
     .sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     [0];
   const currentId = currentPlan ? currentPlan.id : null;
@@ -45,6 +44,12 @@ export function validerPlanPaiementCommandHandler(state: AppState, command: Vali
   
   const newPlanDePaiementId = crypto.randomUUID();
 
+  const paiementsAvecTransaction = detailCalcul.map(p => ({
+    ...p,
+    transactionId: crypto.randomUUID(),
+  }));
+
+
   let finalEvent: PlanDeCalculValideEvent;
 
   if (mutationType === 'DROITS') {
@@ -56,7 +61,7 @@ export function validerPlanPaiementCommandHandler(state: AppState, command: Vali
         timestamp: new Date().toISOString(),
         payload: {
             planDePaiementId: newPlanDePaiementId,
-            paiements: detailCalcul, // The full list of payments
+            paiements: paiementsAvecTransaction, // The full list of payments
             dateDebut: periodeDroits?.dateDebut,
             dateFin: periodeDroits?.dateFin,
         }
@@ -73,7 +78,7 @@ export function validerPlanPaiementCommandHandler(state: AppState, command: Vali
     const end = parse(periodeModifications.dateFin, 'MM-yyyy', new Date());
     const modifiedMonths = new Set(eachMonthOfInterval({ start, end }).map(d => format(d, 'MM-yyyy')));
 
-    const paiementsAPatcher = detailCalcul.filter(p => modifiedMonths.has(p.month));
+    const paiementsAPatcher = paiementsAvecTransaction.filter(p => modifiedMonths.has(p.month));
 
     finalEvent = {
       id: crypto.randomUUID(),

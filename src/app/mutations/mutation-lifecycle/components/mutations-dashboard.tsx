@@ -14,6 +14,7 @@ import { AllEcrituresListView } from '../../ecritures/supprimer-ecriture/compone
 import { JournalView } from '../../projection-journal/components/journal-ui';
 import { PlanCalculView } from '../../projection-plan-calcul/components/plan-calcul-view';
 import { DecisionAPrendreView } from '../../projection-decision-a-prendre/components/decision-a-prendre-view';
+import { PlanDePaiementView } from '../../projection-plan-de-paiement/components/plan-de-paiement-view';
 
 function DashboardContent() {
   const { state } = useCqrs();
@@ -66,6 +67,11 @@ function DashboardContent() {
           <div>
             <h2 className="text-2xl font-bold mb-4 text-foreground">Décision à prendre</h2>
             <DecisionAPrendreView />
+          </div>
+          
+          <div>
+            <h2 className="text-2xl font-bold mb-4 text-foreground">Plan de Paiement</h2>
+            <PlanDePaiementView />
           </div>
 
           <div>
