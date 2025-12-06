@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
@@ -53,34 +54,61 @@ export function DecisionAPrendreView() {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         {decision.planDeCalcul ? (
-                             <div>
-                                <Table>
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead className="font-mono">Mois</TableHead>
-                                            <TableHead className="text-right">Montant du calcul</TableHead>
-                                            <TableHead className="text-right">Paiements effectués</TableHead>
-                                            <TableHead className="text-right font-semibold">A payer / A rembourser</TableHead>
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {decision.planDeCalcul.detail.map((monthlyResult) => {
-                                            const paiementsEffectues = 0; // Placeholder
-                                            const aPayer = monthlyResult.calcul - paiementsEffectues;
-                                            return (
-                                                <TableRow key={monthlyResult.month}>
-                                                    <TableCell className="font-mono">{monthlyResult.month}</TableCell>
-                                                    <TableCell className="text-right">{monthlyResult.calcul.toFixed(2)}</TableCell>
-                                                    <TableCell className="text-right">{paiementsEffectues.toFixed(2)}</TableCell>
-                                                    <TableCell className={`text-right font-semibold ${aPayer >= 0 ? '' : 'text-destructive'}`}>
-                                                        {aPayer.toFixed(2)}
-                                                    </TableCell>
-                                                </TableRow>
-                                            );
-                                        })}
-                                    </TableBody>
-                                </Table>
-                            </div>
+                             <>
+                                {/* Desktop View */}
+                                <div className="hidden md:block">
+                                    <Table>
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead className="font-mono w-1/4">Mois</TableHead>
+                                                <TableHead className="text-right w-1/4">Montant du calcul</TableHead>
+                                                <TableHead className="text-right w-1/4">Paiements effectués</TableHead>
+                                                <TableHead className="text-right font-semibold w-1/4">A payer / A rembourser</TableHead>
+                                            </TableRow>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {decision.planDeCalcul.detail.map((monthlyResult) => {
+                                                const paiementsEffectues = 0; // Placeholder
+                                                const aPayer = monthlyResult.calcul - paiementsEffectues;
+                                                return (
+                                                    <TableRow key={monthlyResult.month}>
+                                                        <TableCell className="font-mono">{monthlyResult.month}</TableCell>
+                                                        <TableCell className="text-right">{monthlyResult.calcul.toFixed(2)}</TableCell>
+                                                        <TableCell className="text-right">{paiementsEffectues.toFixed(2)}</TableCell>
+                                                        <TableCell className={`text-right font-semibold ${aPayer >= 0 ? '' : 'text-destructive'}`}>
+                                                            {aPayer.toFixed(2)}
+                                                        </TableCell>
+                                                    </TableRow>
+                                                );
+                                            })}
+                                        </TableBody>
+                                    </Table>
+                                </div>
+                                {/* Mobile View */}
+                                <div className="md:hidden space-y-3">
+                                    {decision.planDeCalcul.detail.map((monthlyResult) => {
+                                        const paiementsEffectues = 0; // Placeholder
+                                        const aPayer = monthlyResult.calcul - paiementsEffectues;
+                                        return (
+                                            <div key={monthlyResult.month} className="p-3 rounded-lg border bg-muted/50">
+                                                <h4 className="font-mono font-semibold mb-2">{monthlyResult.month}</h4>
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-muted-foreground">Montant calcul</span>
+                                                    <span>{monthlyResult.calcul.toFixed(2)}</span>
+                                                </div>
+                                                <div className="flex justify-between text-sm">
+                                                    <span className="text-muted-foreground">Paiements effectués</span>
+                                                    <span>{paiementsEffectues.toFixed(2)}</span>
+                                                </div>
+                                                <div className={`flex justify-between text-sm font-semibold mt-1 pt-1 border-t ${aPayer >= 0 ? '' : 'text-destructive'}`}>
+                                                    <span>À payer / Rembourser</span>
+                                                    <span>{aPayer.toFixed(2)}</span>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                             </>
                         ) : (
                             <p className="text-sm text-muted-foreground">Aucun plan de calcul associé.</p>
                         )}
