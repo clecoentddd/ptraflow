@@ -129,15 +129,15 @@ function applyDepenseAjoutee(state: JournalState, event: AppEvent): JournalState
 function applyEcritureSupprimee(state: JournalState, event: AppEvent, allEcritures: AppState['ecritures']): JournalState {
     if (event.type !== 'ECRITURE_SUPPRIMEE') return state;
     
-    const deletedEcriture = allEcritures.find(e => e.id === event.payload.ecritureId);
-    if (!deletedEcriture) return state;
+    const ecritureToDelete = allEcritures.find(e => e.id === event.payload.ecritureId);
+    if (!ecritureToDelete) return state;
 
     return {
         ...state,
         journal: state.journal.map(entry => {
             if (entry.mutationId === event.mutationId) {
-                const dateDebut = parse(deletedEcriture.dateDebut, 'MM-yyyy', new Date());
-                const dateFin = parse(deletedEcriture.dateFin, 'MM-yyyy', new Date());
+                const dateDebut = parse(ecritureToDelete.dateDebut, 'MM-yyyy', new Date());
+                const dateFin = parse(ecritureToDelete.dateFin, 'MM-yyyy', new Date());
                 const dateUpdates = updateRessourcesDateRange(entry, [dateDebut, dateFin]);
                 return { ...entry, deletedEcritures: entry.deletedEcritures + 1, ...dateUpdates };
             }
@@ -167,7 +167,7 @@ function applyEcriturePeriodeCorrigee(state: JournalState, event: EcriturePeriod
                 
                 const affectedMonthsDates: Date[] = [];
                 
-                // Symmetric difference: months in one set but not the other.
+                // Symmetric difference: months in one set but not the other. This is the correct logic.
                 originalMonths.forEach(m => {
                     if (!newMonths.has(m)) {
                         affectedMonthsDates.push(parse(m, 'MM-yyyy', new Date()));
@@ -213,7 +213,6 @@ export function journalProjectionReducer<T extends JournalState & { ecritures: A
                 nextState = applyDepenseAjoutee(state, event);
                 break;
             case 'ECRITURE_SUPPRIMEE':
-                // We need the full ecritures list to know the date range of the deleted item
                 nextState = applyEcritureSupprimee(state, event, state.ecritures);
                 break;
              case 'ECRITURE_PERIODE_CORRIGEE':
