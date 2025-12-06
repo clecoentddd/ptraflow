@@ -45,9 +45,9 @@ export function validerDecisionCommandHandler(state: AppState, command: ValiderD
     id: crypto.randomUUID(),
     type: 'DECISION_VALIDEE',
     mutationId,
-    decisionId: crypto.randomUUID(),
+    decisionId: decisionId,
     ressourceVersionId: lastRessourceVersionIdEvent.ressourceVersionId,
-    planDePaiementId: crypto.randomUUID(),
+    planDePaiementId: decision.planDePaiementId || null,
     timestamp: new Date().toISOString(),
     payload: {
         mutationType: decision.mutationType,
