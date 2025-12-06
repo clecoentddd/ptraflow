@@ -41,39 +41,69 @@ interface TestComponentProps {
 
 const EventsVisualizer: React.FC<{events: AppEvent[], title: string}> = ({ events, title }) => {
     const relevantEventTypes = new Set([
-        'REVENU_AJOUTE', 'DEPENSE_AJOUTEE', 'ECRITURE_SUPPRIMEE', 'ECRITURE_PERIODE_CORRIGEE'
+        'REVENU_AJOUTE', 'DEPENSE_AJOUTEE', 'ECRITURE_SUPPRIMEE', 'ECRITURE_DATE_FIN_MODIFIEE'
     ]);
 
-    const relevantEvents = events.filter(e => relevantEventTypes.has(e.type));
+    // We need to sort events by time to correctly calculate the state at a given month
+    const chronoSortedEvents = [...events].sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+    const findEcriturePeriodBeforeEvent = (ecritureId: string, timestamp: string): { start: Date; end: Date } | null => {
+        let period: { start: Date; end: Date } | null = null;
+        for (const event of chronoSortedEvents) {
+            if (new Date(event.timestamp) >= new Date(timestamp)) break;
+            if ('payload' in event && (event.payload as any)?.ecritureId === ecritureId) {
+                if (event.type === 'REVENU_AJOUTE' || event.type === 'DEPENSE_AJOUTEE') {
+                     period = {
+                        start: parse((event.payload as any).dateDebut, 'MM-yyyy', new Date()),
+                        end: parse((event.payload as any).dateFin, 'MM-yyyy', new Date()),
+                     }
+                }
+                if (event.type === 'ECRITURE_DATE_FIN_MODIFIEE' && period) {
+                    period.end = parse((event.payload as any).nouvelleDateFin, 'MM-yyyy', new Date());
+                }
+                 if (event.type === 'ECRITURE_SUPPRIMEE') {
+                    period = null;
+                }
+            }
+        }
+        return period;
+    }
+    
+    const relevantEvents = chronoSortedEvents.filter(e => relevantEventTypes.has(e.type));
     
     // 1. Find all unique ecriture IDs from the events
-    const ecritureIds = Array.from(new Set(relevantEvents.map(e => {
-        if ('payload' in e && e.payload && typeof e.payload === 'object' && 'ecritureId' in e.payload) {
-            return (e.payload as { ecritureId: string }).ecritureId;
+    const ecritureIds = Array.from(new Set(relevantEvents.flatMap(e => {
+        if ('payload' in e && e.payload && typeof e.payload === 'object') {
+            const payload = e.payload as any;
+            if (payload.ecritureId) return [payload.ecritureId];
+            if (payload.originalEcritureId) return [payload.originalEcritureId, payload.newEcritureId];
         }
-        return null;
-    }).filter(id => id !== null) as string[]));
+        return [];
+    })));
 
     if (ecritureIds.length === 0) return null;
 
     // 2. Determine the full date range to display
     const allDates: Date[] = [];
-    relevantEvents.forEach(e => {
-        if ('payload' in e && e.payload && typeof e.payload === 'object') {
+    chronoSortedEvents.forEach(e => {
+         if ('payload' in e && e.payload && typeof e.payload === 'object') {
             const payload = e.payload as any;
             if (payload.dateDebut) allDates.push(parse(payload.dateDebut, 'MM-yyyy', new Date()));
             if (payload.dateFin) allDates.push(parse(payload.dateFin, 'MM-yyyy', new Date()));
-            if (payload.originalDateDebut) allDates.push(parse(payload.originalDateDebut, 'MM-yyyy', new Date()));
-            if (payload.originalDateFin) allDates.push(parse(payload.originalDateFin, 'MM-yyyy', new Date()));
+            if (payload.ancienneDateFin) allDates.push(parse(payload.ancienneDateFin, 'MM-yyyy', new Date()));
+            if (payload.nouvelleDateFin) allDates.push(parse(payload.nouvelleDateFin, 'MM-yyyy', new Date()));
         }
     });
 
-    if (allDates.length < 1) return null; // Not enough data for a range
+    if (allDates.length < 1) return null;
+    
+    const validDates = allDates.filter(d => !isNaN(d.getTime()));
+    if (validDates.length < 1) return null;
 
-    const minDate = new Date(Math.min(...allDates.map(d => d.getTime())));
-    const maxDate = new Date(Math.max(...allDates.map(d => d.getTime())));
+    const minDate = new Date(Math.min(...validDates.map(d => d.getTime())));
+    const maxDate = new Date(Math.max(...validDates.map(d => d.getTime())));
 
-    if (isNaN(minDate.getTime()) || isNaN(maxDate.getTime()) || minDate > maxDate) return null;
+    if (minDate > maxDate) return null;
 
     const months = eachMonthOfInterval({ start: minDate, end: maxDate }).map(d => format(d, 'MM-yyyy'));
 
@@ -86,7 +116,7 @@ const EventsVisualizer: React.FC<{events: AppEvent[], title: string}> = ({ event
             eventMap[ecritureId][month] = [];
         }
     }
-
+    
     relevantEvents.forEach(event => {
         if (!('payload' in event) || !event.payload || typeof event.payload !== 'object' || !('ecritureId' in event.payload)) return;
         
@@ -94,41 +124,34 @@ const EventsVisualizer: React.FC<{events: AppEvent[], title: string}> = ({ event
         const ecritureId = payload.ecritureId;
 
         let affectedMonths: string[] = [];
-
-        if (event.type === 'ECRITURE_SUPPRIMEE') {
-            // Can't know the period from the delete event alone. This visualizer is limited.
-            // We could find the original 'add' event, but that's complex for a simple view.
-            return;
-        } else if (event.type === 'ECRITURE_PERIODE_CORRIGEE') {
-             const oldMonths = eachMonthOfInterval({
-                start: parse(payload.originalDateDebut, 'MM-yyyy', new Date()),
-                end: parse(payload.originalDateFin, 'MM-yyyy', new Date()),
-            }).map(d => format(d, 'MM-yyyy'));
-             const newMonths = eachMonthOfInterval({
-                start: parse(payload.newDateDebut, 'MM-yyyy', new Date()),
-                end: parse(payload.newDateFin, 'MM-yyyy', new Date()),
-            }).map(d => format(d, 'MM-yyyy'));
-
-            const oldSet = new Set(oldMonths);
-            const newSet = new Set(newMonths);
-            
-            affectedMonths = [
-                ...oldMonths.filter(m => !newSet.has(m)),
-                ...newMonths.filter(m => !oldSet.has(m)),
-            ];
-
-        } else if (payload.dateDebut && payload.dateFin) {
-             affectedMonths = eachMonthOfInterval({ 
-                start: parse(payload.dateDebut, 'MM-yyyy', new Date()),
-                end: parse(payload.dateFin, 'MM-yyyy', new Date())
-             }).map(m => format(m, 'MM-yyyy'));
-        }
-
-        affectedMonths.forEach(monthKey => {
-            if (eventMap[ecritureId] && eventMap[ecritureId][monthKey]) {
-                eventMap[ecritureId][monthKey].push(event);
+        
+        try {
+            if (event.type === 'REVENU_AJOUTE' || event.type === 'DEPENSE_AJOUTEE') {
+                 affectedMonths = eachMonthOfInterval({ 
+                    start: parse(payload.dateDebut, 'MM-yyyy', new Date()),
+                    end: parse(payload.dateFin, 'MM-yyyy', new Date())
+                 }).map(m => format(m, 'MM-yyyy'));
+            } else if (event.type === 'ECRITURE_DATE_FIN_MODIFIEE') {
+                 const oldEnd = parse(payload.ancienneDateFin, 'MM-yyyy', new Date());
+                 const newEnd = parse(payload.nouvelleDateFin, 'MM-yyyy', new Date());
+                 const start = oldEnd > newEnd ? new Date(newEnd.getFullYear(), newEnd.getMonth() + 1, 1) : new Date(oldEnd.getFullYear(), oldEnd.getMonth() + 1, 1);
+                 const end = oldEnd > newEnd ? oldEnd : newEnd;
+                 affectedMonths = eachMonthOfInterval({ start, end }).map(m => format(m, 'MM-yyyy'));
+            } else if (event.type === 'ECRITURE_SUPPRIMEE') {
+                const period = findEcriturePeriodBeforeEvent(ecritureId, event.timestamp);
+                if (period) {
+                     affectedMonths = eachMonthOfInterval(period).map(m => format(m, 'MM-yyyy'));
+                }
             }
-        });
+
+            affectedMonths.forEach(monthKey => {
+                if (eventMap[ecritureId] && eventMap[ecritureId][monthKey]) {
+                    eventMap[ecritureId][monthKey].push(event);
+                }
+            });
+        } catch (e) {
+            console.error("Error processing event for visualizer", event, e);
+        }
     });
 
     return (
@@ -156,16 +179,16 @@ const EventsVisualizer: React.FC<{events: AppEvent[], title: string}> = ({ event
                                 </TableCell>
                                 {months.map(month => (
                                     <TableCell key={`${ecritureId}-${month}`} className="text-center font-mono align-top h-12">
-                                        {eventMap[ecritureId] && eventMap[ecritureId][month] && eventMap[ecritureId][month].length > 0 ? (
+                                        {eventMap[ecritureId]?.[month]?.length > 0 ? (
                                             <div className="flex flex-col gap-1 items-center">
                                                 {eventMap[ecritureId][month].map(e => {
                                                     let color = 'bg-gray-500';
                                                     if (e.type.includes('AJOUTE')) color = 'bg-green-500';
                                                     if (e.type.includes('SUPPRIMEE')) color = 'bg-red-500';
-                                                    if (e.type.includes('CORRIGEE')) color = 'bg-yellow-500 text-black';
+                                                    if (e.type.includes('MODIFIEE')) color = 'bg-yellow-500 text-black';
                                                     return (
-                                                        <div key={e.id} className={`text-white text-[10px] rounded-full px-2 py-0.5 ${color}`}>
-                                                            {e.type.replace('ECRITURE_', '').replace('PERIODE_', '').split('_').map(s=>s[0]).join('')}
+                                                        <div key={e.id} className={`text-white text-[10px] rounded-full px-2 py-0.5 ${color}`} title={e.type}>
+                                                            {e.type.replace('ECRITURE_', '').replace('DATE_FIN_', '').split('_').map(s=>s[0]).join('')}
                                                         </div>
                                                     )
                                                 })}
@@ -193,12 +216,13 @@ export const TestComponent: React.FC<TestComponentProps> = ({ title, description
 
         // GIVEN: Set up the initial state by projecting past events
         const initialSetup = given();
-        const sortedGivenEvents = [...initialSetup.eventStream].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-        setGivenEvents(sortedGivenEvents);
-        const projectedGivenState = projectEvents(sortedGivenEvents);
+        // Do NOT sort events here to preserve the natural stream order (most recent first)
+        setGivenEvents(initialSetup.eventStream); 
+        const projectedGivenState = projectEvents(initialSetup.eventStream);
         
         // WHEN: The command handler or projection logic is called
         const stateAfterWhen = when(projectedGivenState);
+        // Do NOT sort final events
         setFinalEvents(stateAfterWhen.eventStream);
         
         // THEN: The result is checked
