@@ -20,7 +20,6 @@ export default function BDDPage() {
                 <BDDTestProjectionPeriodes />
                 <BDDTestCreationRessources />
                 <BDDTestCreationRessourcesAvecPeriode />
-                <BDDTestsMiseAJourEcritures />
             </main>
         </div>
     );
