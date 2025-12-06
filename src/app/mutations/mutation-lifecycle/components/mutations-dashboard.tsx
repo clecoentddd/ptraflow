@@ -12,6 +12,7 @@ import { ValidatedPeriodsView } from './validated-periods-view';
 import { queryMutations } from '../../projection-mutations/projection';
 import { AllEcrituresListView } from '../../ecritures/supprimer-ecriture/components/ecritures-list-ui';
 import { JournalView } from '../../projection-journal/components/journal-ui';
+import { PlanCalculView } from '../../projection-plan-calcul/components/plan-calcul-view';
 
 function DashboardContent() {
   const { state } = useCqrs();
@@ -49,6 +50,11 @@ function DashboardContent() {
            <div>
               <h2 className="text-2xl font-bold mb-4 text-foreground">Périodes de droits validées</h2>
               <ValidatedPeriodsView />
+          </div>
+
+          <div>
+            <h2 className="text-2xl font-bold mb-4 text-foreground">Plan de calcul</h2>
+            <PlanCalculView />
           </div>
 
            <div>

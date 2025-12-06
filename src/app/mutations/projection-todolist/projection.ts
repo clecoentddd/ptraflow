@@ -10,6 +10,7 @@ import type { DroitsAnalysesEvent } from '../analyze-droits/event';
 import type { MutationValidatedEvent } from '../validate-mutation/event';
 import type { ModificationRessourcesAutoriseeEvent } from '../autoriser-modification-des-ressources/event';
 import type { ModificationRessourcesValideeEvent } from '../valider-modification-ressources/event';
+import type { PlanCalculeEvent } from '../calculer-plan/event';
 
 
 // 1. State Slice and Initial State
@@ -31,6 +32,7 @@ function applyDroitsMutationCreated(state: TodolistState, event: DroitsMutationC
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Analyser les droits", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Autoriser la modification de ressources", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la modification des ressources", status: 'en attente' },
+        { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Calculer le plan", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la mutation", status: 'en attente' },
     ];
     return { ...state, todos: [...state.todos.filter(t => t.mutationId !== event.mutationId), ...newTodos] };
@@ -41,6 +43,7 @@ function applyRessourcesMutationCreated(state: TodolistState, event: RessourcesM
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Suspendre les paiements", status: 'à faire' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Autoriser la modification de ressources", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la modification des ressources", status: 'en attente' },
+        { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Calculer le plan", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la mutation", status: 'en attente' },
     ];
     return { ...state, todos: [...state.todos.filter(t => t.mutationId !== event.mutationId), ...newTodos] };
@@ -116,6 +119,18 @@ function applyModificationRessourcesValidee(state: TodolistState, event: Modific
         todos: state.todos.map(t => {
             if (t.mutationId !== event.mutationId) return t;
             if (t.description === "Valider la modification des ressources") return { ...t, status: 'fait' };
+            if (t.description === "Calculer le plan") return { ...t, status: 'à faire' };
+            return t;
+        })
+    };
+}
+
+function applyPlanCalcule(state: TodolistState, event: PlanCalculeEvent): TodolistState {
+    return {
+        ...state,
+        todos: state.todos.map(t => {
+            if (t.mutationId !== event.mutationId) return t;
+            if (t.description === "Calculer le plan") return { ...t, status: 'fait' };
             if (t.description === "Valider la mutation") return { ...t, status: 'à faire' };
             return t;
         })
@@ -141,27 +156,27 @@ export function todolistProjectionReducer<T extends TodolistState & { mutations:
     state: T, 
     eventOrCommand: AppEvent | AppCommand
 ): T {
-    if ('type' in eventOrCommand) {
-        if ('payload' in eventOrCommand) { // It's an event
-            const event = eventOrCommand;
-            switch (event.type) {
-                case 'DROITS_MUTATION_CREATED':
-                    return applyDroitsMutationCreated(state, event) as T;
-                case 'RESSOURCES_MUTATION_CREATED':
-                    return applyRessourcesMutationCreated(state, event) as T;
-                case 'PAIEMENTS_SUSPENDUS':
-                    return applyPaiementsSuspendus(state, event, state.mutations) as T;
-                 case 'MODIFICATION_DROITS_AUTORISEE':
-                    return applyModificationDroitsAutorisee(state, event) as T;
-                case 'DROITS_ANALYSES':
-                    return applyDroitsAnalyses(state, event) as T;
-                case 'MODIFICATION_RESSOURCES_AUTORISEE':
-                    return applyModificationRessourcesAutorisee(state, event) as T;
-                case 'MODIFICATION_RESSOURCES_VALIDEE':
-                    return applyModificationRessourcesValidee(state, event) as T;
-                case 'MUTATION_VALIDATED':
-                    return applyMutationValidated(state, event) as T;
-            }
+    if ('type' in eventOrCommand && 'payload' in eventOrCommand) { // It's an event
+        const event = eventOrCommand as AppEvent;
+        switch (event.type) {
+            case 'DROITS_MUTATION_CREATED':
+                return applyDroitsMutationCreated(state, event) as T;
+            case 'RESSOURCES_MUTATION_CREATED':
+                return applyRessourcesMutationCreated(state, event) as T;
+            case 'PAIEMENTS_SUSPENDUS':
+                return applyPaiementsSuspendus(state, event, state.mutations) as T;
+             case 'MODIFICATION_DROITS_AUTORISEE':
+                return applyModificationDroitsAutorisee(state, event) as T;
+            case 'DROITS_ANALYSES':
+                return applyDroitsAnalyses(state, event) as T;
+            case 'MODIFICATION_RESSOURCES_AUTORISEE':
+                return applyModificationRessourcesAutorisee(state, event) as T;
+            case 'MODIFICATION_RESSOURCES_VALIDEE':
+                return applyModificationRessourcesValidee(state, event) as T;
+            case 'PLAN_CALCUL_EFFECTUE':
+                return applyPlanCalcule(state, event) as T;
+            case 'MUTATION_VALIDATED':
+                return applyMutationValidated(state, event) as T;
         }
     }
     return state;

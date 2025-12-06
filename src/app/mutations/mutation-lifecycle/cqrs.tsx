@@ -18,6 +18,7 @@ import { validerModificationRessourcesCommandHandler } from '../valider-modifica
 import { ajouterDepenseCommandHandler } from '../ecritures/ajouter-depense/handler';
 import { supprimerEcritureCommandHandler } from '../ecritures/supprimer-ecriture/handler';
 import { mettreAJourEcritureCommandHandler } from '../ecritures/mettre-a-jour-ecriture/handler';
+import { validerPlanCalculCommandHandler } from '../calculer-plan/handler';
 
 // Importation des logiques de projection
 import { validatedPeriodsProjectionReducer, initialValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
@@ -25,6 +26,7 @@ import { mutationsProjectionReducer, initialMutationsState } from '../projection
 import { todolistProjectionReducer, initialTodolistState } from '../projection-todolist/projection';
 import { ecrituresProjectionReducer, initialEcrituresState } from '../projection-ecritures/projection';
 import { journalProjectionReducer, initialJournalState } from '../projection-journal/projection';
+import { planCalculProjectionReducer, initialPlanCalculState } from '../projection-plan-calcul/projection';
 
 
 // 1. INITIAL STATE
@@ -36,6 +38,7 @@ export const initialState: AppState = {
   ...initialTodolistState,
   ...initialEcrituresState,
   ...initialJournalState,
+  ...initialPlanCalculState,
 };
 
 // 2. PROJECTION LOGIC (Le "Subscriber")
@@ -51,6 +54,7 @@ function applyEventToProjections(state: AppState, event: AppEvent): AppState {
     nextState = validatedPeriodsProjectionReducer(nextState, event);
     nextState = ecrituresProjectionReducer(nextState, event);
     nextState = journalProjectionReducer(nextState, event);
+    nextState = planCalculProjectionReducer(nextState, event);
     
     return nextState;
 }
@@ -109,6 +113,9 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
         case 'VALIDATE_MUTATION':
             newStateWithEvent = validateMutationCommandHandler(state, action);
             break;
+        case 'VALIDER_PLAN_CALCUL':
+            newStateWithEvent = validerPlanCalculCommandHandler(state, action);
+            break;
         case 'AJOUTER_REVENU':
             newStateWithEvent = ajouterRevenuCommandHandler(state, action);
             break;
@@ -152,9 +159,9 @@ export function CqrsProvider({ children }: { children: React.ReactNode }) {
   // Wrapper `dispatch` pour le nouveau pattern.
   // Les composants UI n'appelleront que cette fonction.
   const dispatchEvent = (eventOrCommand: AppEvent | AppCommand) => {
-    if ('type' in eventOrCommand && 'mutationId' in eventOrCommand) {
+    if ('type' in eventOrCommand && 'mutationId' in eventOrCommand && 'id' in eventOrCommand) {
         // C'est un événement
-        dispatch({ type: 'DISPATCH_EVENT', event: eventOrCommand });
+        dispatch({ type: 'DISPATCH_EVENT', event: eventOrCommand as AppEvent });
     } else {
         // C'est une commande (legacy)
         dispatch(eventOrCommand as AppCommand);

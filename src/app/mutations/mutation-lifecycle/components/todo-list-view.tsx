@@ -28,7 +28,8 @@ const taskOrder: Record<string, number> = {
     "Analyser les droits": 3,
     "Autoriser la modification de ressources": 4,
     "Valider la modification des ressources": 5,
-    "Valider la mutation": 6,
+    "Calculer le plan": 6,
+    "Valider la mutation": 7,
 };
 
 const statusOrder: Record<TodoStatus, number> = {
