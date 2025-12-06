@@ -70,9 +70,8 @@ function rebuildStateFromEvents(eventStream: AppState['eventStream']): AppState 
     }
     
     // After all individual events are projected, run final projection steps
-    // for projections that depend on the final state of other projections (like the journal or decision).
+    // for projections that depend on the final state of other projections (like the journal).
     stateWithStream = journalProjectionReducer(stateWithStream, { type: 'REPLAY_COMPLETE' });
-    stateWithStream = decisionAPrendreProjectionReducer(stateWithStream, { type: 'REPLAY_COMPLETE' });
 
     return stateWithStream;
 }
@@ -82,82 +81,82 @@ function rebuildStateFromEvents(eventStream: AppState['eventStream']): AppState 
 // ===========================================================================
 export function cqrsReducer(state: AppState, action: AppCommand): AppState {
     
+    let stateAfterEvents: AppState;
+
     // Action to handle direct event dispatch
     if (action.type === 'DISPATCH_EVENT') {
         const newEventStream = [action.event, ...state.eventStream];
-        return rebuildStateFromEvents(newEventStream);
-    }
-    
-    // --- BDD Test Actions ---
-    if (action.type === 'REPLAY') {
-         return rebuildStateFromEvents(action.eventStream);
-    }
-     if (action.type === 'REPLAY_COMPLETE') {
+        stateAfterEvents = rebuildStateFromEvents(newEventStream);
+    } else if (action.type === 'REPLAY') {
+         stateAfterEvents = rebuildStateFromEvents(action.eventStream);
+    } else if (action.type === 'REPLAY_COMPLETE') {
+        // This action type is only used by projections that need to run at the end.
+        // We just return the state as is, because the final step will handle it.
         return state;
+    } else {
+        // --- Command Handling ---
+        let stateAfterCommand: AppState = state;
+
+        switch (action.type) {
+            case 'CREATE_DROITS_MUTATION':
+                createDroitsMutationCommandHandler(state, (e) => stateAfterCommand = { ...state, eventStream: [e, ...state.eventStream] });
+                break;
+            case 'CREATE_RESSOURCES_MUTATION':
+                createRessourcesMutationCommandHandler(state, (e) => stateAfterCommand = { ...state, eventStream: [e, ...state.eventStream] });
+                break;
+            case 'SUSPEND_PAIEMENTS':
+                 suspendPaiementsCommandHandler(state, action, (e) => stateAfterCommand = { ...state, eventStream: [e, ...state.eventStream] });
+                 break;
+            case 'AUTORISER_MODIFICATION_DROITS':
+                stateAfterCommand = autoriserModificationDroitsCommandHandler(state, action);
+                break;
+            case 'AUTORISER_MODIFICATION_RESSOURCES':
+                stateAfterCommand = autoriserModificationRessourcesCommandHandler(state, action);
+                break;
+            case 'ANALYZE_DROITS':
+                stateAfterCommand = analyzeDroitsCommandHandler(state, action);
+                break;
+            case 'VALIDATE_MUTATION':
+                stateAfterCommand = validateMutationCommandHandler(state, action);
+                break;
+            case 'VALIDER_PLAN_CALCUL':
+                stateAfterCommand = validerPlanCalculCommandHandler(state, action);
+                break;
+            case 'AJOUTER_REVENU':
+                stateAfterCommand = ajouterRevenuCommandHandler(state, action);
+                break;
+            case 'AJOUTER_DEPENSE':
+                stateAfterCommand = ajouterDepenseCommandHandler(state, action);
+                break;
+            case 'VALIDER_MODIFICATION_RESSOURCES':
+                stateAfterCommand = validerModificationRessourcesCommandHandler(state, action);
+                break;
+            case 'SUPPRIMER_ECRITURE':
+                 stateAfterCommand = supprimerEcritureCommandHandler(state, action);
+                 break;
+            case 'METTRE_A_JOUR_ECRITURE':
+                 stateAfterCommand = mettreAJourEcritureCommandHandler(state, action);
+                 break;
+            case 'VALIDER_DECISION':
+                stateAfterCommand = validerDecisionCommandHandler(state, action);
+                break;
+            default:
+                 console.warn("Unknown command type in cqrsReducer:", (action as any).type);
+                 return state;
+        }
+        
+        if (stateAfterCommand.eventStream.length > state.eventStream.length) {
+            stateAfterEvents = rebuildStateFromEvents(stateAfterCommand.eventStream);
+        } else {
+            return stateAfterCommand;
+        }
     }
     
-    // --- Command Handling ---
-    let stateAfterCommand: AppState = state;
+    // --- Final Projection Step ---
+    // The decision projection *always* runs after any event has been processed.
+    const finalState = decisionAPrendreProjectionReducer(stateAfterEvents, { type: 'REPLAY_COMPLETE' });
 
-    switch (action.type) {
-        // Pub/Sub style handlers
-        case 'CREATE_DROITS_MUTATION':
-            createDroitsMutationCommandHandler(state, (e) => stateAfterCommand = { ...state, eventStream: [e, ...state.eventStream] });
-            break;
-        case 'CREATE_RESSOURCES_MUTATION':
-            createRessourcesMutationCommandHandler(state, (e) => stateAfterCommand = { ...state, eventStream: [e, ...state.eventStream] });
-            break;
-        case 'SUSPEND_PAIEMENTS':
-             suspendPaiementsCommandHandler(state, action, (e) => stateAfterCommand = { ...state, eventStream: [e, ...state.eventStream] });
-             break;
-
-        // "Legacy" handlers returning a new state
-        case 'AUTORISER_MODIFICATION_DROITS':
-            stateAfterCommand = autoriserModificationDroitsCommandHandler(state, action);
-            break;
-        case 'AUTORISER_MODIFICATION_RESSOURCES':
-            stateAfterCommand = autoriserModificationRessourcesCommandHandler(state, action);
-            break;
-        case 'ANALYZE_DROITS':
-            stateAfterCommand = analyzeDroitsCommandHandler(state, action);
-            break;
-        case 'VALIDATE_MUTATION':
-            stateAfterCommand = validateMutationCommandHandler(state, action);
-            break;
-        case 'VALIDER_PLAN_CALCUL':
-            stateAfterCommand = validerPlanCalculCommandHandler(state, action);
-            break;
-        case 'AJOUTER_REVENU':
-            stateAfterCommand = ajouterRevenuCommandHandler(state, action);
-            break;
-        case 'AJOUTER_DEPENSE':
-            stateAfterCommand = ajouterDepenseCommandHandler(state, action);
-            break;
-        case 'VALIDER_MODIFICATION_RESSOURCES':
-            stateAfterCommand = validerModificationRessourcesCommandHandler(state, action);
-            break;
-        case 'SUPPRIMER_ECRITURE':
-             stateAfterCommand = supprimerEcritureCommandHandler(state, action);
-             break;
-        case 'METTRE_A_JOUR_ECRITURE':
-             stateAfterCommand = mettreAJourEcritureCommandHandler(state, action);
-             break;
-        case 'VALIDER_DECISION':
-            stateAfterCommand = validerDecisionCommandHandler(state, action);
-            break;
-        default:
-             console.warn("Unknown command type in cqrsReducer:", (action as any).type);
-             return state;
-    }
-    
-    // If the command handler added new events, we must rebuild the entire state
-    // to ensure all projections are consistent.
-    if (stateAfterCommand.eventStream.length > state.eventStream.length) {
-        return rebuildStateFromEvents(stateAfterCommand.eventStream);
-    }
-
-    // If no new events were generated, return the state as is (e.g., a validation failed).
-    return stateAfterCommand;
+    return finalState;
 }
 
 

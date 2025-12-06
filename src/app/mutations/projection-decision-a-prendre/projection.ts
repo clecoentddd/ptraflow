@@ -46,19 +46,22 @@ function rebuildDecisionState(state: AppState): DecisionAPrendreState {
     const plansDePaiement = queryPlanDePaiement(state);
 
     const decisions: DecisionData[] = journal.map(entry => {
+        const planDeCalcul = plansDeCalcul.find(p => p.mutationId === entry.mutationId);
+        
+        // Only create a decision if a calculation plan exists for this mutation
+        if (!planDeCalcul) {
+            return null;
+        }
+
         const decision: DecisionData = {
-            decisionId: crypto.randomUUID(),
+            decisionId: `dec-${entry.mutationId.substring(0, 8)}`, // Create a stable but unique ID
             mutationId: entry.mutationId,
             mutationType: entry.mutationType,
-        };
-
-        const planDeCalcul = plansDeCalcul.find(p => p.mutationId === entry.mutationId);
-        if (planDeCalcul) {
-            decision.planDeCalcul = {
+            planDeCalcul: {
                 calculId: planDeCalcul.calculId,
                 detail: planDeCalcul.detail,
-            };
-        }
+            }
+        };
 
         const planDePaiement = plansDePaiement.find(p => p.mutationId === entry.mutationId);
         if (planDePaiement) {
@@ -66,26 +69,26 @@ function rebuildDecisionState(state: AppState): DecisionAPrendreState {
         }
 
         if (entry.mutationType === 'DROITS') {
-            const period = periodsValides[0]; // The business rule is that there is only ever one.
-            if(period) {
-                decision.periodeDroits = {
-                    dateDebut: period.dateDebut,
-                    dateFin: period.dateFin,
+            const droitsAnalysesEvent = state.eventStream.find(
+                e => e.mutationId === entry.mutationId && e.type === 'DROITS_ANALYSES'
+            ) as any;
+            if (droitsAnalysesEvent) {
+                 decision.periodeDroits = {
+                    dateDebut: droitsAnalysesEvent.payload.dateDebut,
+                    dateFin: droitsAnalysesEvent.payload.dateFin,
                 };
             }
         }
 
-        if (entry.mutationType === 'RESSOURCES') {
-            if (entry.ressourcesDateDebut && entry.ressourcesDateFin) {
-                decision.periodeModifications = {
-                    dateDebut: entry.ressourcesDateDebut,
-                    dateFin: entry.ressourcesDateFin,
-                };
-            }
+        if (entry.ressourcesDateDebut && entry.ressourcesDateFin) {
+            decision.periodeModifications = {
+                dateDebut: entry.ressourcesDateDebut,
+                dateFin: entry.ressourcesDateFin,
+            };
         }
         
         return decision;
-    });
+    }).filter((d): d is DecisionData => d !== null);
 
     return { decisions };
 }
