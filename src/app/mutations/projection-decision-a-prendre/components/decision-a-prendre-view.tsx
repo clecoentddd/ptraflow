@@ -13,15 +13,17 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { queryTodos } from "../../projection-todolist/projection";
+import { queryMutations } from "../../projection-mutations/projection";
 
 export function DecisionAPrendreView() {
     const { state } = useCqrs();
     const decisions = queryDecisionsAPrendre(state);
-    const todos = queryTodos(state);
+    const mutations = queryMutations(state);
 
+    // Show decisions for any mutation that is currently "EN_COURS".
+    // The button to validate will be disabled if the task is already done.
     const activeDecisions = decisions.filter(d => 
-        todos.some(t => t.mutationId === d.mutationId && t.description === 'Prendre la décision' && t.status === 'à faire')
+        mutations.some(m => m.id === d.mutationId && m.status === 'EN_COURS')
     );
 
     if (activeDecisions.length === 0) {
