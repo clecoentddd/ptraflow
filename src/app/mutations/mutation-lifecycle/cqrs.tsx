@@ -59,6 +59,7 @@ function applyEventToProjections(state: AppState, event: AppEvent): AppState {
 // It's the core of ensuring consistency.
 function rebuildStateFromEvents(events: AppState['eventStream']): AppState {
     let state: AppState = { ...initialState, eventStream: events };
+    
     // Events must be processed in chronological order (oldest to newest)
     const sortedEvents = [...events].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
@@ -79,7 +80,6 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
     // New pattern: directly dispatch an event
     if (action.type === 'DISPATCH_EVENT') {
         const newEventStream = [action.event, ...state.eventStream];
-        // Rebuild the state from scratch to ensure consistency after the new event.
         return rebuildStateFromEvents(newEventStream);
     }
 
@@ -171,3 +171,5 @@ export function useCqrs() {
   }
   return context;
 }
+
+    

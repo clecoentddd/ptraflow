@@ -20,6 +20,7 @@ export const mockToast = {
 };
 
 const projectEvents = (eventStream: AppEvent[]): AppState => {
+    // The reducer will handle the sorting for projections internally
     let projectedState = cqrsReducer({ ...initialState, eventStream }, { type: 'REPLAY' });
     return projectedState;
 }
@@ -44,7 +45,8 @@ const EventsVisualizer: React.FC<{events: AppEvent[], title: string}> = ({ event
         'REVENU_AJOUTE', 'DEPENSE_AJOUTEE', 'ECRITURE_SUPPRIMEE', 'ECRITURE_DATE_FIN_MODIFIEE'
     ]);
 
-    // We need to sort events by time to correctly calculate the state at a given month
+    // We DO NOT sort the event stream here to show the raw storage order.
+    // The projection logic is responsible for chronological sorting.
     const chronoSortedEvents = [...events].sort((a,b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
     const findEcriturePeriodBeforeEvent = (ecritureId: string, timestamp: string): { start: Date; end: Date } | null => {
@@ -221,11 +223,10 @@ export const TestComponent: React.FC<TestComponentProps> = ({ title, description
         
         // WHEN: The command handler or projection logic is called
         const stateAfterWhen = when(projectedGivenState);
-        setFinalEvents(stateAfterWhen.eventStream);
         
         // THEN: The result is checked
-        // The final projection is done inside the `then` to ensure it has the latest state.
         const finalProjectedState = projectEvents(stateAfterWhen.eventStream);
+        setFinalEvents(finalProjectedState.eventStream);
         
         const testResult = then(finalProjectedState, mockToasts);
         setResult({ ...testResult, finalState: finalProjectedState });
