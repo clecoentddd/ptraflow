@@ -2,7 +2,7 @@
 "use client";
 
 import type { AppEvent, AppCommand, AppState, MutationType } from '../mutation-lifecycle/domain';
-import { parse, format, min, max, isSameMonth, isBefore, isAfter } from 'date-fns';
+import { parse, format, min, max, isSameMonth, isBefore, isAfter, eachMonthOfInterval } from 'date-fns';
 import type { EcriturePeriodeCorrigeeEvent } from '../ecritures/corriger-periode-ecriture/event';
 
 // 1. State Slice and Initial State
@@ -68,22 +68,17 @@ function applyDroitsAnalyses(state: JournalState, event: AppEvent): JournalState
 function updateRessourcesDateRange(entry: JournalEntry, newDates: Date[]): Partial<JournalEntry> {
     if (newDates.length === 0) return {};
     
-    const updates: Partial<JournalEntry> = {};
+    const allDates = [...newDates];
+    if (entry.ressourcesDateDebut) allDates.push(parse(entry.ressourcesDateDebut, 'MM-yyyy', new Date()));
+    if (entry.ressourcesDateFin) allDates.push(parse(entry.ressourcesDateFin, 'MM-yyyy', new Date()));
 
-    const currentStart = entry.ressourcesDateDebut ? parse(entry.ressourcesDateDebut, 'MM-yyyy', new Date()) : null;
-    const currentEnd = entry.ressourcesDateFin ? parse(entry.ressourcesDateFin, 'MM-yyyy', new Date()) : null;
-
-    const newMinDate = min(newDates);
-    const newMaxDate = max(newDates);
-
-    if (!currentStart || newMinDate < currentStart) {
-        updates.ressourcesDateDebut = format(newMinDate, 'MM-yyyy');
-    }
-    if (!currentEnd || newMaxDate > currentEnd) {
-        updates.ressourcesDateFin = format(newMaxDate, 'MM-yyyy');
-    }
-
-    return updates;
+    const newMinDate = min(allDates);
+    const newMaxDate = max(allDates);
+    
+    return {
+        ressourcesDateDebut: format(newMinDate, 'MM-yyyy'),
+        ressourcesDateFin: format(newMaxDate, 'MM-yyyy'),
+    };
 }
 
 
@@ -154,28 +149,31 @@ function applyEcriturePeriodeCorrigee(state: JournalState, event: EcriturePeriod
                 const newStart = parse(event.payload.dateDebut, 'MM-yyyy', new Date());
                 const newEnd = parse(event.payload.dateFin, 'MM-yyyy', new Date());
                 
-                const affectedDates: Date[] = [];
-                // Raccourcissement de la fin
-                if (isBefore(newEnd, originalEnd)) affectedDates.push(originalEnd);
-                // Raccourcissement du début
-                if (isAfter(newStart, originalStart)) affectedDates.push(originalStart);
-                // Extension de la fin
-                if (isAfter(newEnd, originalEnd)) affectedDates.push(newEnd);
-                // Extension du début
-                if (isBefore(newStart, originalStart)) affectedDates.push(newStart);
+                const originalMonths = new Set(eachMonthOfInterval({ start: originalStart, end: originalEnd }).map(d => format(d, 'MM-yyyy')));
+                const newMonths = new Set(eachMonthOfInterval({ start: newStart, end: newEnd }).map(d => format(d, 'MM-yyyy')));
+                
+                const affectedMonths: Date[] = [];
+                
+                originalMonths.forEach(m => {
+                    if (!newMonths.has(m)) {
+                        affectedMonths.push(parse(m, 'MM-yyyy', new Date()));
+                    }
+                });
+                newMonths.forEach(m => {
+                    if (!originalMonths.has(m)) {
+                         affectedMonths.push(parse(m, 'MM-yyyy', new Date()));
+                    }
+                });
 
-                // Si complètement différent (pas de chevauchement)
-                if (isAfter(newStart, originalEnd) || isBefore(newEnd, originalStart)) {
-                    affectedDates.push(originalStart, originalEnd, newStart, newEnd);
-                }
-
-                if (affectedDates.length === 0 && !isSameMonth(originalStart, newStart) && !isSameMonth(originalEnd, newEnd)) {
-                    // Fallback pour les cas complexes non couverts, comme un décalage simple
-                     affectedDates.push(originalStart, originalEnd, newStart, newEnd);
+                if (affectedMonths.length === 0) {
+                     // If periods are just shifted but cover the same number of months, take the union
+                    if (!isSameMonth(originalStart, newStart) || !isSameMonth(originalEnd, newEnd)) {
+                        affectedMonths.push(originalStart, originalEnd, newStart, newEnd);
+                    }
                 }
                 
-                const dateUpdates = updateRessourcesDateRange(entry, affectedDates);
-
+                const dateUpdates = updateRessourcesDateRange(entry, affectedMonths);
+                
                 return { ...entry, correctedEcritures: entry.correctedEcritures + 1, ...dateUpdates };
             }
             return entry;

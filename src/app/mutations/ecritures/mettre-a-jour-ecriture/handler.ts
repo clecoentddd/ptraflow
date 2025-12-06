@@ -7,7 +7,7 @@ import type { EcriturePeriodeCorrigeeEvent } from '../corriger-periode-ecriture/
 import type { RevenuAjouteEvent } from '../ajouter-revenu/event';
 import type { DepenseAjouteeEvent } from '../ajouter-depense/event';
 import { toast } from 'react-hot-toast';
-import { format, parse, isSameMonth, isBefore, isAfter, endOfMonth, addMonths, subMonths } from 'date-fns';
+import { format, parse } from 'date-fns';
 
 function createAjoutEvent(
     type: 'revenu' | 'dépense',
@@ -53,11 +53,9 @@ export function mettreAJourEcritureCommandHandler(
         mutationId,
         ressourceVersionId,
         originalEcritureId,
-        newEcritureId,
-        ecritureType,
-        code,
-        libelle,
         montant,
+        code,
+        ecritureType
     } = command.payload;
 
     const dateDebut = new Date(command.payload.dateDebut);
@@ -70,64 +68,42 @@ export function mettreAJourEcritureCommandHandler(
         return state;
     }
 
-    if (montant <= 0 || new Date(dateDebut) > new Date(dateFin)) {
+    if (montant <= 0 || dateDebut > dateFin) {
         toast.error("Données de mise à jour invalides.");
         return state;
     }
     // --- End Validations ---
     
-    const originalDateDebut = parse(ecritureToUpdate.dateDebut, 'MM-yyyy', new Date());
-    const originalDateFin = parse(ecritureToUpdate.dateFin, 'MM-yyyy', new Date());
-    
     const events: AppEvent[] = [];
     const now = new Date();
 
-    // Case 1: The amount changes. This is not a "correction", it's a new fact.
-    // We shorten the original period and create a new entry for the new amount's period.
+    // Case 1: Montant or code changes. This is not a "correction", it's a new fact.
+    // This case requires a more complex logic of splitting periods, which is not implemented.
+    // For now, we simplify: we just replace the old one with a simple correction.
     if (ecritureToUpdate.montant !== montant || ecritureToUpdate.code !== code) {
-         // This is a simplification: we replace the old with the new.
-         // A more complex logic could handle splitting periods. For now, we "correct" the original
-         // to end just before the new one starts if there is an overlap.
+        // For simplicity of the demo, we are replacing the old entry by correcting its period to be "invalid" (end before start)
+        // and then adding a new one. This is a pragmatic choice for this system.
         
-        // Event 1: Correct the original entry's period to end before the new one starts
-        if (isBefore(dateDebut, originalDateFin) || isSameMonth(dateDebut, originalDateFin)) {
-            const newEndDateForOriginal = subMonths(dateDebut, 1);
-            if (isBefore(originalDateDebut, newEndDateForOriginal) || isSameMonth(originalDateDebut, newEndDateForOriginal)) {
-                 const correctionEvent: EcriturePeriodeCorrigeeEvent = {
-                    id: crypto.randomUUID(),
-                    type: 'ECRITURE_PERIODE_CORRIGEE',
-                    mutationId,
-                    ressourceVersionId,
-                    timestamp: now.toISOString(),
-                    payload: {
-                        ecritureId: originalEcritureId,
-                        dateDebut: ecritureToUpdate.dateDebut, // Keep original start
-                        dateFin: format(newEndDateForOriginal, 'MM-yyyy')
-                    }
-                };
-                events.push(correctionEvent);
-            } else {
-                 // The new period completely covers the old one, so we effectively delete the old one by setting its period to zero length.
-                 // This is a conceptual delete for the projection.
-                 const correctionEvent: EcriturePeriodeCorrigeeEvent = {
-                    id: crypto.randomUUID(),
-                    type: 'ECRITURE_PERIODE_CORRIGEE',
-                    mutationId,
-                    ressourceVersionId,
-                    timestamp: now.toISOString(),
-                    payload: {
-                        ecritureId: originalEcritureId,
-                        dateDebut: ecritureToUpdate.dateDebut,
-                        dateFin: format(subMonths(parse(ecritureToUpdate.dateDebut, 'MM-yyyy', new Date()), 1), 'MM-yyyy')
-                    }
-                };
-                 events.push(correctionEvent);
+        // Step 1: Effectively "delete" the old ecriture by setting its period to be invalid.
+        const originalStartDate = parse(ecritureToUpdate.dateDebut, 'MM-yyyy', new Date());
+        const invalidEndDate = format(new Date(originalStartDate.getFullYear(), originalStartDate.getMonth() -1, 1), 'MM-yyyy');
+        const deleteEvent: EcriturePeriodeCorrigeeEvent = {
+            id: crypto.randomUUID(),
+            type: 'ECRITURE_PERIODE_CORRIGEE',
+            mutationId,
+            ressourceVersionId,
+            timestamp: now.toISOString(),
+            payload: {
+                ecritureId: originalEcritureId,
+                dateDebut: ecritureToUpdate.dateDebut,
+                dateFin: invalidEndDate
             }
-        }
-        
-        // Event 2: Add the new entry for its full period
-        const ajoutEvent = createAjoutEvent(ecritureType, command.payload, dateDebut, dateFin, new Date(now.getTime() + 1).toISOString());
-        events.push(ajoutEvent);
+        };
+        events.push(deleteEvent);
+
+        // Step 2: Add the new ecriture
+        const addEvent = createAjoutEvent(ecritureType, command.payload, dateDebut, dateFin, new Date(now.getTime() + 1).toISOString());
+        events.push(addEvent);
 
     } else { // Case 2: Only the period changes. This is a true period correction.
         const correctionEvent: EcriturePeriodeCorrigeeEvent = {
