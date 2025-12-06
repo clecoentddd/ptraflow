@@ -1,9 +1,9 @@
 
 "use client";
 
-import type { AppState, AppEvent } from '../mutation-lifecycle/domain';
+import type { AppState } from '../mutation-lifecycle/domain';
 import type { ValiderPlanPaiementCommand } from './command';
-import type { PlanPaiementRemplaceEvent, PlanPaiementPatchedEvent } from './event';
+import type { PlanDeCalculValideEvent } from './event';
 import type { DecisionValideeEvent } from '../valider-decision/event';
 import { toast } from 'react-hot-toast';
 import { eachMonthOfInterval, parse, format } from 'date-fns';
@@ -20,15 +20,16 @@ export function validerPlanPaiementCommandHandler(state: AppState, command: Vali
     return state;
   }
   
-  const { planDePaiementId, mutationType, detailCalcul, periodeDroits, periodeModifications } = decisionEvent.payload;
+  const { planDePaiementId, payload } = decisionEvent;
+  const { mutationType, detailCalcul, periodeDroits, periodeModifications } = payload;
 
-  let finalEvent: PlanPaiementRemplaceEvent | PlanPaiementPatchedEvent;
+  let finalEvent: PlanDeCalculValideEvent;
 
   if (mutationType === 'DROITS') {
-    // --- DROITS: Replace the entire payment plan ---
+    // --- DROITS: The event contains the full payment plan to replace the old one ---
     finalEvent = {
         id: crypto.randomUUID(),
-        type: 'PLAN_PAIement_REMPLACE',
+        type: 'PLAN_DE_CALCUL_VALIDE',
         mutationId,
         timestamp: new Date().toISOString(),
         payload: {
@@ -37,10 +38,10 @@ export function validerPlanPaiementCommandHandler(state: AppState, command: Vali
             dateDebut: periodeDroits?.dateDebut,
             dateFin: periodeDroits?.dateFin,
         }
-    } satisfies PlanPaiementRemplaceEvent;
+    };
 
   } else { // RESSOURCES
-    // --- RESSOURCES: Patch only the modified months ---
+    // --- RESSOURCES: The event contains only payments for the modified months ---
     if (!periodeModifications) {
       toast.error("Période de modification non trouvée pour la mutation de ressources.");
       return state;
@@ -54,14 +55,14 @@ export function validerPlanPaiementCommandHandler(state: AppState, command: Vali
 
     finalEvent = {
       id: crypto.randomUUID(),
-      type: 'PLAN_PAIEMENT_PATCHE',
+      type: 'PLAN_DE_CALCUL_VALIDE',
       mutationId,
       timestamp: new Date().toISOString(),
       payload: {
           planDePaiementId,
           paiements: paiementsAPatcher
       }
-    } satisfies PlanPaiementPatchedEvent;
+    };
   }
 
   return { ...state, eventStream: [finalEvent, ...state.eventStream] };

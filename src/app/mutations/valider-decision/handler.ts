@@ -1,7 +1,7 @@
 
 "use client";
     
-import type { AppState, AppEvent } from '../mutation-lifecycle/domain';
+import type { AppState } from '../mutation-lifecycle/domain';
 import type { ValiderDecisionCommand } from './command';
 import type { DecisionValideeEvent, DecisionDetail } from './event';
 import { toast } from 'react-hot-toast';
@@ -45,12 +45,12 @@ export function validerDecisionCommandHandler(state: AppState, command: ValiderD
     id: crypto.randomUUID(),
     type: 'DECISION_VALIDEE',
     mutationId,
+    decisionId: crypto.randomUUID(),
+    ressourceVersionId: lastRessourceVersionIdEvent.ressourceVersionId,
+    planDePaiementId: crypto.randomUUID(),
     timestamp: new Date().toISOString(),
     payload: {
-        decisionId,
         mutationType: decision.mutationType,
-        ressourceVersionId: lastRessourceVersionIdEvent.ressourceVersionId,
-        planDePaiementId: `pp-${mutationId.substring(0, 8)}`, // Generate a stable ID
         periodeDroits: decision.periodeDroits,
         periodeModifications: decision.periodeModifications,
         detailCalcul: detailCalcul,

@@ -8,7 +8,7 @@ import type { RessourcesMutationCreatedEvent } from '../create-ressources-mutati
 import type { PaiementsSuspendusEvent } from '../suspend-paiements/event';
 import type { ModificationDroitsAutoriseeEvent } from '../autoriser-modification-des-droits/event';
 import type { DroitsAnalysesEvent } from '../analyze-droits/event';
-import type { PlanPaiementRemplaceEvent, PlanPaiementPatchedEvent } from '../valider-plan-paiement/event';
+import type { PlanDeCalculValideEvent } from '../valider-plan-paiement/event';
 import type { ModificationRessourcesAutoriseeEvent } from '../autoriser-modification-des-ressources/event';
 import type { ModificationRessourcesValideeEvent } from '../valider-modification-ressources/event';
 import type { PlanCalculeEvent } from '../calculer-plan/event';
@@ -154,7 +154,7 @@ function applyDecisionValidee(state: TodolistState, event: DecisionValideeEvent)
 }
 
 
-function applyPlanPaiementEvenement(state: TodolistState, event: PlanPaiementRemplaceEvent | PlanPaiementPatchedEvent): TodolistState {
+function applyPlanDeCalculValide(state: TodolistState, event: PlanDeCalculValideEvent): TodolistState {
     return {
         ...state,
         todos: state.todos.map(t => {
@@ -193,9 +193,8 @@ export function todolistProjectionReducer<T extends TodolistState & { mutations:
                 return applyPlanCalcule(state, event) as T;
             case 'DECISION_VALIDEE':
                 return applyDecisionValidee(state, event) as T;
-            case 'PLAN_PAIEMENT_REMPLACE':
-            case 'PLAN_PAIEMENT_PATCHE':
-                return applyPlanPaiementEvenement(state, event) as T;
+            case 'PLAN_DE_CALCUL_VALIDE':
+                return applyPlanDeCalculValide(state, event) as T;
         }
     }
     return state;

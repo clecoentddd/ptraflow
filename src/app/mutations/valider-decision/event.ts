@@ -14,11 +14,11 @@ export interface DecisionDetail {
 // Event
 export interface DecisionValideeEvent extends BaseEvent {
     type: 'DECISION_VALIDEE';
+    decisionId: string;
+    ressourceVersionId: string;
+    planDePaiementId: string;
     payload: {
-        decisionId: string;
         mutationType: MutationType;
-        ressourceVersionId: string;
-        planDePaiementId: string;
         periodeDroits?: { dateDebut: string; dateFin: string };
         periodeModifications?: { dateDebut: string; dateFin: string };
         detailCalcul: DecisionDetail[];
