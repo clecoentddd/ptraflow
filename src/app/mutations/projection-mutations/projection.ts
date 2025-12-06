@@ -5,7 +5,7 @@
 import type { AppEvent, AppCommand, AppState, Mutation } from '../mutation-lifecycle/domain';
 import type { DroitsMutationCreatedEvent } from '../create-mutation/event';
 import type { PaiementsSuspendusEvent } from '../suspend-paiements/event';
-import type { PlanPaiementValideEvent } from '../valider-plan-paiement/event';
+import type { PlanPaiementRemplaceEvent, PlanPaiementPatchedEvent } from '../valider-plan-paiement/event';
 import type { RessourcesMutationCreatedEvent } from '../create-ressources-mutation/event';
 
 // 1. State Slice and Initial State
@@ -49,7 +49,7 @@ function applyPaiementsSuspendus(state: MutationsState, event: PaiementsSuspendu
     };
 }
 
-function applyPlanPaiementValide(state: MutationsState, event: PlanPaiementValideEvent): MutationsState {
+function applyPlanPaiementEvenement(state: MutationsState, event: PlanPaiementRemplaceEvent | PlanPaiementPatchedEvent): MutationsState {
     return {
         ...state,
         mutations: state.mutations.map(m =>
@@ -85,8 +85,9 @@ export function mutationsProjectionReducer<T extends MutationsState>(
                     return applyRessourcesMutationCreated(nextState, event) as T;
                 case 'PAIEMENTS_SUSPENDUS':
                     return applyPaiementsSuspendus(nextState, event) as T;
-                case 'PLAN_PAIEMENT_VALIDE':
-                    return applyPlanPaiementValide(nextState, event) as T;
+                case 'PLAN_PAIEMENT_REMPLACE':
+                case 'PLAN_PAIEMENT_PATCHE':
+                    return applyPlanPaiementEvenement(nextState, event) as T;
                 default:
                     return nextState as T;
             }

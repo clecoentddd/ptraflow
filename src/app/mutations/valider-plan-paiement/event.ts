@@ -10,6 +10,8 @@ export interface PlanPaiementRemplaceEvent extends BaseEvent {
     payload: {
         planDePaiementId: string;
         paiements: DecisionDetail[];
+        dateDebut?: string;
+        dateFin?: string;
     }
 }
 
@@ -19,15 +21,5 @@ export interface PlanPaiementPatchedEvent extends BaseEvent {
     payload: {
         planDePaiementId: string;
         paiements: DecisionDetail[];
-    }
-}
-
-// Legacy event - can be removed later
-export interface PlanPaiementValideEvent extends BaseEvent {
-    type: 'PLAN_PAIEMENT_VALIDEE';
-    payload: {
-        userEmail: string;
-        dateDebut?: string;
-        dateFin?: string;
     }
 }

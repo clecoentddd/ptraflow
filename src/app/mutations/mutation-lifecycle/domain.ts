@@ -3,7 +3,7 @@
 import type { DroitsMutationCreatedEvent } from '../create-mutation/event';
 import type { PaiementsSuspendusEvent } from '../suspend-paiements/event';
 import type { DroitsAnalysesEvent } from '../analyze-droits/event';
-import type { PlanPaiementValideEvent, PlanPaiementRemplaceEvent, PlanPaiementPatchedEvent } from '../valider-plan-paiement/event';
+import type { PlanPaiementRemplaceEvent, PlanPaiementPatchedEvent } from '../valider-plan-paiement/event';
 import type { RessourcesMutationCreatedEvent } from '../create-ressources-mutation/event';
 import type { ModificationDroitsAutoriseeEvent } from '../autoriser-modification-des-droits/event';
 import type { ModificationRessourcesAutoriseeEvent } from '../autoriser-modification-des-ressources/event';
@@ -57,7 +57,6 @@ export type AppEvent =
     | DroitsMutationCreatedEvent 
     | PaiementsSuspendusEvent 
     | DroitsAnalysesEvent 
-    | PlanPaiementValideEvent
     | PlanPaiementRemplaceEvent
     | PlanPaiementPatchedEvent
     | RessourcesMutationCreatedEvent 

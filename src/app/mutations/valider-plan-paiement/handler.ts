@@ -3,11 +3,10 @@
 
 import type { AppState, AppEvent } from '../mutation-lifecycle/domain';
 import type { ValiderPlanPaiementCommand } from './command';
-import type { PlanPaiementRemplaceEvent, PlanPaiementPatchedEvent, PlanPaiementValideEvent } from './event';
+import type { PlanPaiementRemplaceEvent, PlanPaiementPatchedEvent } from './event';
 import type { DecisionValideeEvent } from '../valider-decision/event';
 import { toast } from 'react-hot-toast';
-import { eachMonthOfInterval, parse } from 'date-fns';
-import { format } from 'date-fns';
+import { eachMonthOfInterval, parse, format } from 'date-fns';
 
 // Command Handler
 export function validerPlanPaiementCommandHandler(state: AppState, command: ValiderPlanPaiementCommand): AppState {
@@ -23,18 +22,20 @@ export function validerPlanPaiementCommandHandler(state: AppState, command: Vali
   
   const { planDePaiementId, mutationType, detailCalcul, periodeDroits, periodeModifications } = decisionEvent.payload;
 
-  let finalEvent: PlanPaiementRemplaceEvent | PlanPaiementPatchedEvent | PlanPaiementValideEvent;
+  let finalEvent: PlanPaiementRemplaceEvent | PlanPaiementPatchedEvent;
 
   if (mutationType === 'DROITS') {
     // --- DROITS: Replace the entire payment plan ---
     finalEvent = {
         id: crypto.randomUUID(),
-        type: 'PLAN_PAIEMENT_REMPLACE',
+        type: 'PLAN_PAIement_REMPLACE',
         mutationId,
         timestamp: new Date().toISOString(),
         payload: {
             planDePaiementId,
             paiements: detailCalcul, // The full list of payments
+            dateDebut: periodeDroits?.dateDebut,
+            dateFin: periodeDroits?.dateFin,
         }
     } satisfies PlanPaiementRemplaceEvent;
 
@@ -63,18 +64,5 @@ export function validerPlanPaiementCommandHandler(state: AppState, command: Vali
     } satisfies PlanPaiementPatchedEvent;
   }
 
-  // Also dispatch the legacy event to mark the mutation as COMPLETEE
-  const legacyEvent: PlanPaiementValideEvent = {
-    id: crypto.randomUUID(),
-    type: 'PLAN_PAIEMENT_VALIDEE',
-    mutationId,
-    timestamp: new Date(new Date(finalEvent.timestamp).getTime() + 1).toISOString(), // ensure it's after
-    payload: {
-        userEmail: 'anonymous',
-        dateDebut: periodeDroits?.dateDebut,
-        dateFin: periodeDroits?.dateFin
-    }
-  }
-
-  return { ...state, eventStream: [legacyEvent, finalEvent, ...state.eventStream] };
+  return { ...state, eventStream: [finalEvent, ...state.eventStream] };
 }
