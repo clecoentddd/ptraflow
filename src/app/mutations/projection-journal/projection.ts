@@ -2,7 +2,7 @@
 "use client";
 
 import type { AppEvent, AppCommand, AppState, MutationType } from '../mutation-lifecycle/domain';
-import { parse, format, min, max } from 'date-fns';
+import { parse, format, min, max, isSameMonth, isBefore, isAfter } from 'date-fns';
 import type { EcriturePeriodeCorrigeeEvent } from '../ecritures/corriger-periode-ecriture/event';
 
 // 1. State Slice and Initial State
@@ -16,6 +16,7 @@ export interface JournalEntry {
     // For RESSOURCES mutations
     addedRevenus: number;
     addedDepenses: number;
+
     deletedEcritures: number;
     correctedEcritures: number;
     ressourcesDateDebut?: string; // min date
@@ -153,8 +154,26 @@ function applyEcriturePeriodeCorrigee(state: JournalState, event: EcriturePeriod
                 const newStart = parse(event.payload.dateDebut, 'MM-yyyy', new Date());
                 const newEnd = parse(event.payload.dateFin, 'MM-yyyy', new Date());
                 
-                // We find the dates that were in the original but not in the new period, and vice-versa
-                const affectedDates = [originalStart, originalEnd, newStart, newEnd];
+                const affectedDates: Date[] = [];
+                // Raccourcissement de la fin
+                if (isBefore(newEnd, originalEnd)) affectedDates.push(originalEnd);
+                // Raccourcissement du début
+                if (isAfter(newStart, originalStart)) affectedDates.push(originalStart);
+                // Extension de la fin
+                if (isAfter(newEnd, originalEnd)) affectedDates.push(newEnd);
+                // Extension du début
+                if (isBefore(newStart, originalStart)) affectedDates.push(newStart);
+
+                // Si complètement différent (pas de chevauchement)
+                if (isAfter(newStart, originalEnd) || isBefore(newEnd, originalStart)) {
+                    affectedDates.push(originalStart, originalEnd, newStart, newEnd);
+                }
+
+                if (affectedDates.length === 0 && !isSameMonth(originalStart, newStart) && !isSameMonth(originalEnd, newEnd)) {
+                    // Fallback pour les cas complexes non couverts, comme un décalage simple
+                     affectedDates.push(originalStart, originalEnd, newStart, newEnd);
+                }
+                
                 const dateUpdates = updateRessourcesDateRange(entry, affectedDates);
 
                 return { ...entry, correctedEcritures: entry.correctedEcritures + 1, ...dateUpdates };
