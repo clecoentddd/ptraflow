@@ -29,30 +29,42 @@ const baseEvents: AppEvent[] = [
 
 const runTestScenario = (
     when: (state: AppState) => AppState,
-    expectedRessourcesDateDebut: string | undefined,
-    expectedRessourcesDateFin: string | undefined,
-    mutationId: string = 'mut-2'
-) => {
+    then: (state: AppState) => { pass: boolean, message: string }
+): { pass: boolean, message: string, finalState: AppState } => {
     // GIVEN: A state built from the base events
     let givenState = { ...initialState, eventStream: baseEvents };
+    let projectedState = givenState;
     for (const event of [...baseEvents].reverse()) {
-        givenState = cqrsReducer(givenState, { type: 'REPLAY', event });
+        projectedState = cqrsReducer(projectedState, { type: 'REPLAY', event });
     }
+    projectedState = cqrsReducer(projectedState, { type: 'REPLAY_COMPLETE' });
+
 
     // WHEN: An update command is processed
-    const finalState = when(givenState);
+    const finalState = when(projectedState);
 
-    // THEN: The journal projection for the mutation is checked
-    const journal = queryJournal(finalState);
+    // THEN: The check is performed
+    const result = then(finalState);
+
+    return { ...result, finalState };
+};
+
+const createCheck = (
+    mutationId: string,
+    expectedRessourcesDateDebut: string | undefined,
+    expectedRessourcesDateFin: string | undefined
+) => (state: AppState) => {
+    const journal = queryJournal(state);
     const journalEntry = journal.find(j => j.mutationId === mutationId);
 
     const pass = journalEntry?.ressourcesDateDebut === expectedRessourcesDateDebut && journalEntry?.ressourcesDateFin === expectedRessourcesDateFin;
     const message = pass
-        ? `Succès: La période de modification est bien [${expectedRessourcesDateDebut} - ${expectedRessourcesDateFin}].`
-        : `Échec: Période attendue [${expectedRessourcesDateDebut} - ${expectedRessourcesDateFin}], mais reçu [${journalEntry?.ressourcesDateDebut} - ${journalEntry?.ressourcesDateFin}].`;
+        ? `Succès: La période de modification est bien [${expectedRessourcesDateDebut || 'N/A'} - ${expectedRessourcesDateFin || 'N/A'}].`
+        : `Échec: Période attendue [${expectedRessourcesDateDebut || 'N/A'} - ${expectedRessourcesDateFin || 'N/A'}], mais reçu [${journalEntry?.ressourcesDateDebut || 'N/A'} - ${journalEntry?.ressourcesDateFin || 'N/A'}].`;
+    
+    return { pass, message };
+}
 
-    return { pass, message, finalState };
-};
 
 // --- TEST SCENARIOS ---
 
@@ -61,7 +73,7 @@ const TestRaccourcirFin: React.FC = () => (
         title="Test 1: Raccourcir la fin d'une période"
         description="Quand on modifie une écriture pour raccourcir sa date de fin, la période de modification du journal doit refléter uniquement le mois qui a changé (l'ancien mois de fin)."
         given={() => ({ eventStream: baseEvents })}
-        when={(initialState) => mettreAJourEcritureCommandHandler(initialState, {
+        when={(initialState) => cqrsReducer(initialState, {
             type: 'METTRE_A_JOUR_ECRITURE',
             payload: {
                 mutationId: 'mut-2',
@@ -71,16 +83,12 @@ const TestRaccourcirFin: React.FC = () => (
                 ecritureType: 'revenu',
                 code: '102',
                 libelle: 'Loyers reçus',
-                montant: 200,
+                montant: 200, // Montant inchangé
                 dateDebut: '2025-06-01T00:00:00.000Z', // Inchangé
                 dateFin: '2025-07-01T00:00:00.000Z',   // Raccourci de 08 à 07
             }
         })}
-        then={(state) => runTestScenario(
-            (s) => state,
-            "08-2025", // La période de modif est seulement le mois supprimé
-            "08-2025"
-        )}
+        then={(state) => createCheck('mut-2', "08-2025", "08-2025")(state)}
     />
 );
 
@@ -89,7 +97,7 @@ const TestRaccourcirDebut: React.FC = () => (
         title="Test 2: Raccourcir le début d'une période"
         description="Quand on modifie une écriture pour avancer sa date de début, la période de modification du journal doit refléter le mois qui a changé (l'ancien mois de début)."
         given={() => ({ eventStream: baseEvents })}
-        when={(initialState) => mettreAJourEcritureCommandHandler(initialState, {
+        when={(initialState) => cqrsReducer(initialState, {
             type: 'METTRE_A_JOUR_ECRITURE',
             payload: {
                 mutationId: 'mut-2',
@@ -104,11 +112,7 @@ const TestRaccourcirDebut: React.FC = () => (
                 dateFin: '2025-08-01T00:00:00.000Z',   // Inchangé
             }
         })}
-        then={(state) => runTestScenario(
-            (s) => state,
-            "06-2025", // La période de modif est seulement le mois supprimé
-            "06-2025"
-        )}
+        then={(state) => createCheck('mut-2', "06-2025", "06-2025")(state)}
     />
 );
 
@@ -117,7 +121,7 @@ const TestEtendreFin: React.FC = () => (
         title="Test 3: Étendre la fin d'une période"
         description="Quand on étend la date de fin, la période de modification du journal doit s'étendre pour inclure le nouveau mois."
         given={() => ({ eventStream: baseEvents })}
-        when={(initialState) => mettreAJourEcritureCommandHandler(initialState, {
+        when={(initialState) => cqrsReducer(initialState, {
             type: 'METTRE_A_JOUR_ECRITURE',
             payload: {
                 mutationId: 'mut-2',
@@ -132,11 +136,7 @@ const TestEtendreFin: React.FC = () => (
                 dateFin: '2025-09-01T00:00:00.000Z',   // Étendu à 09
             }
         })}
-        then={(state) => runTestScenario(
-            (s) => state,
-            "09-2025",
-            "09-2025" // La période doit seulement refléter le nouveau mois
-        )}
+        then={(state) => createCheck('mut-2', "09-2025", "09-2025")(state)}
     />
 );
 
@@ -145,7 +145,7 @@ const TestEtendreDebut: React.FC = () => (
         title="Test 4: Étendre le début d'une période"
         description="Quand on étend la date de début, la période de modification du journal doit s'étendre pour inclure le nouveau mois."
         given={() => ({ eventStream: baseEvents })}
-        when={(initialState) => mettreAJourEcritureCommandHandler(initialState, {
+        when={(initialState) => cqrsReducer(initialState, {
             type: 'METTRE_A_JOUR_ECRITURE',
             payload: {
                 mutationId: 'mut-2',
@@ -160,11 +160,7 @@ const TestEtendreDebut: React.FC = () => (
                 dateFin: '2025-08-01T00:00:00.000Z',   // Inchangé
             }
         })}
-        then={(state) => runTestScenario(
-            (s) => state,
-            "05-2025", // La période doit seulement refléter le nouveau mois
-            "05-2025"
-        )}
+        then={(state) => createCheck('mut-2', "05-2025", "05-2025")(state)}
     />
 );
 
@@ -173,7 +169,7 @@ const TestDeplacerPeriode: React.FC = () => (
         title="Test 5: Déplacer complètement la période"
         description="Quand on déplace la période, le journal doit refléter la nouvelle période ET l'ancienne période comme zone de modification."
         given={() => ({ eventStream: baseEvents })}
-        when={(initialState) => mettreAJourEcritureCommandHandler(initialState, {
+        when={(initialState) => cqrsReducer(initialState, {
             type: 'METTRE_A_JOUR_ECRITURE',
             payload: {
                 mutationId: 'mut-2',
@@ -188,11 +184,7 @@ const TestDeplacerPeriode: React.FC = () => (
                 dateFin: '2025-11-01T00:00:00.000Z',   // Nouvelle période
             }
         })}
-        then={(state) => runTestScenario(
-            (s) => state,
-            "06-2025", // La période modifiée devrait être l'union de l'ancienne et la nouvelle
-            "11-2025"
-        )}
+        then={(state) => createCheck('mut-2', "06-2025", "11-2025")(state)}
     />
 );
 

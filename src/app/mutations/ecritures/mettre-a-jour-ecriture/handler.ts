@@ -83,8 +83,8 @@ export function mettreAJourEcritureCommandHandler(
     if (ecritureToUpdate.montant !== montant || ecritureToUpdate.code !== code) {
         
         // Step 1: Effectively "delete" the old ecriture by setting its period to be invalid.
-        const originalDateDebut = parse(ecritureToUpdate.dateDebut, 'MM-yyyy', new Date());
-        const invalidEndDate = new Date(originalDateDebut.getFullYear(), originalDateDebut.getMonth() -1, 1);
+        const originalDateDebutDt = parse(ecritureToUpdate.dateDebut, 'MM-yyyy', new Date());
+        const invalidEndDate = new Date(originalDateDebutDt.getFullYear(), originalDateDebutDt.getMonth() -1, 1);
         
         const deleteEvent: EcriturePeriodeCorrigeeEvent = {
             id: crypto.randomUUID(),

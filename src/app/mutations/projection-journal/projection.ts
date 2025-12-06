@@ -66,11 +66,9 @@ function applyDroitsAnalyses(state: JournalState, event: AppEvent): JournalState
 }
 
 function updateRessourcesDateRange(entry: JournalEntry, newDates: Date[]): Partial<JournalEntry> {
-    if (newDates.length === 0) return {};
-    
-    const validDates = newDates.filter(d => !isNaN(d.getTime()));
+    const validDates = newDates.filter(d => d && !isNaN(d.getTime()));
     if (validDates.length === 0) return {};
-
+    
     const allDates: Date[] = [...validDates];
     if (entry.ressourcesDateDebut) {
         const d = parse(entry.ressourcesDateDebut, 'MM-yyyy', new Date());
@@ -83,7 +81,6 @@ function updateRessourcesDateRange(entry: JournalEntry, newDates: Date[]): Parti
     
     const filteredDates = allDates.filter(d => !isNaN(d.getTime()));
     if(filteredDates.length === 0) return {};
-
 
     const newMinDate = min(filteredDates);
     const newMaxDate = max(filteredDates);
@@ -154,7 +151,6 @@ function applyEcriturePeriodeCorrigee(state: JournalState, event: EcriturePeriod
         ...state,
         journal: state.journal.map(entry => {
             if (entry.mutationId === event.mutationId) {
-                
                 const originalStart = parse(event.payload.originalDateDebut, 'MM-yyyy', new Date());
                 const originalEnd = parse(event.payload.originalDateFin, 'MM-yyyy', new Date());
                 const newStart = parse(event.payload.newDateDebut, 'MM-yyyy', new Date());

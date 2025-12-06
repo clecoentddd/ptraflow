@@ -37,6 +37,8 @@ const projectEvents = (eventStream: AppEvent[]): FullProjectionState => {
     for (const event of sortedEvents) {
         projectedState = cqrsReducer(projectedState, { type: 'REPLAY', event } as any);
     }
+    // After all individual events are projected, we run a final projection step
+    // for projections that depend on the final state of other projections (like the journal).
     const finalProjection = cqrsReducer(projectedState, { type: 'REPLAY_COMPLETE' } as any);
     return { ...finalProjection, eventStream }; // Ensure eventStream is the original one
 }

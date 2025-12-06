@@ -128,8 +128,8 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
         case 'REPLAY': // Uniquement pour les tests BDD
              return applyEventToProjections(state, action.event);
         case 'REPLAY_COMPLETE': // Uniquement pour les tests BDD
-            // Cette partie peut nécessiter une révision après le refactoring complet
-            return state;
+            // This rebuilds the state for journal projection which depends on the final ecritures state
+            return rebuildStateFromEvents(state.eventStream);
         default:
             return state;
     }
