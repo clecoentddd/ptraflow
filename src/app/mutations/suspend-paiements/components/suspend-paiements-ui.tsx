@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ArrowRight, ArrowRightCircle, Check, CheckCircle2, Circle } from "lucide-react";
 import { queryTodos } from "../../projection-todolist/projection";
+import { suspendPaiementsCommandHandler } from "../handler";
 
 export function SuspendPaiementsTodoItem({ mutationId }: { mutationId: string }) {
     const { state } = useCqrs();
@@ -39,7 +40,8 @@ export function SuspendPaiementsButton({ mutationId }: { mutationId: string }) {
     const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Suspendre les paiements');
     
     const handleClick = () => {
-        dispatchEvent({ type: 'SUSPEND_PAIEMENTS', payload: { mutationId } });
+        const command = { type: 'SUSPEND_PAIEMENTS' as const, payload: { mutationId } };
+        suspendPaiementsCommandHandler(state, command, dispatchEvent);
     };
 
     const isTodo = todo?.status === 'à faire';

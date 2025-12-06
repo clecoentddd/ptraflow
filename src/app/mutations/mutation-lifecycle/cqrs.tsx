@@ -7,7 +7,6 @@ import React, { createContext, useContext, useReducer, type Dispatch } from 'rea
 import type { AppCommand, AppEvent, AppState } from './domain';
 
 // Importation des command handlers (seront appelés différemment maintenant)
-import { suspendPaiementsCommandHandler } from '../suspend-paiements/handler';
 import { analyzeDroitsCommandHandler } from '../analyze-droits/handler';
 import { validateMutationCommandHandler } from '../validate-mutation/handler';
 import { autoriserModificationDroitsCommandHandler } from '../autoriser-modification-des-droits/handler';
@@ -92,12 +91,10 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
     switch (action.type) {
         case 'CREATE_DROITS_MUTATION':
         case 'CREATE_RESSOURCES_MUTATION':
+        case 'SUSPEND_PAIEMENTS':
             // Ces cas sont maintenant gérés par le nouveau flux, mais on les laisse pour l'exemple
             // Dans le futur, ils seront supprimés.
             return state; 
-        case 'SUSPEND_PAIEMENTS':
-            newStateWithEvent = suspendPaiementsCommandHandler(state, action);
-            break;
         case 'AUTORISER_MODIFICATION_DROITS':
             newStateWithEvent = autoriserModificationDroitsCommandHandler(state, action);
             break;
