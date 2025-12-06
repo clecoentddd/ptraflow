@@ -2,7 +2,7 @@
 "use client";
 
 import React, { useState } from 'react';
-import type { AppState, AppEvent, AppCommand } from '../mutations/mutation-lifecycle/domain';
+import type { AppState, AppEvent, Ecriture } from '../mutations/mutation-lifecycle/domain';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, XCircle } from 'lucide-react';
@@ -10,8 +10,8 @@ import { initialState, cqrsReducer } from '../mutations/mutation-lifecycle/cqrs'
 import type { ValidatedPeriodsState } from '../mutations/projection-periodes-de-droits/projection';
 import type { MutationsState } from '../mutations/projection-mutations/projection';
 import type { TodolistState } from '../mutations/projection-todolist/projection';
-import { queryEcrituresByMonth } from '../mutations/projection-ecritures/projection';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { eachMonthOfInterval, format, parse } from 'date-fns';
 
 
 // Mocked toast for testing purposes
@@ -57,39 +57,124 @@ interface TestComponentProps {
     then: (finalState: FullProjectionState, toasts: typeof mockToasts) => TestResult;
 }
 
-const EcrituresVisualizer: React.FC<{state: AppState, title: string}> = ({ state, title }) => {
-    const { months, rows } = queryEcrituresByMonth(state);
-    if (rows.length === 0) return null;
+
+const EventsVisualizer: React.FC<{events: AppEvent[], title: string}> = ({ events, title }) => {
+    // 1. Find all unique ecriture IDs from the events
+    const ecritureIds = Array.from(new Set(events.map(e => {
+        if ('payload' in e && e.payload && typeof e.payload === 'object' && 'ecritureId' in e.payload) {
+            return (e.payload as { ecritureId: string }).ecritureId;
+        }
+        return null;
+    }).filter(id => id !== null) as string[]));
+
+    if (ecritureIds.length === 0) return null;
+
+    // 2. Determine the full date range to display
+    const allDates: Date[] = [];
+    events.forEach(e => {
+        if ('payload' in e && e.payload && typeof e.payload === 'object') {
+            const payload = e.payload as any;
+            if (payload.dateDebut) allDates.push(parse(payload.dateDebut, 'MM-yyyy', new Date()));
+            if (payload.dateFin) allDates.push(parse(payload.dateFin, 'MM-yyyy', new Date()));
+            if (payload.originalDateDebut) allDates.push(parse(payload.originalDateDebut, 'MM-yyyy', new Date()));
+            if (payload.originalDateFin) allDates.push(parse(payload.originalDateFin, 'MM-yyyy', new Date()));
+            if (payload.newDateDebut) allDates.push(parse(payload.newDateDebut, 'MM-yyyy', new Date()));
+            if (payload.newDateFin) allDates.push(parse(payload.newDateFin, 'MM-yyyy', new Date()));
+        }
+    });
+
+    if (allDates.length < 2) return null; // Not enough data for a range
+
+    const minDate = new Date(Math.min(...allDates.map(d => d.getTime())));
+    const maxDate = new Date(Math.max(...allDates.map(d => d.getTime())));
+
+    if (isNaN(minDate.getTime()) || isNaN(maxDate.getTime()) || minDate > maxDate) return null;
+
+    const months = eachMonthOfInterval({ start: minDate, end: maxDate }).map(d => format(d, 'MM-yyyy'));
+
+    // 3. Create a map of events by ecritureId and month
+    const eventMap: Record<string, Record<string, AppEvent[]>> = {};
+
+    for (const ecritureId of ecritureIds) {
+        eventMap[ecritureId] = {};
+        for (const month of months) {
+            eventMap[ecritureId][month] = [];
+        }
+    }
+
+    events.forEach(event => {
+        if (!('payload' in event) || !event.payload || typeof event.payload !== 'object' || !('ecritureId' in event.payload)) return;
+        
+        const payload = event.payload as any;
+        const ecritureId = payload.ecritureId;
+
+        // Define which dates to use for period calculation for each event type
+        let startDateStr, endDateStr;
+        if (event.type === 'ECRITURE_PERIODE_CORRIGEE') {
+            // For correction, we want to see the effect on both old and new periods
+            const oldStart = parse(payload.originalDateDebut, 'MM-yyyy', new Date());
+            const oldEnd = parse(payload.originalDateFin, 'MM-yyyy', new Date());
+            const newStart = parse(payload.newDateDebut, 'MM-yyyy', new Date());
+            const newEnd = parse(payload.newDateFin, 'MM-yyyy', new Date());
+            const start = new Date(Math.min(oldStart.getTime(), newStart.getTime()));
+            const end = new Date(Math.max(oldEnd.getTime(), newEnd.getTime()));
+            startDateStr = format(start, 'MM-yyyy');
+            endDateStr = format(end, 'MM-yyyy');
+
+        } else if (payload.dateDebut && payload.dateFin) {
+            startDateStr = payload.dateDebut;
+            endDateStr = payload.dateFin;
+        }
+
+        if (startDateStr && endDateStr) {
+            const start = parse(startDateStr, 'MM-yyyy', new Date());
+            const end = parse(endDateStr, 'MM-yyyy', new Date());
+            if (start <= end) {
+                const interval = eachMonthOfInterval({ start, end });
+                interval.forEach(monthDate => {
+                    const monthKey = format(monthDate, 'MM-yyyy');
+                    if (eventMap[ecritureId] && eventMap[ecritureId][monthKey]) {
+                        eventMap[ecritureId][monthKey].push(event);
+                    }
+                });
+            }
+        }
+    });
 
     return (
-        <details className="mt-4 text-xs">
+         <details className="mt-4 text-xs">
             <summary className="cursor-pointer font-medium">{title}</summary>
              <div className="overflow-x-auto mt-2">
                 <Table>
                     <TableHeader>
                         <TableRow>
-                            <TableHead className="min-w-[150px]">Écriture</TableHead>
+                            <TableHead className="min-w-[150px]">Écriture ID</TableHead>
                             {months.map(month => (
-                                <TableHead key={month} className="text-right font-mono min-w-[80px]">
+                                <TableHead key={month} className="text-center font-mono min-w-[120px]">
                                     {month}
                                 </TableHead>
                             ))}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {rows.map(row => (
-                             <TableRow key={row.ecriture.id}>
+                        {ecritureIds.map(ecritureId => (
+                             <TableRow key={ecritureId}>
                                 <TableCell>
                                     <div className="flex flex-col">
-                                        <span className="font-medium">{row.ecriture.libelle}</span>
-                                        <span className="text-muted-foreground">{row.ecriture.id.substring(0, 8)}...</span>
+                                        <span className="font-mono text-xs">{ecritureId.substring(0,8)}...</span>
                                     </div>
                                 </TableCell>
                                 {months.map(month => (
-                                    <TableCell key={`${row.ecriture.id}-${month}`} className="text-right font-mono">
-                                        {row.monthlyAmounts[month] 
-                                            ? <span className={row.ecriture.type === 'dépense' ? 'text-blue-600' : 'text-green-600'}>{row.monthlyAmounts[month]?.toFixed(0)}</span>
-                                            : <span className="text-muted-foreground">-</span>}
+                                    <TableCell key={`${ecritureId}-${month}`} className="text-center font-mono align-top">
+                                        {eventMap[ecritureId][month].length > 0 ? (
+                                            <div className="flex flex-col gap-1 items-center">
+                                                {eventMap[ecritureId][month].map(e => (
+                                                    <div key={e.id} className={`text-white text-[10px] rounded-full px-2 py-0.5 ${e.type === 'ECRITURE_PERIODE_CORRIGEE' ? 'bg-orange-500' : 'bg-purple-500'}`}>
+                                                        {e.type.split('_').pop()?.substring(0,3)}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        ) : <span className="text-muted-foreground">-</span>}
                                     </TableCell>
                                 ))}
                             </TableRow>
@@ -101,19 +186,20 @@ const EcrituresVisualizer: React.FC<{state: AppState, title: string}> = ({ state
     )
 }
 
+
 export const TestComponent: React.FC<TestComponentProps> = ({ title, description, given, when, then }) => {
     const [result, setResult] = useState<TestResult | null>(null);
-    const [givenState, setGivenState] = useState<FullProjectionState | null>(null);
+    const [givenEvents, setGivenEvents] = useState<AppEvent[] | null>(null);
 
     const runTest = () => {
         mockToasts.length = 0; // Clear toasts for each run
 
         // GIVEN: Set up the initial state by projecting past events
         const initialSetup = given();
-        const sortedGivenEvents = [...initialSetup.eventStream].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+        const sortedGivenEvents = [...initialSetup.eventStream].sort((a, b) => new Date(a.timestamp).getTime() - new Date(a.timestamp).getTime());
+        setGivenEvents(sortedGivenEvents); // Store raw events for visualization
         const projectedGivenState = projectEvents(sortedGivenEvents);
-        setGivenState(projectedGivenState);
-
+        
         // WHEN: The command handler or projection logic is called
         const stateAfterWhen = when(projectedGivenState);
         
@@ -142,11 +228,11 @@ export const TestComponent: React.FC<TestComponentProps> = ({ title, description
                     <div>
                         <p className={result.pass ? 'text-green-700' : 'text-red-700'}>{result.message}</p>
                         <div className="space-y-4">
-                            {givenState && <EcrituresVisualizer state={givenState} title="Voir état initial des écritures" />}
-                            {result.finalState && <EcrituresVisualizer state={result.finalState} title="Voir état final des écritures" />}
+                           {givenEvents && <EventsVisualizer events={givenEvents} title="Voir événements initiaux" />}
+                           {result.finalState && <EventsVisualizer events={result.finalState.eventStream} title="Voir événements finaux" />}
                         </div>
                          <details className="mt-4 text-xs text-muted-foreground">
-                            <summary>Voir le flux d'événements final</summary>
+                            <summary>Voir le flux d'événements final (JSON)</summary>
                             <pre className="mt-2 p-2 bg-muted rounded-md overflow-x-auto">{JSON.stringify(result.finalState?.eventStream ?? [], null, 2)}</pre>
                         </details>
                     </div>
