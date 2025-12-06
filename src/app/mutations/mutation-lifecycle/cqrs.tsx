@@ -58,12 +58,14 @@ function applyEventToProjections(state: AppState, event: AppEvent): AppState {
 // This function rebuilds the complete state from the event stream.
 // It's the core of ensuring consistency.
 function rebuildStateFromEvents(events: AppState['eventStream']): AppState {
-    let state: AppState = { ...initialState, eventStream: events };
+    // The event stream should be stored most-recent-first.
+    const sortedStream = [...events].sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    let state: AppState = { ...initialState, eventStream: sortedStream };
     
-    // Events must be processed in chronological order (oldest to newest)
-    const sortedEvents = [...events].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    // For projections, events must be processed in chronological order (oldest to newest)
+    const sortedEventsForProjection = [...sortedStream].reverse();
 
-    for (const event of sortedEvents) {
+    for (const event of sortedEventsForProjection) {
         state = applyEventToProjections(state, event);
     }
     // After all individual events are projected, run a final projection step
