@@ -92,8 +92,7 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
         case 'CREATE_DROITS_MUTATION':
         case 'CREATE_RESSOURCES_MUTATION':
         case 'SUSPEND_PAIEMENTS':
-            // Ces cas sont maintenant gérés par le nouveau flux, mais on les laisse pour l'exemple
-            // Dans le futur, ils seront supprimés.
+            // Ces cas sont maintenant gérés par le nouveau flux, donc on ne fait plus rien ici.
             return state; 
         case 'AUTORISER_MODIFICATION_DROITS':
             newStateWithEvent = autoriserModificationDroitsCommandHandler(state, action);
