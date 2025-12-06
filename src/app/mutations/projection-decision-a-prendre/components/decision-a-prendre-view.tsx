@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
@@ -20,8 +19,6 @@ export function DecisionAPrendreView() {
     const decisions = queryDecisionsAPrendre(state);
     const mutations = queryMutations(state);
 
-    // Show decisions for any mutation that is currently "EN_COURS".
-    // The button to validate will be disabled if the task is already done.
     const activeDecisions = decisions.filter(d => 
         mutations.some(m => m.id === d.mutationId && m.status === 'EN_COURS')
     );
@@ -49,57 +46,38 @@ export function DecisionAPrendreView() {
                                     MutationId: {decision.mutationId}
                                 </CardDescription>
                             </div>
-                            <Badge variant={decision.mutationType === 'DROITS' ? 'default' : 'secondary'}>
+                             <Badge variant={decision.mutationType === 'DROITS' ? 'default' : 'secondary'}>
                                 {decision.mutationType}
                             </Badge>
                         </div>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <div>
-                            <h4 className="font-semibold mb-2">Périodes concernées</h4>
-                            {decision.periodeDroits && (
-                                <p className="text-sm">
-                                    Période de droits : <span className="font-medium">{decision.periodeDroits.dateDebut}</span> au <span className="font-medium">{decision.periodeDroits.dateFin}</span>
-                                </p>
-                            )}
-                            {decision.periodeModifications && (
-                                <p className="text-sm">
-                                    Période de modifications : <span className="font-medium">{decision.periodeModifications.dateDebut}</span> au <span className="font-medium">{decision.periodeModifications.dateFin}</span>
-                                </p>
-                            )}
-                        </div>
-
-                        <div>
-                             <h4 className="font-semibold mb-2">Plans</h4>
-                             <p className="text-sm">
-                                ID Plan de Calcul : <span className="font-mono text-xs">{decision.planDeCalcul?.calculId || 'N/A'}</span>
-                             </p>
-                             <p className="text-sm">
-                                ID Plan de Paiement : <span className="font-mono text-xs">{decision.planDePaiementId || 'N/A'}</span>
-                             </p>
-                        </div>
-
                         {decision.planDeCalcul ? (
                              <div>
-                                <h4 className="font-semibold mb-2">Détail du Plan de Calcul</h4>
                                 <Table>
                                     <TableHeader>
                                         <TableRow>
                                             <TableHead className="font-mono">Mois</TableHead>
-                                            <TableHead className="text-right">Revenus</TableHead>
-                                            <TableHead className="text-right">Dépenses</TableHead>
-                                            <TableHead className="text-right font-semibold">Résultat</TableHead>
+                                            <TableHead className="text-right">Montant du calcul</TableHead>
+                                            <TableHead className="text-right">Paiements effectués</TableHead>
+                                            <TableHead className="text-right font-semibold">A payer / A rembourser</TableHead>
                                         </TableRow>
                                     </TableHeader>
                                     <TableBody>
-                                        {decision.planDeCalcul.detail.map((monthlyResult) => (
-                                            <TableRow key={monthlyResult.month}>
-                                                <TableCell className="font-mono">{monthlyResult.month}</TableCell>
-                                                <TableCell className="text-right text-green-600">{monthlyResult.revenus.toFixed(2)}</TableCell>
-                                                <TableCell className="text-right text-blue-600">{monthlyResult.depenses.toFixed(2)}</TableCell>
-                                                <TableCell className="text-right font-semibold">{monthlyResult.resultat.toFixed(2)}</TableCell>
-                                            </TableRow>
-                                        ))}
+                                        {decision.planDeCalcul.detail.map((monthlyResult) => {
+                                            const paiementsEffectues = 0; // Placeholder
+                                            const aPayer = monthlyResult.calcul - paiementsEffectues;
+                                            return (
+                                                <TableRow key={monthlyResult.month}>
+                                                    <TableCell className="font-mono">{monthlyResult.month}</TableCell>
+                                                    <TableCell className="text-right">{monthlyResult.calcul.toFixed(2)}</TableCell>
+                                                    <TableCell className="text-right">{paiementsEffectues.toFixed(2)}</TableCell>
+                                                    <TableCell className={`text-right font-semibold ${aPayer >= 0 ? '' : 'text-destructive'}`}>
+                                                        {aPayer.toFixed(2)}
+                                                    </TableCell>
+                                                </TableRow>
+                                            );
+                                        })}
                                     </TableBody>
                                 </Table>
                             </div>

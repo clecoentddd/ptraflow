@@ -2,7 +2,7 @@
     
 import type { AppState, AppEvent } from '../mutation-lifecycle/domain';
 import type { ValiderDecisionCommand } from './command';
-import type { DecisionValideeEvent } from './event';
+import type { DecisionValideeEvent, DecisionDetail } from './event';
 import { toast } from 'react-hot-toast';
 import { queryDecisionsAPrendre } from '../projection-decision-a-prendre/projection';
 import { queryMutations } from '../projection-mutations/projection';
@@ -18,8 +18,8 @@ export function validerDecisionCommandHandler(state: AppState, command: ValiderD
   }
   
   const decision = queryDecisionsAPrendre(state).find(d => d.decisionId === decisionId);
-  if (!decision) {
-      toast.error("La décision à valider n'a pas été trouvée.");
+  if (!decision || !decision.planDeCalcul) {
+      toast.error("La décision à valider (avec un plan de calcul) n'a pas été trouvée.");
       return state;
   }
   
@@ -28,6 +28,17 @@ export function validerDecisionCommandHandler(state: AppState, command: ValiderD
       toast.error("Impossible de trouver la version de ressource (ressourceVersionId).");
       return state;
   }
+
+  // --- Transform MonthlyResult into DecisionDetail ---
+  const detailCalcul: DecisionDetail[] = decision.planDeCalcul.detail.map(monthlyResult => {
+      const paiementsEffectues = 0; // Will be implemented later
+      return {
+          month: monthlyResult.month,
+          calcul: monthlyResult.calcul,
+          paiementsEffectues: paiementsEffectues,
+          aPayer: monthlyResult.calcul - paiementsEffectues
+      };
+  });
 
   const event: DecisionValideeEvent = {
     id: crypto.randomUUID(),
@@ -39,7 +50,7 @@ export function validerDecisionCommandHandler(state: AppState, command: ValiderD
         mutationType: decision.mutationType,
         planDeCalculId: decision.planDeCalcul?.calculId,
         ressourceVersionId: lastRessourceVersionIdEvent.ressourceVersionId,
-        detailCalcul: decision.planDeCalcul?.detail ?? [],
+        detailCalcul: detailCalcul,
     }
   };
 
