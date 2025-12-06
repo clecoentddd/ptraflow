@@ -52,13 +52,13 @@ function DashboardContent() {
               <ValidatedPeriodsView />
           </div>
 
+           <div>
+              <AllEcrituresListView />
+          </div>
+
           <div>
             <h2 className="text-2xl font-bold mb-4 text-foreground">Plan de calcul</h2>
             <PlanCalculView />
-          </div>
-
-           <div>
-              <AllEcrituresListView />
           </div>
 
           <div>
