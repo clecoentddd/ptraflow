@@ -76,10 +76,6 @@ export function mettreAJourEcritureCommandHandler(
     
     const events: AppEvent[] = [];
     const now = new Date();
-    
-    const originalDateDebut = parse(ecritureToUpdate.dateDebut, 'MM-yyyy', new Date());
-    const originalDateFin = parse(ecritureToUpdate.dateFin, 'MM-yyyy', new Date());
-
 
     // Case 1: Montant or code changes. This is a "replace" operation.
     // We "delete" the old one by creating a correction event with an invalid period.
@@ -87,6 +83,7 @@ export function mettreAJourEcritureCommandHandler(
     if (ecritureToUpdate.montant !== montant || ecritureToUpdate.code !== code) {
         
         // Step 1: Effectively "delete" the old ecriture by setting its period to be invalid.
+        const originalDateDebut = parse(ecritureToUpdate.dateDebut, 'MM-yyyy', new Date());
         const invalidEndDate = new Date(originalDateDebut.getFullYear(), originalDateDebut.getMonth() -1, 1);
         
         const deleteEvent: EcriturePeriodeCorrigeeEvent = {

@@ -2,7 +2,7 @@
 "use client";
 
 import type { AppEvent, AppCommand, AppState, MutationType } from '../mutation-lifecycle/domain';
-import { parse, format, min, max, isSameMonth, isBefore, isAfter, eachMonthOfInterval } from 'date-fns';
+import { parse, format, min, max, eachMonthOfInterval } from 'date-fns';
 import type { EcriturePeriodeCorrigeeEvent } from '../ecritures/corriger-periode-ecriture/event';
 
 // 1. State Slice and Initial State
@@ -71,12 +71,22 @@ function updateRessourcesDateRange(entry: JournalEntry, newDates: Date[]): Parti
     const validDates = newDates.filter(d => !isNaN(d.getTime()));
     if (validDates.length === 0) return {};
 
-    const allDates = [...validDates];
-    if (entry.ressourcesDateDebut) allDates.push(parse(entry.ressourcesDateDebut, 'MM-yyyy', new Date()));
-    if (entry.ressourcesDateFin) allDates.push(parse(entry.ressourcesDateFin, 'MM-yyyy', new Date()));
+    const allDates: Date[] = [...validDates];
+    if (entry.ressourcesDateDebut) {
+        const d = parse(entry.ressourcesDateDebut, 'MM-yyyy', new Date());
+        if(!isNaN(d.getTime())) allDates.push(d);
+    }
+    if (entry.ressourcesDateFin) {
+        const d = parse(entry.ressourcesDateFin, 'MM-yyyy', new Date());
+        if(!isNaN(d.getTime())) allDates.push(d);
+    }
+    
+    const filteredDates = allDates.filter(d => !isNaN(d.getTime()));
+    if(filteredDates.length === 0) return {};
 
-    const newMinDate = min(allDates.filter(d => !isNaN(d.getTime())));
-    const newMaxDate = max(allDates.filter(d => !isNaN(d.getTime())));
+
+    const newMinDate = min(filteredDates);
+    const newMaxDate = max(filteredDates);
     
     return {
         ressourcesDateDebut: format(newMinDate, 'MM-yyyy'),
@@ -150,7 +160,7 @@ function applyEcriturePeriodeCorrigee(state: JournalState, event: EcriturePeriod
                 const newStart = parse(event.payload.newDateDebut, 'MM-yyyy', new Date());
                 const newEnd = parse(event.payload.newDateFin, 'MM-yyyy', new Date());
 
-                // If dates are invalid, the corrected period is the full original period.
+                // If dates are invalid (e.g. for a "delete" operation), the affected period is the full original period.
                 if (newStart > newEnd) {
                     const dateUpdates = updateRessourcesDateRange(entry, [originalStart, originalEnd]);
                     return { ...entry, correctedEcritures: entry.correctedEcritures + 1, ...dateUpdates };
@@ -211,7 +221,6 @@ export function journalProjectionReducer<T extends JournalState & { ecritures: A
                 nextState = applyEcritureSupprimee(state, event, state.ecritures);
                 break;
              case 'ECRITURE_PERIODE_CORRIGEE':
-                // We need the original period from the payload. No need for the ecritures state.
                 nextState = applyEcriturePeriodeCorrigee(state, event);
                 break;
         }
