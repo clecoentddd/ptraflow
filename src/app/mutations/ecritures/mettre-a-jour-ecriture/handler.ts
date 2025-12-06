@@ -78,15 +78,14 @@ export function mettreAJourEcritureCommandHandler(
     const now = new Date();
 
     // Case 1: Montant or code changes. This is not a "correction", it's a new fact.
-    // This case requires a more complex logic of splitting periods, which is not implemented.
-    // For now, we simplify: we just replace the old one with a simple correction.
+    // We replace the old one by correcting its period to be "invalid" (end before start) and then add a new one.
     if (ecritureToUpdate.montant !== montant || ecritureToUpdate.code !== code) {
-        // For simplicity of the demo, we are replacing the old entry by correcting its period to be "invalid" (end before start)
-        // and then adding a new one. This is a pragmatic choice for this system.
         
         // Step 1: Effectively "delete" the old ecriture by setting its period to be invalid.
+        // This is a business decision to simplify. A more complex model could be used.
         const originalStartDate = parse(ecritureToUpdate.dateDebut, 'MM-yyyy', new Date());
-        const invalidEndDate = format(new Date(originalStartDate.getFullYear(), originalStartDate.getMonth() -1, 1), 'MM-yyyy');
+        const invalidEndDate = new Date(originalStartDate.getFullYear(), originalStartDate.getMonth() -1, 1);
+        
         const deleteEvent: EcriturePeriodeCorrigeeEvent = {
             id: crypto.randomUUID(),
             type: 'ECRITURE_PERIODE_CORRIGEE',
@@ -95,8 +94,9 @@ export function mettreAJourEcritureCommandHandler(
             timestamp: now.toISOString(),
             payload: {
                 ecritureId: originalEcritureId,
+                // We pass the original period to the payload so the journal can calculate the full affected range
                 dateDebut: ecritureToUpdate.dateDebut,
-                dateFin: invalidEndDate
+                dateFin: format(invalidEndDate, 'MM-yyyy')
             }
         };
         events.push(deleteEvent);

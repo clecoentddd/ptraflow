@@ -68,12 +68,15 @@ function applyDroitsAnalyses(state: JournalState, event: AppEvent): JournalState
 function updateRessourcesDateRange(entry: JournalEntry, newDates: Date[]): Partial<JournalEntry> {
     if (newDates.length === 0) return {};
     
-    const allDates = [...newDates];
+    const validDates = newDates.filter(d => !isNaN(d.getTime()));
+    if (validDates.length === 0) return {};
+
+    const allDates = [...validDates];
     if (entry.ressourcesDateDebut) allDates.push(parse(entry.ressourcesDateDebut, 'MM-yyyy', new Date()));
     if (entry.ressourcesDateFin) allDates.push(parse(entry.ressourcesDateFin, 'MM-yyyy', new Date()));
 
-    const newMinDate = min(allDates);
-    const newMaxDate = max(allDates);
+    const newMinDate = min(allDates.filter(d => !isNaN(d.getTime())));
+    const newMaxDate = max(allDates.filter(d => !isNaN(d.getTime())));
     
     return {
         ressourcesDateDebut: format(newMinDate, 'MM-yyyy'),
@@ -144,16 +147,25 @@ function applyEcriturePeriodeCorrigee(state: JournalState, event: EcriturePeriod
         ...state,
         journal: state.journal.map(entry => {
             if (entry.mutationId === event.mutationId) {
+                
                 const originalStart = parse(originalEcriture.dateDebut, 'MM-yyyy', new Date());
                 const originalEnd = parse(originalEcriture.dateFin, 'MM-yyyy', new Date());
                 const newStart = parse(event.payload.dateDebut, 'MM-yyyy', new Date());
                 const newEnd = parse(event.payload.dateFin, 'MM-yyyy', new Date());
-                
+
+                // If dates are invalid, we might be doing a "delete" by invalidating the period.
+                // In that case, the affected period is the entire original period.
+                if (newStart > newEnd) {
+                    const dateUpdates = updateRessourcesDateRange(entry, [originalStart, originalEnd]);
+                    return { ...entry, correctedEcritures: entry.correctedEcritures + 1, ...dateUpdates };
+                }
+
                 const originalMonths = new Set(eachMonthOfInterval({ start: originalStart, end: originalEnd }).map(d => format(d, 'MM-yyyy')));
                 const newMonths = new Set(eachMonthOfInterval({ start: newStart, end: newEnd }).map(d => format(d, 'MM-yyyy')));
                 
                 const affectedMonths: Date[] = [];
                 
+                // Symmetric difference: months in one set but not the other.
                 originalMonths.forEach(m => {
                     if (!newMonths.has(m)) {
                         affectedMonths.push(parse(m, 'MM-yyyy', new Date()));
@@ -164,13 +176,6 @@ function applyEcriturePeriodeCorrigee(state: JournalState, event: EcriturePeriod
                          affectedMonths.push(parse(m, 'MM-yyyy', new Date()));
                     }
                 });
-
-                if (affectedMonths.length === 0) {
-                     // If periods are just shifted but cover the same number of months, take the union
-                    if (!isSameMonth(originalStart, newStart) || !isSameMonth(originalEnd, newEnd)) {
-                        affectedMonths.push(originalStart, originalEnd, newStart, newEnd);
-                    }
-                }
                 
                 const dateUpdates = updateRessourcesDateRange(entry, affectedMonths);
                 
