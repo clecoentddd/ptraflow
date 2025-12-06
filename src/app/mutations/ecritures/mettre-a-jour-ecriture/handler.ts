@@ -58,8 +58,8 @@ export function mettreAJourEcritureCommandHandler(
         ecritureType
     } = command.payload;
 
-    const dateDebut = new Date(command.payload.dateDebut);
-    const dateFin = new Date(command.payload.dateFin);
+    const newDateDebut = new Date(command.payload.dateDebut);
+    const newDateFin = new Date(command.payload.dateFin);
 
     // --- Validations ---
     const ecritureToUpdate = state.ecritures.find(e => e.id === originalEcritureId);
@@ -68,7 +68,7 @@ export function mettreAJourEcritureCommandHandler(
         return state;
     }
 
-    if (montant <= 0 || dateDebut > dateFin) {
+    if (montant <= 0 || newDateDebut > newDateFin) {
         toast.error("Données de mise à jour invalides.");
         return state;
     }
@@ -76,15 +76,18 @@ export function mettreAJourEcritureCommandHandler(
     
     const events: AppEvent[] = [];
     const now = new Date();
+    
+    const originalDateDebut = parse(ecritureToUpdate.dateDebut, 'MM-yyyy', new Date());
+    const originalDateFin = parse(ecritureToUpdate.dateFin, 'MM-yyyy', new Date());
 
-    // Case 1: Montant or code changes. This is not a "correction", it's a new fact.
-    // We replace the old one by correcting its period to be "invalid" (end before start) and then add a new one.
+
+    // Case 1: Montant or code changes. This is a "replace" operation.
+    // We "delete" the old one by creating a correction event with an invalid period.
+    // Then we add a brand new one.
     if (ecritureToUpdate.montant !== montant || ecritureToUpdate.code !== code) {
         
         // Step 1: Effectively "delete" the old ecriture by setting its period to be invalid.
-        // This is a business decision to simplify. A more complex model could be used.
-        const originalStartDate = parse(ecritureToUpdate.dateDebut, 'MM-yyyy', new Date());
-        const invalidEndDate = new Date(originalStartDate.getFullYear(), originalStartDate.getMonth() -1, 1);
+        const invalidEndDate = new Date(originalDateDebut.getFullYear(), originalDateDebut.getMonth() -1, 1);
         
         const deleteEvent: EcriturePeriodeCorrigeeEvent = {
             id: crypto.randomUUID(),
@@ -94,15 +97,16 @@ export function mettreAJourEcritureCommandHandler(
             timestamp: now.toISOString(),
             payload: {
                 ecritureId: originalEcritureId,
-                // We pass the original period to the payload so the journal can calculate the full affected range
-                dateDebut: ecritureToUpdate.dateDebut,
-                dateFin: format(invalidEndDate, 'MM-yyyy')
+                originalDateDebut: ecritureToUpdate.dateDebut,
+                originalDateFin: ecritureToUpdate.dateFin,
+                newDateDebut: ecritureToUpdate.dateDebut,
+                newDateFin: format(invalidEndDate, 'MM-yyyy')
             }
         };
         events.push(deleteEvent);
 
         // Step 2: Add the new ecriture
-        const addEvent = createAjoutEvent(ecritureType, command.payload, dateDebut, dateFin, new Date(now.getTime() + 1).toISOString());
+        const addEvent = createAjoutEvent(ecritureType, command.payload, newDateDebut, newDateFin, new Date(now.getTime() + 1).toISOString());
         events.push(addEvent);
 
     } else { // Case 2: Only the period changes. This is a true period correction.
@@ -114,8 +118,10 @@ export function mettreAJourEcritureCommandHandler(
             timestamp: now.toISOString(),
             payload: {
                 ecritureId: originalEcritureId,
-                dateDebut: format(dateDebut, 'MM-yyyy'),
-                dateFin: format(dateFin, 'MM-yyyy'),
+                originalDateDebut: ecritureToUpdate.dateDebut,
+                originalDateFin: ecritureToUpdate.dateFin,
+                newDateDebut: format(newDateDebut, 'MM-yyyy'),
+                newDateFin: format(newDateFin, 'MM-yyyy'),
             }
         };
         events.push(correctionEvent);

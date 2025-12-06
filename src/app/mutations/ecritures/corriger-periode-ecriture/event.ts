@@ -9,7 +9,11 @@ export interface EcriturePeriodeCorrigeeEvent extends BaseEvent {
     ressourceVersionId: string;
     payload: {
         ecritureId: string;
-        dateDebut: string; // format MM-yyyy
-        dateFin: string; // format MM-yyyy
+        // The original period before the correction
+        originalDateDebut: string; // format MM-yyyy
+        originalDateFin: string; // format MM-yyyy
+        // The new, corrected period
+        newDateDebut: string; // format MM-yyyy
+        newDateFin: string; // format MM-yyyy
     }
 }

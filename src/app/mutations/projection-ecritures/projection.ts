@@ -53,7 +53,7 @@ function applyEcriturePeriodeCorrigee(state: EcrituresState, event: EcriturePeri
         ...state,
         ecritures: state.ecritures.map(e => 
             e.id === event.payload.ecritureId
-                ? { ...e, dateDebut: event.payload.dateDebut, dateFin: event.payload.dateFin }
+                ? { ...e, dateDebut: event.payload.newDateDebut, dateFin: event.payload.newDateFin }
                 : e
         )
     };

@@ -139,22 +139,18 @@ function applyEcritureSupprimee(state: JournalState, event: AppEvent, allEcritur
     };
 }
 
-function applyEcriturePeriodeCorrigee(state: JournalState, event: EcriturePeriodeCorrigeeEvent, allEcritures: AppState['ecritures']): JournalState {
-    const originalEcriture = allEcritures.find(e => e.id === event.payload.ecritureId);
-    if (!originalEcriture) return state;
-
+function applyEcriturePeriodeCorrigee(state: JournalState, event: EcriturePeriodeCorrigeeEvent): JournalState {
     return {
         ...state,
         journal: state.journal.map(entry => {
             if (entry.mutationId === event.mutationId) {
                 
-                const originalStart = parse(originalEcriture.dateDebut, 'MM-yyyy', new Date());
-                const originalEnd = parse(originalEcriture.dateFin, 'MM-yyyy', new Date());
-                const newStart = parse(event.payload.dateDebut, 'MM-yyyy', new Date());
-                const newEnd = parse(event.payload.dateFin, 'MM-yyyy', new Date());
+                const originalStart = parse(event.payload.originalDateDebut, 'MM-yyyy', new Date());
+                const originalEnd = parse(event.payload.originalDateFin, 'MM-yyyy', new Date());
+                const newStart = parse(event.payload.newDateDebut, 'MM-yyyy', new Date());
+                const newEnd = parse(event.payload.newDateFin, 'MM-yyyy', new Date());
 
-                // If dates are invalid, we might be doing a "delete" by invalidating the period.
-                // In that case, the affected period is the entire original period.
+                // If dates are invalid, the corrected period is the full original period.
                 if (newStart > newEnd) {
                     const dateUpdates = updateRessourcesDateRange(entry, [originalStart, originalEnd]);
                     return { ...entry, correctedEcritures: entry.correctedEcritures + 1, ...dateUpdates };
@@ -163,21 +159,21 @@ function applyEcriturePeriodeCorrigee(state: JournalState, event: EcriturePeriod
                 const originalMonths = new Set(eachMonthOfInterval({ start: originalStart, end: originalEnd }).map(d => format(d, 'MM-yyyy')));
                 const newMonths = new Set(eachMonthOfInterval({ start: newStart, end: newEnd }).map(d => format(d, 'MM-yyyy')));
                 
-                const affectedMonths: Date[] = [];
+                const affectedMonthsDates: Date[] = [];
                 
                 // Symmetric difference: months in one set but not the other.
                 originalMonths.forEach(m => {
                     if (!newMonths.has(m)) {
-                        affectedMonths.push(parse(m, 'MM-yyyy', new Date()));
+                        affectedMonthsDates.push(parse(m, 'MM-yyyy', new Date()));
                     }
                 });
                 newMonths.forEach(m => {
                     if (!originalMonths.has(m)) {
-                         affectedMonths.push(parse(m, 'MM-yyyy', new Date()));
+                         affectedMonthsDates.push(parse(m, 'MM-yyyy', new Date()));
                     }
                 });
                 
-                const dateUpdates = updateRessourcesDateRange(entry, affectedMonths);
+                const dateUpdates = updateRessourcesDateRange(entry, affectedMonthsDates);
                 
                 return { ...entry, correctedEcritures: entry.correctedEcritures + 1, ...dateUpdates };
             }
@@ -215,8 +211,8 @@ export function journalProjectionReducer<T extends JournalState & { ecritures: A
                 nextState = applyEcritureSupprimee(state, event, state.ecritures);
                 break;
              case 'ECRITURE_PERIODE_CORRIGEE':
-                // We need the full ecritures list to get the original date range
-                nextState = applyEcriturePeriodeCorrigee(state, event, state.ecritures);
+                // We need the original period from the payload. No need for the ecritures state.
+                nextState = applyEcriturePeriodeCorrigee(state, event);
                 break;
         }
         return nextState as T;
