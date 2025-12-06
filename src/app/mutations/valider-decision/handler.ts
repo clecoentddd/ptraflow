@@ -18,7 +18,7 @@ export function validerDecisionCommandHandler(state: AppState, command: ValiderD
       return state;
   }
   
-  const decision = queryDecisionsAPrendre(state).find(d => d.decisionId === decisionId);
+  const decision = queryDecisionsAPrendre(state).find(d => d.mutationId === mutationId);
   if (!decision || !decision.planDeCalcul) {
       toast.error("La décision à valider (avec un plan de calcul) n'a pas été trouvée.");
       return state;
@@ -45,9 +45,9 @@ export function validerDecisionCommandHandler(state: AppState, command: ValiderD
     id: crypto.randomUUID(),
     type: 'DECISION_VALIDEE',
     mutationId,
-    decisionId: decisionId,
+    decisionId: decision.decisionId,
     ressourceVersionId: lastRessourceVersionIdEvent.ressourceVersionId,
-    planDePaiementId: decision.planDePaiementId || null,
+    planDePaiementId: decision.planDePaiementId, // Can be null
     timestamp: new Date().toISOString(),
     payload: {
         mutationType: decision.mutationType,

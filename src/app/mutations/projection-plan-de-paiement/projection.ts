@@ -14,6 +14,7 @@ export interface PaiementMensuel {
 export interface PlanDePaiement {
     id: string; // planDePaiementId
     mutationId: string;
+    timestamp: string;
     paiements: PaiementMensuel[];
 }
 
@@ -34,11 +35,12 @@ function applyPlanDeCalculValide(state: PlanDePaiementState, event: AppEvent): P
     const { planDePaiementId, paiements, dateDebut, dateFin } = event.payload;
 
     const otherPlans = state.plansDePaiement.filter(p => p.id !== planDePaiementId);
-    let currentPlan = state.plansDePaiement.find(p => p.id === planDePaiementId);
-
-    if (!currentPlan) {
-        currentPlan = { id: planDePaiementId, mutationId: event.mutationId, paiements: [] };
-    }
+    
+    // Find the previous version of the plan for the *same mutation*, if it exists
+    const previousPlanForMutation = state.plansDePaiement
+        .filter(p => p.mutationId === event.mutationId)
+        .sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        [0];
 
     let finalPaiements: PaiementMensuel[];
 
@@ -49,7 +51,8 @@ function applyPlanDeCalculValide(state: PlanDePaiementState, event: AppEvent): P
             montant: p.aPayer,
         }));
     } else { // This implies a RESSOURCES mutation (patch)
-        const updatedPaiements = [...currentPlan.paiements];
+        const basePaiements = previousPlanForMutation ? previousPlanForMutation.paiements : [];
+        const updatedPaiements = [...basePaiements];
         const monthsToPatch = new Set(paiements.map(p => p.month));
         
         // Remove old payments for the patched months
@@ -66,7 +69,9 @@ function applyPlanDeCalculValide(state: PlanDePaiementState, event: AppEvent): P
     }
     
     const updatedPlan: PlanDePaiement = { 
-        ...currentPlan, 
+        id: planDePaiementId,
+        mutationId: event.mutationId,
+        timestamp: event.timestamp,
         paiements: finalPaiements 
     };
 

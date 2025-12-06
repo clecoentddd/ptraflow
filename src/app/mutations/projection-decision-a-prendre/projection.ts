@@ -17,7 +17,7 @@ export interface DecisionData {
         calculId: string;
         detail: MonthlyResult[];
     };
-    planDePaiementId?: string;
+    planDePaiementId: string | null;
     periodeDroits?: {
         dateDebut: string;
         dateFin: string;
@@ -42,7 +42,6 @@ export const initialDecisionAPrendreState: DecisionAPrendreState = {
 function rebuildDecisionState(state: AppState): DecisionAPrendreState {
     const journal = queryJournal(state);
     const plansDeCalcul = queryPlansDeCalcul(state);
-    const periodsValides = queryValidatedPeriods(state);
     const plansDePaiement = queryPlanDePaiement(state);
 
     const decisions: DecisionData[] = journal.map(entry => {
@@ -52,21 +51,23 @@ function rebuildDecisionState(state: AppState): DecisionAPrendreState {
         if (!planDeCalcul) {
             return null;
         }
+        
+        // Find the latest payment plan for this mutation, if any
+        const latestPlanDePaiement = plansDePaiement
+            .filter(p => p.mutationId === entry.mutationId)
+            .sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            [0];
 
         const decision: DecisionData = {
-            decisionId: `dec-${entry.mutationId.substring(0, 8)}`, // Create a stable but unique ID
+            decisionId: crypto.randomUUID(),
             mutationId: entry.mutationId,
             mutationType: entry.mutationType,
             planDeCalcul: {
                 calculId: planDeCalcul.calculId,
                 detail: planDeCalcul.detail,
-            }
+            },
+            planDePaiementId: latestPlanDePaiement ? latestPlanDePaiement.id : null,
         };
-
-        const planDePaiement = plansDePaiement.find(p => p.mutationId === entry.mutationId);
-        if (planDePaiement) {
-            decision.planDePaiementId = planDePaiement.id;
-        }
 
         if (entry.mutationType === 'DROITS') {
             const droitsAnalysesEvent = state.eventStream.find(

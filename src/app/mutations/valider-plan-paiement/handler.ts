@@ -7,11 +7,13 @@ import type { PlanDeCalculValideEvent } from './event';
 import type { DecisionValideeEvent } from '../valider-decision/event';
 import { toast } from 'react-hot-toast';
 import { eachMonthOfInterval, parse, format } from 'date-fns';
+import { queryPlanDePaiement } from '../projection-plan-de-paiement/projection';
 
 // Command Handler
 export function validerPlanPaiementCommandHandler(state: AppState, command: ValiderPlanPaiementCommand): AppState {
   const { mutationId } = command.payload;
 
+  // 1. Find the validated decision for this mutation
   const decisionEvent = state.eventStream
     .find(event => event.mutationId === mutationId && event.type === 'DECISION_VALIDEE') as DecisionValideeEvent | undefined;
 
@@ -20,8 +22,28 @@ export function validerPlanPaiementCommandHandler(state: AppState, command: Vali
     return state;
   }
   
-  const { planDePaiementId, payload } = decisionEvent;
+  // 2. Concurrency Check
+  // Get the payment plan ID known at the time of decision
+  const idFromDecision = decisionEvent.planDePaiementId;
+  
+  // Get the current latest payment plan ID
+  const allPlans = queryPlanDePaiement(state);
+  const currentPlan = allPlans
+    .filter(p => p.mutationId === mutationId)
+    .sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+    [0];
+  const currentId = currentPlan ? currentPlan.id : null;
+
+  if (idFromDecision !== currentId) {
+      toast.error("L'état du plan de paiement a changé. Veuillez recalculer et prendre une nouvelle décision.");
+      return state;
+  }
+
+  // 3. Logic to create the final event
+  const { payload } = decisionEvent;
   const { mutationType, detailCalcul, periodeDroits, periodeModifications } = payload;
+  
+  const newPlanDePaiementId = crypto.randomUUID();
 
   let finalEvent: PlanDeCalculValideEvent;
 
@@ -33,7 +55,7 @@ export function validerPlanPaiementCommandHandler(state: AppState, command: Vali
         mutationId,
         timestamp: new Date().toISOString(),
         payload: {
-            planDePaiementId,
+            planDePaiementId: newPlanDePaiementId,
             paiements: detailCalcul, // The full list of payments
             dateDebut: periodeDroits?.dateDebut,
             dateFin: periodeDroits?.dateFin,
@@ -59,7 +81,7 @@ export function validerPlanPaiementCommandHandler(state: AppState, command: Vali
       mutationId,
       timestamp: new Date().toISOString(),
       payload: {
-          planDePaiementId,
+          planDePaiementId: newPlanDePaiementId,
           paiements: paiementsAPatcher
       }
     };
