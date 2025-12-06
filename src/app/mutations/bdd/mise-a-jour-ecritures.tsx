@@ -70,7 +70,7 @@ const TestRaccourcirFin: React.FC = () => (
 const TestRaccourcirDebut: React.FC = () => (
     <TestComponent
         title="Test 2: Raccourcir le début d'une période"
-        description="Quand on modifie une écriture pour avancer sa date de début (06-08 -> 07-08), c'est un remplacement. La période de modification doit refléter l'union de l'ancienne et de la nouvelle période."
+        description="Quand on modifie une écriture pour avancer sa date de début (06-08 -> 07-08), la période de modification du journal doit refléter uniquement le mois qui a changé (l'ancien mois de début)."
         given={() => ({ eventStream: [...baseEvents] })}
         when={(initialState) => cqrsReducer(initialState, {
             type: 'METTRE_A_JOUR_ECRITURE',
@@ -87,7 +87,7 @@ const TestRaccourcirDebut: React.FC = () => (
                 dateFin: '2025-08-01T00:00:00.000Z',   // Inchangé
             }
         })}
-        then={(state) => createCheck('mut-2', "06-2025", "08-2025")(state)}
+        then={(state) => createCheck('mut-2', "06-2025", "06-2025")(state)}
     />
 );
 
@@ -118,7 +118,7 @@ const TestEtendreFin: React.FC = () => (
 const TestEtendreDebut: React.FC = () => (
      <TestComponent
         title="Test 4: Étendre le début d'une période"
-        description="Quand on étend la date de début (06-08 -> 05-08), c'est un remplacement. La période de modification doit refléter l'union de l'ancienne et de la nouvelle période."
+        description="Quand on étend la date de début (06-08 -> 05-08), la période de modification du journal doit s'étendre pour inclure uniquement le nouveau mois."
         given={() => ({ eventStream: [...baseEvents] })}
         when={(initialState) => cqrsReducer(initialState, {
             type: 'METTRE_A_JOUR_ECRITURE',
@@ -135,14 +135,14 @@ const TestEtendreDebut: React.FC = () => (
                 dateFin: '2025-08-01T00:00:00.000Z',   // Inchangé
             }
         })}
-        then={(state) => createCheck('mut-2', "05-2025", "08-2025")(state)}
+        then={(state) => createCheck('mut-2', "05-2025", "05-2025")(state)}
     />
 );
 
 const TestDeplacerPeriode: React.FC = () => (
      <TestComponent
         title="Test 5: Déplacer complètement la période"
-        description="Quand on déplace la période (06-08 -> 10-11), c'est un remplacement. Le journal doit refléter l'union de l'ancienne et de la nouvelle période."
+        description="Quand on déplace la période (06-08 -> 10-11), le journal doit refléter l'union des mois non-communs (l'ancienne et la nouvelle période complète)."
         given={() => ({ eventStream: [...baseEvents] })}
         when={(initialState) => cqrsReducer(initialState, {
             type: 'METTRE_A_JOUR_ECRITURE',
@@ -165,8 +165,8 @@ const TestDeplacerPeriode: React.FC = () => (
 
 const TestChangerMontant: React.FC = () => (
      <TestComponent
-        title="Test 6: Changer le montant"
-        description="Quand on change le montant d'une écriture, c'est un remplacement. Le journal doit refléter l'union de l'ancienne et de la nouvelle période (qui est la même ici)."
+        title="Test 6: Changer le montant (doit être un remplacement)"
+        description="Quand on change le montant d'une écriture, cela doit être traité comme un remplacement. Le journal doit refléter la période complète de l'écriture."
         given={() => ({ eventStream: [...baseEvents] })}
         when={(initialState) => cqrsReducer(initialState, {
             type: 'METTRE_A_JOUR_ECRITURE',

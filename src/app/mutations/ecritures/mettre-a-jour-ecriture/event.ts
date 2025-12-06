@@ -3,13 +3,15 @@
 
 import type { BaseEvent } from '../../mutation-lifecycle/domain';
 
-// Event for the specific case where only the end date is changed
-export interface EcritureDateFinModifieeEvent extends BaseEvent {
-    type: 'ECRITURE_DATE_FIN_MODIFIEE';
+// Event for the specific case where only date(s) are changed
+export interface EcriturePeriodeCorrigeeEvent extends BaseEvent {
+    type: 'ECRITURE_PERIODE_CORRIGEE';
     ressourceVersionId: string;
     payload: {
         ecritureId: string;
-        ancienneDateFin: string; // format MM-yyyy
-        nouvelleDateFin: string; // format MM-yyyy
+        originalDateDebut: string; // MM-yyyy
+        originalDateFin: string;   // MM-yyyy
+        newDateDebut: string;      // MM-yyyy
+        newDateFin: string;        // MM-yyyy
     }
 }

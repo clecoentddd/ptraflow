@@ -1,14 +1,14 @@
 
 "use client";
 
-import type { AppState, AppEvent, EcritureType } from '../../mutation-lifecycle/domain';
+import type { AppState, AppEvent } from '../../mutation-lifecycle/domain';
 import type { MettreAJourEcritureCommand } from './command';
 import { toast } from 'react-hot-toast';
-import { format } from 'date-fns';
+import { format, parse } from 'date-fns';
 import type { RevenuAjouteEvent } from '../ajouter-revenu/event';
 import type { DepenseAjouteeEvent } from '../ajouter-depense/event';
 import type { EcritureSupprimeeEvent } from '../supprimer-ecriture/event';
-import type { EcritureDateFinModifieeEvent } from './event';
+import type { EcriturePeriodeCorrigeeEvent } from './event';
 
 // Command Handler for "Update"
 export function mettreAJourEcritureCommandHandler(
@@ -26,8 +26,8 @@ export function mettreAJourEcritureCommandHandler(
         ressourceVersionId,
     } = command.payload;
 
-    const newDateDebut = new Date(command.payload.dateDebut);
-    const newDateFin = new Date(command.payload.dateFin);
+    const newDateDebut = parse(command.payload.dateDebut, "yyyy-MM-dd'T'HH:mm:ss.SSSX", new Date());
+    const newDateFin = parse(command.payload.dateFin, "yyyy-MM-dd'T'HH:mm:ss.SSSX", new Date());
 
     // --- Validations ---
     const ecritureToUpdate = state.ecritures.find(e => e.id === originalEcritureId);
@@ -45,26 +45,29 @@ export function mettreAJourEcritureCommandHandler(
     const events: AppEvent[] = [];
     const now = new Date();
 
-    const isOnlyEndDateChanged =
+    const isOnlyPeriodChanged =
         ecritureToUpdate.code === code &&
         ecritureToUpdate.montant === montant &&
-        ecritureToUpdate.dateDebut === format(newDateDebut, 'MM-yyyy');
+        (ecritureToUpdate.dateDebut !== format(newDateDebut, 'MM-yyyy') ||
+         ecritureToUpdate.dateFin !== format(newDateFin, 'MM-yyyy'));
 
-    if (isOnlyEndDateChanged) {
-        // --- SCENARIO 1: Only the end date is modified ---
-        const dateFinModifieeEvent: EcritureDateFinModifieeEvent = {
+    if (isOnlyPeriodChanged) {
+        // --- SCENARIO 1: Only the period is modified ---
+        const periodeCorrigeeEvent: EcriturePeriodeCorrigeeEvent = {
             id: crypto.randomUUID(),
-            type: 'ECRITURE_DATE_FIN_MODIFIEE',
+            type: 'ECRITURE_PERIODE_CORRIGEE',
             mutationId,
             ressourceVersionId,
             timestamp: now.toISOString(),
             payload: {
                 ecritureId: originalEcritureId,
-                ancienneDateFin: ecritureToUpdate.dateFin,
-                nouvelleDateFin: format(newDateFin, 'MM-yyyy'),
+                originalDateDebut: ecritureToUpdate.dateDebut,
+                originalDateFin: ecritureToUpdate.dateFin,
+                newDateDebut: format(newDateDebut, 'MM-yyyy'),
+                newDateFin: format(newDateFin, 'MM-yyyy'),
             }
         };
-        events.push(dateFinModifieeEvent);
+        events.push(periodeCorrigeeEvent);
     } else {
         // --- SCENARIO 2: Other fields changed, use the "replace" pattern ---
 

@@ -3,7 +3,7 @@
 
 import type { AppEvent, AppCommand, AppState, Ecriture } from '../mutation-lifecycle/domain';
 import { parse, eachMonthOfInterval, format, differenceInCalendarMonths } from 'date-fns';
-import type { EcritureDateFinModifieeEvent } from '../ecritures/mettre-a-jour-ecriture/event';
+import type { EcriturePeriodeCorrigeeEvent } from '../ecritures/mettre-a-jour-ecriture/event';
 
 // 1. State Slice and Initial State
 export interface EcrituresState {
@@ -48,12 +48,12 @@ function applyEcritureSupprimee(state: EcrituresState, event: AppEvent): Ecritur
     };
 }
 
-function applyEcritureDateFinModifiee(state: EcrituresState, event: EcritureDateFinModifieeEvent): EcrituresState {
+function applyEcriturePeriodeCorrigee(state: EcrituresState, event: EcriturePeriodeCorrigeeEvent): EcrituresState {
     return {
         ...state,
         ecritures: state.ecritures.map(e => 
             e.id === event.payload.ecritureId
-                ? { ...e, dateFin: event.payload.nouvelleDateFin }
+                ? { ...e, dateDebut: event.payload.newDateDebut, dateFin: event.payload.newDateFin }
                 : e
         )
     };
@@ -74,8 +74,8 @@ export function ecrituresProjectionReducer<T extends EcrituresState>(
                 return applyDepenseAjoutee(state, event) as T;
             case 'ECRITURE_SUPPRIMEE':
                 return applyEcritureSupprimee(state, event) as T;
-            case 'ECRITURE_DATE_FIN_MODIFIEE':
-                return applyEcritureDateFinModifiee(state, event) as T;
+            case 'ECRITURE_PERIODE_CORRIGEE':
+                return applyEcriturePeriodeCorrigee(state, event) as T;
         }
     }
     return state;
