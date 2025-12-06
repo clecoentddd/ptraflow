@@ -52,8 +52,9 @@ function DashboardContent() {
               <ValidatedPeriodsView />
           </div>
 
-           <div>
-              <AllEcrituresListView />
+          <div>
+            <h2 className="text-2xl font-bold mb-4 text-foreground">Écritures</h2>
+            <AllEcrituresListView />
           </div>
 
           <div>
@@ -66,17 +67,15 @@ function DashboardContent() {
               <TodoListView />
           </div>
 
-           <div>
-               <Card className="h-full flex flex-col">
-                <CardHeader>
-                  <CardTitle>Flux d'événements</CardTitle>
-                </CardHeader>
-                <CardContent className="flex-1 p-0">
-                    <ScrollArea className="h-[30rem]">
-                        <EventStreamView />
-                    </ScrollArea>
-                </CardContent>
-              </Card>
+          <div>
+            <h2 className="text-2xl font-bold mb-4 text-foreground">Flux d'événements</h2>
+            <Card className="h-full flex flex-col">
+              <CardContent className="flex-1 p-0">
+                  <ScrollArea className="h-[30rem]">
+                      <EventStreamView />
+                  </ScrollArea>
+              </CardContent>
+            </Card>
           </div>
         </div>
       </main>

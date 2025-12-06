@@ -58,19 +58,20 @@ export function AllEcrituresListView() {
         <>
         <Card>
             <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>Écritures</CardTitle>
-                {canEdit && authEventForActiveMutation && (
-                    <div className="flex gap-2">
-                        <AjouterRevenuUI 
-                            mutationId={authEventForActiveMutation.mutationId}
-                            ressourceVersionId={authEventForActiveMutation.ressourceVersionId}
-                        />
-                        <AjouterDepenseUI
-                            mutationId={authEventForActiveMutation.mutationId}
-                            ressourceVersionId={authEventForActiveMutation.ressourceVersionId}
-                        />
-                    </div>
-                )}
+                <CardTitle>
+                     {canEdit && authEventForActiveMutation ? (
+                        <div className="flex gap-2">
+                            <AjouterRevenuUI 
+                                mutationId={authEventForActiveMutation.mutationId}
+                                ressourceVersionId={authEventForActiveMutation.ressourceVersionId}
+                            />
+                            <AjouterDepenseUI
+                                mutationId={authEventForActiveMutation.mutationId}
+                                ressourceVersionId={authEventForActiveMutation.ressourceVersionId}
+                            />
+                        </div>
+                    ): <div />}
+                </CardTitle>
             </CardHeader>
             <CardContent>
                 {rows.length === 0 ? (
