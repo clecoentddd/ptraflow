@@ -10,7 +10,6 @@ import type { AppCommand, AppEvent, AppState } from './domain';
 import { suspendPaiementsCommandHandler } from '../suspend-paiements/handler';
 import { analyzeDroitsCommandHandler } from '../analyze-droits/handler';
 import { validateMutationCommandHandler } from '../validate-mutation/handler';
-import { createRessourcesMutationCommandHandler } from '../create-ressources-mutation/handler';
 import { autoriserModificationDroitsCommandHandler } from '../autoriser-modification-des-droits/handler';
 import { autoriserModificationRessourcesCommandHandler } from '../autoriser-modification-des-ressources/handler';
 import { ajouterRevenuCommandHandler } from '../ecritures/ajouter-revenu/handler';
@@ -92,12 +91,10 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
     let newStateWithEvent = state;
     switch (action.type) {
         case 'CREATE_DROITS_MUTATION':
-            // Ce cas est maintenant géré par le nouveau flux, mais on le laisse pour l'exemple
-            // Dans le futur, il sera supprimé.
-            return state; 
         case 'CREATE_RESSOURCES_MUTATION':
-            newStateWithEvent = createRessourcesMutationCommandHandler(state, action);
-            break;
+            // Ces cas sont maintenant gérés par le nouveau flux, mais on les laisse pour l'exemple
+            // Dans le futur, ils seront supprimés.
+            return state; 
         case 'SUSPEND_PAIEMENTS':
             newStateWithEvent = suspendPaiementsCommandHandler(state, action);
             break;

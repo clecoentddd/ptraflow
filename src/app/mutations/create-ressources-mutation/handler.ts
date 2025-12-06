@@ -1,11 +1,11 @@
 
 "use client";
 
-import type { AppState } from '../mutation-lifecycle/domain';
-import type { CreateRessourcesMutationCommand } from './command';
+import type { AppState, AppEvent } from '../mutation-lifecycle/domain';
 import type { RessourcesMutationCreatedEvent } from './event';
 import { toast as realToast } from 'react-hot-toast';
 import { queryValidatedPeriods } from '../projection-periodes-de-droits/projection';
+import { queryMutations } from '../projection-mutations/projection';
 
 type HandlerDependencies = {
   toast: { error: (message: string) => void };
@@ -14,20 +14,20 @@ type HandlerDependencies = {
 // Command Handler
 export function createRessourcesMutationCommandHandler(
   state: AppState,
-  command: CreateRessourcesMutationCommand,
+  dispatch: (event: AppEvent) => void,
   dependencies: HandlerDependencies = { toast: realToast }
-): AppState {
+): void {
   
-  const existingMutation = state.mutations.find(m => m.status === 'OUVERTE' || m.status === 'EN_COURS');
+  const existingMutation = queryMutations(state).find(m => m.status === 'OUVERTE' || m.status === 'EN_COURS');
   if (existingMutation) {
     dependencies.toast.error(`La mutation ${existingMutation.id} est déjà en cours.`);
-    return state;
+    return;
   }
 
   const validatedPeriods = queryValidatedPeriods(state);
   if (validatedPeriods.length === 0) {
     dependencies.toast.error("Il n'y a pas de périodes de droits validées.");
-    return state;
+    return;
   }
   
   const mutationId = crypto.randomUUID();
@@ -39,8 +39,6 @@ export function createRessourcesMutationCommandHandler(
     payload: { mutationType: 'RESSOURCES' },
   };
 
-  return {
-    ...state,
-    eventStream: [event, ...state.eventStream]
-  }
+  dispatch(event);
 }
+

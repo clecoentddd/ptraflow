@@ -7,6 +7,7 @@ import { CircleDotDashed, Plus } from "lucide-react";
 import { queryMutations } from "../../projection-mutations/projection";
 import { toast } from "react-hot-toast";
 import { createDroitsMutationCommandHandler } from "../handler";
+import { createRessourcesMutationCommandHandler } from "../../create-ressources-mutation/handler";
 
 export function AppHeader() {
   const { state, dispatchEvent } = useCqrs();
@@ -23,9 +24,8 @@ export function AppHeader() {
   };
 
   const handleCreateRessourcesMutation = () => {
-    // TODO: This also needs to be refactored to the new pattern
-    // For now, we keep the old dispatch for other commands.
-    dispatchEvent({ type: 'CREATE_RESSOURCES_MUTATION' });
+    // Ce handler suit maintenant le même pattern.
+    createRessourcesMutationCommandHandler(state, dispatchEvent);
   };
 
   return (
@@ -39,7 +39,7 @@ export function AppHeader() {
           <Plus className="mr-2 h-4 w-4" />
           Créer mutation de droits
         </Button>
-         <Button onClick={handleCreateRessourcesMutation} variant="secondary">
+         <Button onClick={handleCreateRessourcesMutation} variant="secondary" disabled={!!existingMutation}>
           <Plus className="mr-2 h-4 w-4" />
           Créer mutation de ressources
         </Button>
@@ -47,3 +47,4 @@ export function AppHeader() {
     </header>
   );
 }
+
