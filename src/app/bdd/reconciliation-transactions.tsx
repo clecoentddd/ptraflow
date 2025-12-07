@@ -6,6 +6,7 @@ import type { AppState, AppEvent } from '../mutations/mutation-lifecycle/domain'
 import { TestComponent } from '../mutations/bdd/test-harness';
 import { cqrsReducer } from '../mutations/mutation-lifecycle/cqrs';
 import { queryDecisionsAPrendre } from '../mutations/projection-decision-a-prendre/projection';
+import type { DecisionValideeEvent } from '../mutations/valider-decision/event';
 
 export const BDDTestReconciliationSimple: React.FC = () => (
     <TestComponent
@@ -70,7 +71,7 @@ export const BDDTestReconciliationSimple: React.FC = () => (
 const TestReconciliationAvecPaiementsEffectues: React.FC = () => (
     <TestComponent
         title="Test de Réconciliation avec Paiement Antérieur Exécuté"
-        description="Etant donné qu'un paiement pour Oct-25 de 500 CHF a été exécuté, et qu'un nouveau calcul pour Nov-25 (800 CHF) et Dec-25 (800 CHF) est effectué, alors la décision à prendre doit calculer un remboursement pour Octobre et les nouveaux montants pour Nov et Dec."
+        description="Etant donné qu'un paiement pour Oct-25 de 500 CHF a été exécuté, et qu'un nouveau calcul pour Nov-25 (800 CHF) et Dec-25 (800 CHF) est effectué, alors la projection de la décision doit calculer un remboursement pour Octobre et les nouveaux montants pour Nov et Dec."
         given={() => {
             const events: AppEvent[] = [
                 // --- First Plan (Executed) ---
@@ -118,8 +119,66 @@ const TestReconciliationAvecPaiementsEffectues: React.FC = () => (
             return {
                 pass,
                 message: pass
-                    ? `Succès: La décision a été correctement réconciliée (Oct: ${oct?.aPayer}, Nov: ${nov?.aPayer}, Dec: ${dec?.aPayer}).`
-                    : `Échec: La réconciliation est incorrecte. Reçu: (Oct: ${oct?.aPayer}, Nov: ${nov?.aPayer}, Dec: ${dec?.aPayer}). Attendu: -500, 800, 800.`
+                    ? `Succès: La projection de décision a été correctement réconciliée (Oct: ${oct?.aPayer}, Nov: ${nov?.aPayer}, Dec: ${dec?.aPayer}).`
+                    : `Échec: La réconciliation de la projection est incorrecte. Reçu: (Oct: ${oct?.aPayer}, Nov: ${nov?.aPayer}, Dec: ${dec?.aPayer}). Attendu: -500, 800, 800.`
+            };
+        }}
+    />
+);
+
+const TestValidationDecisionAvecRemboursement: React.FC = () => (
+    <TestComponent
+        title="Test Validation Décision avec Montants Négatifs"
+        description="Etant donné une décision à prendre avec des montants à payer négatifs (remboursements), quand l'utilisateur valide cette décision, alors l'événement DecisionValideeEvent doit transformer ces montants négatifs en zéro."
+        given={() => {
+            const events: AppEvent[] = [
+                // --- Setup to create a state where a reimbursement is needed ---
+                // Payment made in October
+                { id: "evt-plan-remboursement", type: "PLAN_DE_PAIEMENT_VALIDE", mutationId: "mut-remboursement-1", timestamp: "2025-09-01T10:00:00.000Z", payload: { planDePaiementId: "plan-remboursement", decisionId: "dec-remboursement", detailCalcul: [] } },
+                { id: "tx-creee-oct-remboursement", type: "TRANSACTION_CREEE", mutationId: "mut-remboursement-1", timestamp: "2025-09-01T10:01:00.000Z", payload: { transactionId: "tx-oct-remboursement", planDePaiementId: "plan-remboursement", mois: "10-2025", montant: 50 } },
+                { id: "tx-exec-oct-remboursement", type: "TRANSACTION_EFFECTUEE", mutationId: "mut-remboursement-1", timestamp: "2025-10-05T10:00:00.000Z", payload: { transactionId: "tx-oct-remboursement" } },
+                
+                // New mutation that will lead to a new calculation
+                { id: "evt-mut-remboursement-2-created", type: "DROITS_MUTATION_CREATED", mutationId: "mut-remboursement-2", timestamp: "2025-11-01T09:00:00.000Z", payload: { mutationType: 'DROITS'} },
+                { id: "evt-mut-remboursement-2-calcul", type: "PLAN_CALCUL_EFFECTUE", mutationId: "mut-remboursement-2", timestamp: "2025-11-01T09:02:00.000Z", ressourceVersionId: 'v-remboursement-2', payload: { calculId: 'calcul-remboursement-2', detail: [
+                    { month: '11-2025', revenus: 1000, depenses: 0, resultat: 1000, calcul: 100 },
+                    { month: '12-2025', revenus: 1000, depenses: 0, resultat: 1000, calcul: 100 }
+                ]} },
+            ];
+            // After these events, queryDecisionsAPrendre will show { aPayer: -50 } for Oct-2025.
+            return { eventStream: events };
+        }}
+        when={(initialState) => {
+            // WHEN: The user validates the decision for the second mutation.
+            const decision = queryDecisionsAPrendre(initialState).find(d => d.mutationId === 'mut-remboursement-2');
+            if (!decision) return initialState; // Should not happen in this test
+
+            return cqrsReducer(initialState, {
+                type: 'VALIDER_DECISION',
+                payload: {
+                    mutationId: 'mut-remboursement-2',
+                    decisionId: decision.decisionId
+                }
+            });
+        }}
+        then={(finalState) => {
+            // THEN: The newly created DecisionValideeEvent should have its negative aPayer value set to 0.
+            const aPayerEvent = finalState.eventStream.find(e => e.type === 'DECISION_VALIDEE' && e.mutationId === 'mut-remboursement-2') as DecisionValideeEvent | undefined;
+
+            if (!aPayerEvent) {
+                return { pass: false, message: "Échec: L'événement DECISION_VALIDEE n'a pas été trouvé." };
+            }
+            
+            const octDetail = aPayerEvent.payload.detailCalcul.find(d => d.month === '10-2025');
+            const novDetail = aPayerEvent.payload.detailCalcul.find(d => d.month === '11-2025');
+            
+            const pass = octDetail?.aPayer === 0 && novDetail?.aPayer === 100;
+            
+            return {
+                pass,
+                message: pass
+                    ? `Succès: Le montant à payer pour Octobre a été transformé en 0 dans l'événement (reçu: ${octDetail?.aPayer}).`
+                    : `Échec: Le montant à payer pour Octobre aurait dû être 0. Reçu: ${octDetail?.aPayer}.`
             };
         }}
     />
@@ -131,7 +190,10 @@ export const BDDTestReconciliationWrapper: React.FC = () => (
         <h2 className="text-2xl font-bold mt-8 border-t pt-6">Tests BDD - Réconciliation des Transactions</h2>
         <BDDTestReconciliationSimple />
         <TestReconciliationAvecPaiementsEffectues />
+        <TestValidationDecisionAvecRemboursement />
     </div>
 );
+
+    
 
     
