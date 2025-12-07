@@ -46,6 +46,14 @@ export function DecisionAPrendreView() {
                                 <CardDescription className="font-mono text-xs mt-1">
                                     MutationId: {decision.mutationId}
                                 </CardDescription>
+                                {decision.planDeCalcul && (
+                                     <CardDescription className="font-mono text-xs mt-1">
+                                        CalculId: {decision.planDeCalcul.calculId}
+                                    </CardDescription>
+                                )}
+                                <CardDescription className="font-mono text-xs mt-1">
+                                    PlanDePaiementId: {decision.planDePaiementId || 'N/A'}
+                                </CardDescription>
                             </div>
                              <Badge variant={decision.mutationType === 'DROITS' ? 'default' : 'secondary'}>
                                 {decision.mutationType}
