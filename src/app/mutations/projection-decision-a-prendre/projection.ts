@@ -42,7 +42,13 @@ export const initialDecisionAPrendreState: DecisionAPrendreState = {
 function rebuildDecisionState(state: AppState): DecisionAPrendreState {
     const journal = queryJournal(state);
     const plansDeCalcul = queryPlansDeCalcul(state);
-    const plansDePaiement = queryPlanDePaiement(state);
+    const allPlansDePaiement = queryPlanDePaiement(state);
+
+    // Find the absolute latest payment plan ID from the entire system.
+    const latestPlanDePaiement = [...allPlansDePaiement].sort(
+        (a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
+    )[0];
+    const latestPlanDePaiementId = latestPlanDePaiement ? latestPlanDePaiement.id : null;
 
     const decisions: DecisionData[] = journal.map(entry => {
         const planDeCalcul = plansDeCalcul.find(p => p.mutationId === entry.mutationId);
@@ -51,12 +57,6 @@ function rebuildDecisionState(state: AppState): DecisionAPrendreState {
         if (!planDeCalcul) {
             return null;
         }
-        
-        // Find the latest payment plan for this mutation, if any
-        const latestPlanDePaiementForThisMutation = plansDePaiement
-            .filter(p => p.mutationId === entry.mutationId)
-            .sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-            [0];
 
         const decision: DecisionData = {
             decisionId: crypto.randomUUID(),
@@ -66,7 +66,8 @@ function rebuildDecisionState(state: AppState): DecisionAPrendreState {
                 calculId: planDeCalcul.calculId,
                 detail: planDeCalcul.detail,
             },
-            planDePaiementId: latestPlanDePaiementForThisMutation ? latestPlanDePaiementForThisMutation.id : null,
+            // Every decision refers to the single, most recent plan ID.
+            planDePaiementId: latestPlanDePaiementId,
         };
 
         if (entry.mutationType === 'DROITS') {
