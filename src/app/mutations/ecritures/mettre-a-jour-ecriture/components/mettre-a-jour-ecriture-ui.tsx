@@ -46,6 +46,9 @@ export function MettreAJourEcritureUI({ isOpen, setIsOpen, ecriture, mutationId,
     const [dateDebut, setDateDebut] = useState<Date | undefined>(parse(ecriture.dateDebut, 'MM-yyyy', new Date()));
     const [dateFin, setDateFin] = useState<Date | undefined>(parse(ecriture.dateFin, 'MM-yyyy', new Date()));
 
+    const [isDebutPopoverOpen, setIsDebutPopoverOpen] = useState(false);
+    const [isFinPopoverOpen, setIsFinPopoverOpen] = useState(false);
+
     // Reset form state when dialog opens with a new ecriture
     useEffect(() => {
         if (isOpen) {
@@ -151,7 +154,7 @@ export function MettreAJourEcritureUI({ isOpen, setIsOpen, ecriture, mutationId,
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="date-debut" className="text-right">Date de début</Label>
-                        <Popover>
+                        <Popover open={isDebutPopoverOpen} onOpenChange={setIsDebutPopoverOpen}>
                             <PopoverTrigger asChild>
                                 <Button
                                     variant={"outline"}
@@ -164,14 +167,17 @@ export function MettreAJourEcritureUI({ isOpen, setIsOpen, ecriture, mutationId,
                             <PopoverContent className="w-auto p-0">
                                  <MonthPicker
                                     date={dateDebut}
-                                    onChange={(newDate) => setDateDebut(newDate)}
+                                    onChange={(newDate) => {
+                                        setDateDebut(newDate);
+                                        setIsDebutPopoverOpen(false);
+                                    }}
                                 />
                             </PopoverContent>
                         </Popover>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="date-fin" className="text-right">Date de fin</Label>
-                        <Popover>
+                        <Popover open={isFinPopoverOpen} onOpenChange={setIsFinPopoverOpen}>
                             <PopoverTrigger asChild>
                                 <Button
                                     variant={"outline"}
@@ -184,7 +190,10 @@ export function MettreAJourEcritureUI({ isOpen, setIsOpen, ecriture, mutationId,
                             <PopoverContent className="w-auto p-0">
                                 <MonthPicker
                                     date={dateFin}
-                                    onChange={(newDate) => setDateFin(newDate)}
+                                    onChange={(newDate) => {
+                                        setDateFin(newDate);
+                                        setIsFinPopoverOpen(false);
+                                    }}
                                 />
                             </PopoverContent>
                         </Popover>

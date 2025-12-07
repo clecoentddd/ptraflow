@@ -45,6 +45,9 @@ export function AnalyzeDroitsButton({ mutationId }: { mutationId: string }) {
     const [dateDebut, setDateDebut] = useState<Date | undefined>();
     const [dateFin, setDateFin] = useState<Date | undefined>();
 
+    const [isDebutPopoverOpen, setIsDebutPopoverOpen] = useState(false);
+    const [isFinPopoverOpen, setIsFinPopoverOpen] = useState(false);
+
     const todos = queryTodos(state);
     const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Analyser les droits');
     
@@ -93,7 +96,7 @@ export function AnalyzeDroitsButton({ mutationId }: { mutationId: string }) {
                     <div className="grid gap-4 py-4">
                         <div className="grid grid-cols-4 items-center gap-4">
                             <label htmlFor="date-debut" className="text-right">Date de début</label>
-                            <Popover>
+                            <Popover open={isDebutPopoverOpen} onOpenChange={setIsDebutPopoverOpen}>
                                 <PopoverTrigger asChild>
                                     <Button
                                         variant={"outline"}
@@ -108,6 +111,7 @@ export function AnalyzeDroitsButton({ mutationId }: { mutationId: string }) {
                                         date={dateDebut}
                                         onChange={(newDate) => {
                                             setDateDebut(newDate);
+                                            setIsDebutPopoverOpen(false);
                                         }}
                                     />
                                 </PopoverContent>
@@ -115,7 +119,7 @@ export function AnalyzeDroitsButton({ mutationId }: { mutationId: string }) {
                         </div>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <label htmlFor="date-fin" className="text-right">Date de fin</label>
-                            <Popover>
+                            <Popover open={isFinPopoverOpen} onOpenChange={setIsFinPopoverOpen}>
                                 <PopoverTrigger asChild>
                                     <Button
                                         variant={"outline"}
@@ -130,6 +134,7 @@ export function AnalyzeDroitsButton({ mutationId }: { mutationId: string }) {
                                         date={dateFin}
                                         onChange={(newDate) => {
                                             setDateFin(newDate);
+                                            setIsFinPopoverOpen(false);
                                         }}
                                     />
                                 </PopoverContent>

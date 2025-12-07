@@ -40,6 +40,9 @@ export function AjouterDepenseUI({ mutationId, ressourceVersionId }: AjouterDepe
     const [dateDebut, setDateDebut] = useState<Date | undefined>();
     const [dateFin, setDateFin] = useState<Date | undefined>();
 
+    const [isDebutPopoverOpen, setIsDebutPopoverOpen] = useState(false);
+    const [isFinPopoverOpen, setIsFinPopoverOpen] = useState(false);
+
     const handleSelectChange = (value: string) => {
         const option = expenseOptions.find(opt => opt.code === value);
         setSelectedOption(option || null);
@@ -123,7 +126,7 @@ export function AjouterDepenseUI({ mutationId, ressourceVersionId }: AjouterDepe
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="date-debut" className="text-right">Date de début</Label>
-                        <Popover>
+                        <Popover open={isDebutPopoverOpen} onOpenChange={setIsDebutPopoverOpen}>
                             <PopoverTrigger asChild>
                                 <Button
                                     variant={"outline"}
@@ -136,14 +139,17 @@ export function AjouterDepenseUI({ mutationId, ressourceVersionId }: AjouterDepe
                             <PopoverContent className="w-auto p-0">
                                  <MonthPicker
                                     date={dateDebut}
-                                    onChange={(newDate) => setDateDebut(newDate)}
+                                    onChange={(newDate) => {
+                                        setDateDebut(newDate);
+                                        setIsDebutPopoverOpen(false);
+                                    }}
                                 />
                             </PopoverContent>
                         </Popover>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
                         <Label htmlFor="date-fin" className="text-right">Date de fin</Label>
-                        <Popover>
+                        <Popover open={isFinPopoverOpen} onOpenChange={setIsFinPopoverOpen}>
                             <PopoverTrigger asChild>
                                 <Button
                                     variant={"outline"}
@@ -156,7 +162,10 @@ export function AjouterDepenseUI({ mutationId, ressourceVersionId }: AjouterDepe
                             <PopoverContent className="w-auto p-0">
                                 <MonthPicker
                                     date={dateFin}
-                                    onChange={(newDate) => setDateFin(newDate)}
+                                    onChange={(newDate) => {
+                                        setDateFin(newDate);
+                                        setIsFinPopoverOpen(false);
+                                    }}
                                 />
                             </PopoverContent>
                         </Popover>
