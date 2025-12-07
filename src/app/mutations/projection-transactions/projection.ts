@@ -1,8 +1,9 @@
+
 "use client";
 
 import type { AppEvent, AppCommand, AppState } from '../mutation-lifecycle/domain';
 import type { TransactionEffectueeEvent } from '../executer-transaction/event';
-import type { PlanDePaiementValideEvent } from '../valider-plan-paiement/event';
+import type { PlanDePaiementValideEvent } from '../../paiements/valider-plan-paiement/event';
 
 // --- State ---
 export type TransactionStatut = 'A Exécuter' | 'Exécuté' | 'Remplacé';

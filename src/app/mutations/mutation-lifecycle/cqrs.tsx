@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import React, { createContext, useContext, useReducer, type Dispatch } from 'react';
@@ -37,7 +36,7 @@ import { decisionAPrendreProjectionReducer, initialDecisionAPrendreState } from 
 
 // Importation des logiques de projection de 'paiements'
 import { planDePaiementProjectionReducer, initialPlanDePaiementState } from '@/app/paiements/projection-plan-de-paiement/projection';
-import { transactionsProjectionReducer, initialTransactionsState } from '@/app/paiements/projection-transactions/projection';
+import { transactionsProjectionReducer, initialTransactionsState } from '@/app/mutations/projection-transactions/projection';
 
 
 // 1. INITIAL STATE
@@ -131,9 +130,8 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
                 stateAfterCommand = analyzeDroitsCommandHandler(state, action);
                 break;
             case 'VALIDER_PLAN_PAIEMENT':
-                 validerPlanPaiementCommandHandler(state, action, (events) => {
-                    stateAfterCommand = { ...state, eventStream: [...events, ...state.eventStream] };
-                    multipleEventsDispatched = true;
+                 validerPlanPaiementCommandHandler(state, action, (event) => {
+                    stateAfterCommand = { ...state, eventStream: [event, ...state.eventStream] };
                 });
                 break;
             case 'VALIDER_PLAN_CALCUL':
