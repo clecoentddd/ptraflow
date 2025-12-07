@@ -24,15 +24,16 @@ export function validerPlanPaiementCommandHandler(
     return;
   }
   
-  // 2. Create the "Plan Validated" event. It's now just a marker.
+  // 2. Create the "Plan Validated" event, including the payment details.
   const finalEvent: PlanDePaiementValideEvent = {
     id: crypto.randomUUID(),
     type: 'PLAN_DE_PAIEMENT_VALIDE',
     mutationId,
     timestamp: new Date().toISOString(),
     payload: {
-        planDePaiementId: crypto.randomUUID(), // This could be the same as the decision's plan ID if it had one
+        planDePaiementId: crypto.randomUUID(),
         decisionId: decisionEvent.decisionId,
+        detailCalcul: decisionEvent.payload.detailCalcul.map(d => ({ month: d.month, aPayer: d.aPayer }))
     }
   };
 
