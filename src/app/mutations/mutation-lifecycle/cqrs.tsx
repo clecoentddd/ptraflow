@@ -22,6 +22,7 @@ import { supprimerEcritureCommandHandler } from '../ecritures/supprimer-ecriture
 import { mettreAJourEcritureCommandHandler } from '../ecritures/mettre-a-jour-ecriture/handler';
 import { validerPlanCalculCommandHandler } from '../calculer-plan/handler';
 import { validerDecisionCommandHandler } from '../valider-decision/handler';
+import { executerTransactionCommandHandler } from '../executer-transaction/handler';
 
 
 // Importation des logiques de projection
@@ -33,6 +34,7 @@ import { journalProjectionReducer, initialJournalState } from '../projection-jou
 import { planCalculProjectionReducer, initialPlanCalculState } from '../projection-plan-calcul/projection';
 import { planDePaiementProjectionReducer, initialPlanDePaiementState } from '../projection-plan-de-paiement/projection';
 import { decisionAPrendreProjectionReducer, initialDecisionAPrendreState } from '../projection-decision-a-prendre/projection';
+import { transactionsEffectueesProjectionReducer, initialTransactionsEffectueesState } from '../projection-transactions-effectuees/projection';
 
 
 // 1. INITIAL STATE
@@ -47,6 +49,7 @@ export const initialState: AppState = {
   ...initialPlanCalculState,
   ...initialPlanDePaiementState,
   ...initialDecisionAPrendreState,
+  ...initialTransactionsEffectueesState,
 };
 
 // 2. PROJECTION LOGIC (Le "Subscriber")
@@ -67,6 +70,7 @@ function rebuildStateFromEvents(eventStream: AppState['eventStream']): AppState 
         stateWithStream = ecrituresProjectionReducer(stateWithStream, event);
         stateWithStream = planCalculProjectionReducer(stateWithStream, event);
         stateWithStream = planDePaiementProjectionReducer(stateWithStream, event);
+        stateWithStream = transactionsEffectueesProjectionReducer(stateWithStream, event);
     }
     
     // After all individual events are projected, run final projection steps
@@ -142,6 +146,9 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
                  break;
             case 'VALIDER_DECISION':
                 stateAfterCommand = validerDecisionCommandHandler(state, action);
+                break;
+            case 'EXECUTER_TRANSACTION':
+                stateAfterCommand = executerTransactionCommandHandler(state, action);
                 break;
             default:
                  console.warn("Unknown command type in cqrsReducer:", (action as any).type);

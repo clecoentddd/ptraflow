@@ -1,4 +1,3 @@
-
 "use client";
 
 import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
@@ -18,11 +17,17 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
-import { format } from "date-fns";
+import { format, parse, isBefore, endOfMonth } from "date-fns";
+import { Button } from "@/components/ui/button";
+import { queryTransactionsEffectuees } from "../../projection-transactions-effectuees/projection";
+import { CheckCircle, PlayCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 export function PlanDePaiementView() {
-    const { state } = useCqrs();
+    const { state, dispatchEvent } = useCqrs();
     const plans = queryPlanDePaiement(state);
+    const transactionsEffectuees = queryTransactionsEffectuees(state);
+    const currentMonth = new Date();
 
     if (plans.length === 0) {
         return (
@@ -31,6 +36,13 @@ export function PlanDePaiementView() {
             </Card>
         );
     }
+    
+    const handleExecuter = (mutationId: string, transactionId: string, mois: string) => {
+        dispatchEvent({
+            type: 'EXECUTER_TRANSACTION',
+            payload: { mutationId, transactionId, mois }
+        });
+    };
 
     return (
         <Accordion type="multiple" className="w-full space-y-4">
@@ -58,28 +70,59 @@ export function PlanDePaiementView() {
                             <Table>
                                 <TableHeader>
                                     <TableRow>
-                                        <TableHead className="font-mono w-1/3">Mois</TableHead>
-                                        <TableHead className="text-right w-1/3">Montant du paiement</TableHead>
-                                        <TableHead className="w-1/3">Transaction ID</TableHead>
+                                        <TableHead className="font-mono w-1/4">Mois</TableHead>
+                                        <TableHead className="text-right w-1/4">Montant du paiement</TableHead>
+                                        <TableHead className="w-1/4">Transaction ID</TableHead>
+                                        <TableHead className="text-center w-1/4">Action</TableHead>
                                     </TableRow>
                                 </TableHeader>
                                 <TableBody>
-                                    {plan.paiements.sort((a,b) => a.mois.localeCompare(b.mois)).map((paiement) => (
-                                        <TableRow key={paiement.transactionId}>
-                                            <TableCell className="font-mono">{paiement.mois}</TableCell>
-                                            <TableCell className={`text-right font-semibold ${paiement.montant >= 0 ? '' : 'text-destructive'}`}>
-                                                {paiement.montant.toFixed(2)} CHF
-                                            </TableCell>
-                                            <TableCell className="font-mono text-xs">{paiement.transactionId}</TableCell>
-                                        </TableRow>
-                                    ))}
+                                    {plan.paiements.sort((a,b) => a.mois.localeCompare(b.mois)).map((paiement) => {
+                                        const isExecuted = transactionsEffectuees.includes(paiement.transactionId);
+                                        const transactionMonth = parse(paiement.mois, 'MM-yyyy', new Date());
+                                        const isFuture = !isBefore(transactionMonth, endOfMonth(currentMonth));
+                                        
+                                        return (
+                                            <TableRow key={paiement.transactionId} className={cn(isExecuted && "bg-green-500/10 hover:bg-green-500/20")}>
+                                                <TableCell className="font-mono">{paiement.mois}</TableCell>
+                                                <TableCell className={`text-right font-semibold ${paiement.montant >= 0 ? '' : 'text-destructive'}`}>
+                                                    {paiement.montant.toFixed(2)} CHF
+                                                </TableCell>
+                                                <TableCell className="font-mono text-xs">{paiement.transactionId}</TableCell>
+                                                <TableCell className="text-center">
+                                                    {isExecuted ? (
+                                                        <span className="flex items-center justify-center gap-2 text-sm text-green-600 font-semibold">
+                                                            <CheckCircle className="h-4 w-4"/>
+                                                            Effectuée
+                                                        </span>
+                                                    ) : (
+                                                        <Button 
+                                                            size="sm"
+                                                            variant="outline"
+                                                            disabled={isFuture}
+                                                            onClick={() => handleExecuter(plan.mutationId, paiement.transactionId, paiement.mois)}
+                                                            title={isFuture ? "Ne peut pas être exécuté dans le futur" : "Exécuter la transaction"}
+                                                        >
+                                                            <PlayCircle className="mr-2 h-4 w-4" />
+                                                            Exécuter
+                                                        </Button>
+                                                    )}
+                                                </TableCell>
+                                            </TableRow>
+                                        );
+                                    })}
                                 </TableBody>
                             </Table>
                         </div>
                         {/* Mobile View: List of Cards */}
                         <div className="md:hidden space-y-3">
-                            {plan.paiements.sort((a,b) => a.mois.localeCompare(b.mois)).map((paiement) => (
-                                <div key={paiement.transactionId} className="p-3 rounded-lg border bg-muted/50">
+                            {plan.paiements.sort((a,b) => a.mois.localeCompare(b.mois)).map((paiement) => {
+                                 const isExecuted = transactionsEffectuees.includes(paiement.transactionId);
+                                 const transactionMonth = parse(paiement.mois, 'MM-yyyy', new Date());
+                                 const isFuture = !isBefore(transactionMonth, endOfMonth(currentMonth));
+                                
+                                return (
+                                <div key={paiement.transactionId} className={cn("p-3 rounded-lg border", isExecuted ? "bg-green-500/10" : "bg-muted/50")}>
                                     <h4 className="font-mono font-semibold mb-2">{paiement.mois}</h4>
                                     <div className={`flex justify-between text-sm font-semibold ${paiement.montant >= 0 ? '' : 'text-destructive'}`}>
                                         <span>Montant</span>
@@ -89,8 +132,28 @@ export function PlanDePaiementView() {
                                         <span>Transaction ID</span>
                                         <span className="font-mono">{paiement.transactionId.substring(0,8)}...</span>
                                     </div>
+                                    <div className="mt-4">
+                                         {isExecuted ? (
+                                             <span className="flex items-center justify-center gap-2 text-sm text-green-600 font-semibold">
+                                                <CheckCircle className="h-4 w-4"/>
+                                                Effectuée
+                                            </span>
+                                        ) : (
+                                             <Button 
+                                                size="sm"
+                                                variant="outline"
+                                                disabled={isFuture}
+                                                className="w-full"
+                                                onClick={() => handleExecuter(plan.mutationId, paiement.transactionId, paiement.mois)}
+                                                title={isFuture ? "Ne peut pas être exécuté dans le futur" : "Exécuter la transaction"}
+                                            >
+                                                <PlayCircle className="mr-2 h-4 w-4" />
+                                                Exécuter
+                                            </Button>
+                                        )}
+                                    </div>
                                 </div>
-                            ))}
+                            )})}
                         </div>
                    </AccordionContent>
                 </AccordionItem>

@@ -3,7 +3,6 @@
 import type { DroitsMutationCreatedEvent } from '../create-mutation/event';
 import type { PaiementsSuspendusEvent } from '../suspend-paiements/event';
 import type { DroitsAnalysesEvent } from '../analyze-droits/event';
-import type { PlanDePaiementValideEvent } from '../valider-plan-paiement/event';
 import type { RessourcesMutationCreatedEvent } from '../create-ressources-mutation/event';
 import type { ModificationDroitsAutoriseeEvent } from '../autoriser-modification-des-droits/event';
 import type { ModificationRessourcesAutoriseeEvent } from '../autoriser-modification-des-ressources/event';
@@ -14,6 +13,8 @@ import type { EcritureSupprimeeEvent } from '../ecritures/supprimer-ecriture/eve
 import type { PlanCalculeEvent } from '../calculer-plan/event';
 import type { EcriturePeriodeCorrigeeEvent } from '../ecritures/mettre-a-jour-ecriture/event';
 import type { DecisionValideeEvent } from '../valider-decision/event';
+import type { PlanDePaiementValideEvent } from '../valider-plan-paiement/event';
+import type { TransactionEffectueeEvent } from '../executer-transaction/event';
 
 
 import type { CreateDroitsMutationCommand } from '../create-mutation/command';
@@ -30,6 +31,7 @@ import type { SupprimerEcritureCommand } from '../ecritures/supprimer-ecriture/c
 import type { MettreAJourEcritureCommand } from '../ecritures/mettre-a-jour-ecriture/command';
 import type { ValiderPlanCalculCommand } from '../calculer-plan/command';
 import type { ValiderDecisionCommand } from '../valider-decision/command';
+import type { ExecuterTransactionCommand } from '../executer-transaction/command';
 
 import type { ValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
 import type { MutationsState } from '../projection-mutations/projection';
@@ -39,6 +41,7 @@ import type { JournalState } from '../projection-journal/projection';
 import type { PlanCalculState } from '../projection-plan-calcul/projection';
 import type { PlanDePaiementState } from '../projection-plan-de-paiement/projection';
 import type { DecisionAPrendreState } from '../projection-decision-a-prendre/projection';
+import type { TransactionsEffectueesState } from '../projection-transactions-effectuees/projection';
 
 // =================================
 // 1. DÉFINITIONS DU DOMAINE (ÉVÉNEMENTS & COMMANDES)
@@ -67,7 +70,8 @@ export type AppEvent =
     | EcritureSupprimeeEvent
     | EcriturePeriodeCorrigeeEvent
     | PlanCalculeEvent
-    | DecisionValideeEvent;
+    | DecisionValideeEvent
+    | TransactionEffectueeEvent;
 
 // Command Union (Le "registre central" des commandes)
 export type AppCommand = 
@@ -88,6 +92,7 @@ export type AppCommand =
     | MettreAJourEcritureCommand
     | ValiderPlanCalculCommand
     | ValiderDecisionCommand
+    | ExecuterTransactionCommand
     // Actions pour les tests
     | { type: 'REPLAY', eventStream: AppEvent[] } 
     | { type: 'REPLAY_COMPLETE' };
@@ -144,7 +149,8 @@ export interface AppState extends
     JournalState, 
     PlanCalculState,
     PlanDePaiementState,
-    DecisionAPrendreState
+    DecisionAPrendreState,
+    TransactionsEffectueesState
 {
   eventStream: AppEvent[];
 }
