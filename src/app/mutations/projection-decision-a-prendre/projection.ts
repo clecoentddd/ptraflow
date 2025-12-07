@@ -6,7 +6,9 @@ import type { MonthlyResult } from '../shared/plan-de-calcul.service';
 import { queryJournal } from '../projection-journal/projection';
 import { queryPlansDeCalcul } from '../projection-plan-calcul/projection';
 import { queryValidatedPeriods } from '../projection-periodes-de-droits/projection';
-import { queryPlanDePaiement } from '../projection-plan-de-paiement/projection';
+import { queryPlanDePaiement } from '../../paiements/projection-plan-de-paiement/projection';
+import { queryTransactions } from '../../paiements/projection-transactions/projection';
+import { parse, format, eachMonthOfInterval, min, max } from 'date-fns';
 
 // 1. State Slice and Initial State
 export interface DecisionData {
@@ -15,7 +17,7 @@ export interface DecisionData {
     mutationType: MutationType;
     planDeCalcul?: {
         calculId: string;
-        detail: MonthlyResult[];
+        detail: MonthlyResult & { paiementsEffectues: number; aPayer: number }[];
     };
     planDePaiementId: string | null;
     periodeDroits?: {
@@ -38,13 +40,12 @@ export const initialDecisionAPrendreState: DecisionAPrendreState = {
 
 
 // 2. Projection Logic
-// This projection rebuilds its state entirely based on the final state of other projections.
 function rebuildDecisionState(state: AppState): DecisionAPrendreState {
     const journal = queryJournal(state);
     const plansDeCalcul = queryPlansDeCalcul(state);
     const allPlansDePaiement = queryPlanDePaiement(state);
+    const allTransactions = queryTransactions(state);
 
-    // Find the absolute latest payment plan ID from the entire system.
     const latestPlanDePaiement = [...allPlansDePaiement].sort(
         (a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
     )[0];
@@ -53,10 +54,32 @@ function rebuildDecisionState(state: AppState): DecisionAPrendreState {
     const decisions: DecisionData[] = journal.map(entry => {
         const planDeCalcul = plansDeCalcul.find(p => p.mutationId === entry.mutationId);
         
-        // Only create a decision if a calculation plan exists for this mutation
         if (!planDeCalcul) {
             return null;
         }
+
+        const transactionsExecutees = allTransactions.filter(t => t.statut === 'Exécuté');
+        const paiementsParMois: Record<string, number> = {};
+
+        transactionsExecutees.forEach(tx => {
+            paiementsParMois[tx.mois] = (paiementsParMois[tx.mois] || 0) + tx.montant;
+        });
+
+        const allMonths = new Set([...Object.keys(paiementsParMois), ...planDeCalcul.detail.map(d => d.month)]);
+        const sortedMonths = Array.from(allMonths).sort((a,b) => parse(a, 'MM-yyyy', new Date()).getTime() - parse(b, 'MM-yyyy', new Date()).getTime());
+
+        const detailAvecPaiements = sortedMonths.map(month => {
+            const calculDuMois = planDeCalcul.detail.find(d => d.month === month);
+            const montantCalcule = calculDuMois ? calculDuMois.calcul : 0;
+            const paiementsEffectues = paiementsParMois[month] || 0;
+            const aPayer = montantCalcule - paiementsEffectues;
+
+            return {
+                ...(calculDuMois || { month, revenus: 0, depenses: 0, resultat: 0, calcul: 0 }),
+                paiementsEffectues,
+                aPayer
+            };
+        });
 
         const decision: DecisionData = {
             decisionId: crypto.randomUUID(),
@@ -64,9 +87,8 @@ function rebuildDecisionState(state: AppState): DecisionAPrendreState {
             mutationType: entry.mutationType,
             planDeCalcul: {
                 calculId: planDeCalcul.calculId,
-                detail: planDeCalcul.detail,
+                detail: detailAvecPaiements,
             },
-            // Every decision refers to the single, most recent plan ID.
             planDePaiementId: latestPlanDePaiementId,
         };
 
@@ -96,7 +118,6 @@ function rebuildDecisionState(state: AppState): DecisionAPrendreState {
 }
 
 // 3. Slice Reducer
-// This reducer only acts at the end of a full replay.
 export function decisionAPrendreProjectionReducer(state: AppState, command: AppCommand): AppState {
     if (command.type === 'REPLAY_COMPLETE') {
         const newDecisionState = rebuildDecisionState(state);

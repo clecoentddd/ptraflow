@@ -76,12 +76,11 @@ export function DecisionAPrendreView() {
                                         </TableHeader>
                                         <TableBody>
                                             {decision.planDeCalcul.detail.map((monthlyResult) => {
-                                                const paiementsEffectues = 0; // Placeholder
-                                                const aPayer = monthlyResult.calcul - paiementsEffectues;
+                                                const { aPayer, calcul, paiementsEffectues } = monthlyResult;
                                                 return (
                                                     <TableRow key={monthlyResult.month}>
                                                         <TableCell className="font-mono">{monthlyResult.month}</TableCell>
-                                                        <TableCell className="text-right">{monthlyResult.calcul.toFixed(2)}</TableCell>
+                                                        <TableCell className="text-right">{calcul.toFixed(2)}</TableCell>
                                                         <TableCell className="text-right">{paiementsEffectues.toFixed(2)}</TableCell>
                                                         <TableCell className={`text-right font-semibold ${aPayer >= 0 ? '' : 'text-destructive'}`}>
                                                             {aPayer.toFixed(2)}
@@ -95,14 +94,13 @@ export function DecisionAPrendreView() {
                                 {/* Mobile View */}
                                 <div className="md:hidden space-y-3">
                                     {decision.planDeCalcul.detail.map((monthlyResult) => {
-                                        const paiementsEffectues = 0; // Placeholder
-                                        const aPayer = monthlyResult.calcul - paiementsEffectues;
+                                        const { aPayer, calcul, paiementsEffectues } = monthlyResult;
                                         return (
                                             <div key={monthlyResult.month} className="p-3 rounded-lg border bg-muted/50">
                                                 <h4 className="font-mono font-semibold mb-2">{monthlyResult.month}</h4>
                                                 <div className="flex justify-between text-sm">
                                                     <span className="text-muted-foreground">Montant calcul</span>
-                                                    <span>{monthlyResult.calcul.toFixed(2)}</span>
+                                                    <span>{calcul.toFixed(2)}</span>
                                                 </div>
                                                 <div className="flex justify-between text-sm">
                                                     <span className="text-muted-foreground">Paiements effectués</span>
