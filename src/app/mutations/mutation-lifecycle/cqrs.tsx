@@ -34,6 +34,7 @@ import { journalProjectionReducer, initialJournalState } from '../projection-jou
 import { planCalculProjectionReducer, initialPlanCalculState } from '../projection-plan-calcul/projection';
 import { planDePaiementProjectionReducer, initialPlanDePaiementState } from '../projection-plan-de-paiement/projection';
 import { decisionAPrendreProjectionReducer, initialDecisionAPrendreState } from '../projection-decision-a-prendre/projection';
+import { paiementsAEffectuerProjectionReducer, initialPaiementsAEffectuerState } from '../projection-paiements-a-effectuer/projection';
 
 
 // 1. INITIAL STATE
@@ -48,6 +49,7 @@ export const initialState: AppState = {
   ...initialPlanCalculState,
   ...initialPlanDePaiementState,
   ...initialDecisionAPrendreState,
+  ...initialPaiementsAEffectuerState,
 };
 
 // 2. PROJECTION LOGIC (Le "Subscriber")
@@ -68,6 +70,7 @@ function rebuildStateFromEvents(eventStream: AppState['eventStream']): AppState 
         stateWithStream = ecrituresProjectionReducer(stateWithStream, event);
         stateWithStream = planCalculProjectionReducer(stateWithStream, event);
         stateWithStream = planDePaiementProjectionReducer(stateWithStream, event);
+        stateWithStream = paiementsAEffectuerProjectionReducer(stateWithStream, event);
     }
     
     // After all individual events are projected, run final projection steps

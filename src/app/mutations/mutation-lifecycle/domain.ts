@@ -41,6 +41,7 @@ import type { JournalState } from '../projection-journal/projection';
 import type { PlanCalculState } from '../projection-plan-calcul/projection';
 import type { PlanDePaiementState } from '../projection-plan-de-paiement/projection';
 import type { DecisionAPrendreState } from '../projection-decision-a-prendre/projection';
+import type { PaiementsAEffectuerState } from '../projection-paiements-a-effectuer/projection';
 
 
 // =================================
@@ -149,7 +150,8 @@ export interface AppState extends
     JournalState, 
     PlanCalculState,
     PlanDePaiementState,
-    DecisionAPrendreState
+    DecisionAPrendreState,
+    PaiementsAEffectuerState
 {
   eventStream: AppEvent[];
 }

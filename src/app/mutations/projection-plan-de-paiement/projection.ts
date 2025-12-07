@@ -11,7 +11,7 @@ export interface PaiementMensuel {
     mois: string; // "MM-yyyy"
     montant: number;
     transactionId: string;
-    status: 'à effectuer' | 'effectué';
+    // Le statut est maintenant géré par la projection PaiementsAEffectuer
 }
 
 export interface PlanDePaiement {
@@ -45,7 +45,6 @@ function applyPlanDePaiementValide(state: PlanDePaiementState, event: PlanDePaie
             mois: p.month,
             montant: p.aPayer,
             transactionId: p.transactionId,
-            status: 'à effectuer',
         }));
     } else { // This implies a RESSOURCES mutation (patch)
         const previousPlan = [...state.plansDePaiement]
@@ -62,7 +61,6 @@ function applyPlanDePaiementValide(state: PlanDePaiementState, event: PlanDePaie
             mois: p.month,
             montant: p.aPayer,
             transactionId: p.transactionId,
-            status: 'à effectuer',
         }));
 
         finalPaiements = [...filteredPaiements, ...newPaiementsForPatch];
@@ -78,22 +76,6 @@ function applyPlanDePaiementValide(state: PlanDePaiementState, event: PlanDePaie
     return { ...state, plansDePaiement: [...allOtherPlans, updatedPlan] };
 }
 
-function applyTransactionEffectuee(state: PlanDePaiementState, event: TransactionEffectueeEvent): PlanDePaiementState {
-    const { transactionId } = event.payload;
-
-    return {
-        ...state,
-        plansDePaiement: state.plansDePaiement.map(plan => ({
-            ...plan,
-            paiements: plan.paiements.map(paiement => 
-                paiement.transactionId === transactionId 
-                    ? { ...paiement, status: 'effectué' } 
-                    : paiement
-            )
-        }))
-    };
-}
-
 
 // --- Reducer ---
 
@@ -106,8 +88,6 @@ export function planDePaiementProjectionReducer<T extends PlanDePaiementState>(
         switch (event.type) {
             case 'PLAN_DE_PAIEMENT_VALIDE':
                 return applyPlanDePaiementValide(state, event as PlanDePaiementValideEvent) as T;
-            case 'TRANSACTION_EFFECTUEE':
-                return applyTransactionEffectuee(state, event as TransactionEffectueeEvent) as T;
         }
     }
     return state;
@@ -117,12 +97,4 @@ export function planDePaiementProjectionReducer<T extends PlanDePaiementState>(
 
 export function queryPlanDePaiement(state: AppState): PlanDePaiement[] {
     return state.plansDePaiement;
-}
-
-export function queryPaiementsAEffectuer(state: AppState): PaiementMensuel[] {
-    return state.plansDePaiement.flatMap(p => p.paiements).filter(p => p.status === 'à effectuer');
-}
-
-export function queryPaiementsEffectues(state: AppState): PaiementMensuel[] {
-    return state.plansDePaiement.flatMap(p => p.paiements).filter(p => p.status === 'effectué');
 }
