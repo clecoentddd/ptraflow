@@ -9,6 +9,5 @@ export interface PlanDePaiementValideEvent extends BaseEvent {
     payload: {
         planDePaiementId: string;
         decisionId: string;
-        detailCalcul: { month: string; aPayer: number }[];
     }
 }

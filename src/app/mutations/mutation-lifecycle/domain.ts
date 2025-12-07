@@ -1,4 +1,5 @@
 
+
 import type { DroitsMutationCreatedEvent } from '../create-mutation/event';
 import type { PaiementsSuspendusEvent } from '../suspend-paiements/event';
 import type { DroitsAnalysesEvent } from '../analyze-droits/event';
@@ -15,7 +16,7 @@ import type { DecisionValideeEvent } from '../valider-decision/event';
 
 // Importation des événements de paiement
 import type { PlanDePaiementValideEvent } from '@/app/paiements/valider-plan-paiement/event';
-import type { TransactionEffectueeEvent } from '@/app/paiements/executer-transaction/event';
+import type { TransactionCreeeEvent, TransactionEffectueeEvent, TransactionRemplaceeEvent } from '@/app/paiements/projection-transactions/events';
 
 // Importation des commandes de mutation
 import type { CreateDroitsMutationCommand } from '../create-mutation/command';
@@ -45,7 +46,7 @@ import type { JournalState } from '../projection-journal/projection';
 import type { PlanCalculState } from '../projection-plan-calcul/projection';
 import type { PlanDePaiementState } from '@/app/paiements/projection-plan-de-paiement/projection';
 import type { DecisionAPrendreState } from '../projection-decision-a-prendre/projection';
-import type { TransactionsState } from '@/app/mutations/projection-transactions/projection';
+import type { TransactionsState } from '@/app/paiements/projection-transactions/projection';
 
 
 // =================================
@@ -76,6 +77,8 @@ export type AppEvent =
     | EcriturePeriodeCorrigeeEvent
     | PlanCalculeEvent
     | DecisionValideeEvent
+    | TransactionCreeeEvent
+    | TransactionRemplaceeEvent
     | TransactionEffectueeEvent;
 
 
