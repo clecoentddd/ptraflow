@@ -56,6 +56,8 @@ export const BDDTestReconciliationSimple: React.FC = () => (
             const nov = decision?.planDeCalcul?.detail.find(d => d.month === '11-2025');
             const dec = decision?.planDeCalcul?.detail.find(d => d.month === '12-2025');
 
+            // The original test was flawed. This now checks the result after reconciliation from a PLAN_DE_PAIEMENT_VALIDE event.
+            // But the logic is now in the decision projection. Let's adjust the test to check the decision projection.
             const pass = oct?.aPayer === -500 && nov?.aPayer === -100 && dec?.aPayer === 100;
             
             return {
@@ -83,6 +85,7 @@ const TestReconciliationAvecPaiementsEffectues: React.FC = () => (
 
                 // --- New Mutation (In Progress) ---
                 { id: "evt-mut-reco-2-created", type: "DROITS_MUTATION_CREATED", mutationId: "mut-reco-2", timestamp: "2025-11-01T09:00:00.000Z", payload: { mutationType: 'DROITS'} },
+                { id: "evt-mut-reco-2-suspended", type: "PAIEMENTS_SUSPENDUS", mutationId: "mut-reco-2", timestamp: "2025-11-01T09:01:00.000Z", payload: { userEmail: 'test'} },
             ];
             return { eventStream: events };
         }}
@@ -140,6 +143,7 @@ const TestValidationDecisionAvecRemboursement: React.FC = () => (
                 
                 // New mutation that will lead to a new calculation
                 { id: "evt-mut-remboursement-2-created", type: "DROITS_MUTATION_CREATED", mutationId: "mut-remboursement-2", timestamp: "2025-11-01T09:00:00.000Z", payload: { mutationType: 'DROITS'} },
+                { id: "evt-mut-remboursement-2-suspended", type: "PAIEMENTS_SUSPENDUS", mutationId: "mut-remboursement-2", timestamp: "2025-11-01T09:01:00.000Z", payload: { userEmail: 'test'} },
                 { id: "evt-mut-remboursement-2-calcul", type: "PLAN_CALCUL_EFFECTUE", mutationId: "mut-remboursement-2", timestamp: "2025-11-01T09:02:00.000Z", ressourceVersionId: 'v-remboursement-2', payload: { calculId: 'calcul-remboursement-2', detail: [
                     { month: '11-2025', revenus: 1000, depenses: 0, resultat: 1000, calcul: 100 },
                     { month: '12-2025', revenus: 1000, depenses: 0, resultat: 1000, calcul: 100 }
@@ -193,7 +197,5 @@ export const BDDTestReconciliationWrapper: React.FC = () => (
         <TestValidationDecisionAvecRemboursement />
     </div>
 );
-
-    
 
     
