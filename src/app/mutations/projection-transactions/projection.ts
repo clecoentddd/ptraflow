@@ -1,8 +1,8 @@
-
 "use client";
 
 import type { AppEvent, AppCommand, AppState } from '../mutation-lifecycle/domain';
-import type { TransactionCreeeEvent, TransactionEffectueeEvent, TransactionRemplaceeEvent } from './events';
+import type { TransactionEffectueeEvent } from '../executer-transaction/event';
+import type { PlanDePaiementValideEvent } from '../valider-plan-paiement/event';
 
 // --- State ---
 export type TransactionStatut = 'A Exécuter' | 'Exécuté' | 'Remplacé';
@@ -26,31 +26,38 @@ export const initialTransactionsState: TransactionsState = {
 
 
 // --- Projection Logic ---
+function applyPlanDePaiementValide(state: TransactionsState, event: PlanDePaiementValideEvent): TransactionsState {
+    let newTransactions = [...state.transactions];
 
-function applyTransactionCreee(state: TransactionsState, event: TransactionCreeeEvent): TransactionsState {
-    const newTransaction: Transaction = {
-        id: event.payload.transactionId,
-        planDePaiementId: event.payload.planDePaiementId,
-        mutationId: event.mutationId,
-        mois: event.payload.mois,
-        montant: event.payload.montant,
-        statut: 'A Exécuter',
-    };
+    for (const paiement of event.payload.detailCalcul) {
+        // Find if a transaction for this month already exists and is not yet executed/replaced
+        const existingTransactionIndex = newTransactions.findIndex(
+            t => t.mois === paiement.month && t.statut === 'A Exécuter'
+        );
+
+        if (existingTransactionIndex !== -1) {
+            // Mark the old one as replaced
+            newTransactions[existingTransactionIndex] = {
+                ...newTransactions[existingTransactionIndex],
+                statut: 'Remplacé'
+            };
+        }
+
+        // Create the new transaction
+        const newTransaction: Transaction = {
+            id: crypto.randomUUID(),
+            planDePaiementId: event.payload.planDePaiementId,
+            mutationId: event.mutationId,
+            mois: paiement.month,
+            montant: paiement.aPayer,
+            statut: 'A Exécuter',
+        };
+        newTransactions.push(newTransaction);
+    }
     
-    // Add the new transaction to the list
-    return { ...state, transactions: [...state.transactions, newTransaction] };
+    return { ...state, transactions: newTransactions };
 }
 
-function applyTransactionRemplacee(state: TransactionsState, event: TransactionRemplaceeEvent): TransactionsState {
-    return {
-        ...state,
-        transactions: state.transactions.map(t => 
-            t.id === event.payload.transactionId 
-            ? { ...t, statut: 'Remplacé' } 
-            : t
-        )
-    };
-}
 
 function applyTransactionEffectuee(state: TransactionsState, event: TransactionEffectueeEvent): TransactionsState {
     return {
@@ -73,10 +80,8 @@ export function transactionsProjectionReducer<T extends TransactionsState>(
     if ('type' in eventOrCommand && 'payload' in eventOrCommand) {
         const event = eventOrCommand;
         switch (event.type) {
-            case 'TRANSACTION_CREEE':
-                return applyTransactionCreee(state, event as TransactionCreeeEvent) as T;
-            case 'TRANSACTION_REMPLACEE':
-                return applyTransactionRemplacee(state, event as TransactionRemplaceeEvent) as T;
+            case 'PLAN_DE_PAIEMENT_VALIDE':
+                return applyPlanDePaiementValide(state, event as PlanDePaiementValideEvent) as T;
             case 'TRANSACTION_EFFECTUEE':
                 return applyTransactionEffectuee(state, event as TransactionEffectueeEvent) as T;
         }
@@ -87,10 +92,15 @@ export function transactionsProjectionReducer<T extends TransactionsState>(
 // --- Queries ---
 
 export function queryTransactions(state: AppState): Transaction[] {
-    // Sort by month
+    // Sort by month, then by status to keep active ones visible
     return [...state.transactions].sort((a, b) => {
         const dateA = new Date(a.mois.split('-')[1], parseInt(a.mois.split('-')[0]) - 1);
         const dateB = new Date(b.mois.split('-')[1], parseInt(b.mois.split('-')[0]) - 1);
-        return dateA.getTime() - dateB.getTime();
+        if (dateA.getTime() !== dateB.getTime()) {
+            return dateA.getTime() - dateB.getTime();
+        }
+        // If months are equal, sort by status
+        const statusOrder = { 'A Exécuter': 1, 'Exécuté': 2, 'Remplacé': 3 };
+        return statusOrder[a.statut] - statusOrder[b.statut];
     });
 }

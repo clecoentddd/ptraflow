@@ -1,4 +1,3 @@
-
 "use client";
 
 import type { BaseEvent } from '../mutation-lifecycle/domain';
@@ -9,5 +8,6 @@ export interface PlanDePaiementValideEvent extends BaseEvent {
     payload: {
         planDePaiementId: string;
         decisionId: string;
+        detailCalcul: { month: string; aPayer: number }[];
     }
 }
