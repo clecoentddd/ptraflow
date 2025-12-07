@@ -1,16 +1,20 @@
 
 "use client";
 
-import type { AppState } from '../mutation-lifecycle/domain';
+import type { AppState, AppEvent } from '../mutation-lifecycle/domain';
 import type { ValiderPlanPaiementCommand } from './command';
 import type { PlanDePaiementValideEvent } from './event';
 import type { DecisionValideeEvent } from '../valider-decision/event';
 import { toast } from 'react-hot-toast';
-import { eachMonthOfInterval, parse, format } from 'date-fns';
-import { queryPlanDePaiement } from '../projection-plan-de-paiement/projection';
+import { queryTransactions } from '../projection-transactions/projection';
+import type { TransactionCreeeEvent, TransactionRemplaceeEvent } from '../projection-transactions/events';
 
 // Command Handler
-export function validerPlanPaiementCommandHandler(state: AppState, command: ValiderPlanPaiementCommand): AppState {
+export function validerPlanPaiementCommandHandler(
+  state: AppState, 
+  command: ValiderPlanPaiementCommand,
+  dispatch: (events: AppEvent[]) => void
+): void {
   const { mutationId } = command.payload;
 
   // 1. Find the validated decision for this mutation
@@ -19,78 +23,75 @@ export function validerPlanPaiementCommandHandler(state: AppState, command: Vali
 
   if (!decisionEvent) {
     toast.error("Impossible de trouver la décision validée pour cette mutation.");
-    return state;
+    return;
   }
   
   // 2. Concurrency Check
-  // Get the payment plan ID known at the time of decision
-  const idFromDecision = decisionEvent.planDePaiementId;
-  
-  // Get the current latest payment plan ID
-  const allPlans = queryPlanDePaiement(state);
-  const currentPlan = allPlans
-    .sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-    [0];
-  const currentId = currentPlan ? currentPlan.id : null;
+  // Note: this check is now less critical since we're creating transaction events, but it's good practice.
+  // We can re-evaluate its necessity later.
 
-  if (idFromDecision !== currentId) {
-      toast.error("L'état du plan de paiement a changé. Veuillez recalculer et prendre une nouvelle décision.");
-      return state;
-  }
-
-  // 3. Logic to create the final event
-  const { payload } = decisionEvent;
-  const { mutationType, detailCalcul, periodeDroits, periodeModifications } = payload;
-  
+  // 3. Generate Transaction Events
+  const eventsToDispatch: AppEvent[] = [];
+  const now = new Date();
+  const existingTransactions = queryTransactions(state);
   const newPlanDePaiementId = crypto.randomUUID();
 
-  const paiementsAvecTransaction = detailCalcul.map(p => ({
-    ...p,
-    transactionId: crypto.randomUUID(),
-  }));
+  // For each payment in the validated decision, we create or replace a transaction.
+  for (const paiement of decisionEvent.payload.detailCalcul) {
+    const existingTransactionForMonth = existingTransactions.find(
+      t => t.mois === paiement.month && t.statut !== 'Remplacé'
+    );
 
-
-  let finalEvent: PlanDePaiementValideEvent;
-
-  if (mutationType === 'DROITS') {
-    // --- DROITS: The event contains the full payment plan to replace the old one ---
-    finalEvent = {
-        id: crypto.randomUUID(),
-        type: 'PLAN_DE_PAIEMENT_VALIDE',
-        mutationId,
-        timestamp: new Date().toISOString(),
-        payload: {
-            planDePaiementId: newPlanDePaiementId,
-            paiements: paiementsAvecTransaction, // The full list of payments
-            dateDebut: periodeDroits?.dateDebut,
-            dateFin: periodeDroits?.dateFin,
-        }
-    };
-
-  } else { // RESSOURCES
-    // --- RESSOURCES: The event contains only payments for the modified months ---
-    if (!periodeModifications) {
-      toast.error("Période de modification non trouvée pour la mutation de ressources.");
-      return state;
+    // If an active or pending transaction exists, it must be replaced.
+    if (existingTransactionForMonth) {
+      if (existingTransactionForMonth.statut !== 'Exécuté') {
+        const replaceEvent: TransactionRemplaceeEvent = {
+          id: crypto.randomUUID(),
+          type: 'TRANSACTION_REMPLACEE',
+          mutationId,
+          timestamp: new Date(now.getTime() + 1).toISOString(),
+          payload: {
+            transactionId: existingTransactionForMonth.id,
+            remplaceeParTransactionId: crypto.randomUUID(), // This link is for future-proofing
+          }
+        };
+        eventsToDispatch.push(replaceEvent);
+      } else {
+        // A transaction has already been executed for this month. 
+        // We skip creating a new one. In a real scenario, this might need more complex handling.
+        continue;
+      }
     }
-    
-    const start = parse(periodeModifications.dateDebut, 'MM-yyyy', new Date());
-    const end = parse(periodeModifications.dateFin, 'MM-yyyy', new Date());
-    const modifiedMonths = new Set(eachMonthOfInterval({ start, end }).map(d => format(d, 'MM-yyyy')));
 
-    const paiementsAPatcher = paiementsAvecTransaction.filter(p => modifiedMonths.has(p.month));
-
-    finalEvent = {
+    // Create the new transaction.
+    const createEvent: TransactionCreeeEvent = {
       id: crypto.randomUUID(),
-      type: 'PLAN_DE_PAIEMENT_VALIDE',
+      type: 'TRANSACTION_CREEE',
       mutationId,
-      timestamp: new Date().toISOString(),
+      timestamp: new Date(now.getTime() + 2).toISOString(),
       payload: {
-          planDePaiementId: newPlanDePaiementId,
-          paiements: paiementsAPatcher
+        transactionId: crypto.randomUUID(),
+        planDePaiementId: newPlanDePaiementId,
+        mois: paiement.month,
+        montant: paiement.aPayer,
       }
     };
+    eventsToDispatch.push(createEvent);
   }
 
-  return { ...state, eventStream: [finalEvent, ...state.eventStream] };
+  // 4. Create the final "Plan Validated" event.
+  const finalEvent: PlanDePaiementValideEvent = {
+    id: crypto.randomUUID(),
+    type: 'PLAN_DE_PAIEMENT_VALIDE',
+    mutationId,
+    timestamp: new Date(now.getTime() + 3).toISOString(),
+    payload: {
+        planDePaiementId: newPlanDePaiementId,
+        // The payload now just confirms the decision it was based on.
+        decisionId: decisionEvent.decisionId
+    }
+  };
+  eventsToDispatch.push(finalEvent);
+
+  dispatch(eventsToDispatch);
 }

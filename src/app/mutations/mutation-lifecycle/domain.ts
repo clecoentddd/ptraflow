@@ -14,7 +14,7 @@ import type { PlanCalculeEvent } from '../calculer-plan/event';
 import type { EcriturePeriodeCorrigeeEvent } from '../ecritures/mettre-a-jour-ecriture/event';
 import type { DecisionValideeEvent } from '../valider-decision/event';
 import type { PlanDePaiementValideEvent } from '../valider-plan-paiement/event';
-import type { TransactionEffectueeEvent } from '../executer-transaction/event';
+import type { TransactionEffectueeEvent, TransactionCreeeEvent, TransactionRemplaceeEvent } from '../projection-transactions/events';
 
 
 import type { CreateDroitsMutationCommand } from '../create-mutation/command';
@@ -41,7 +41,7 @@ import type { JournalState } from '../projection-journal/projection';
 import type { PlanCalculState } from '../projection-plan-calcul/projection';
 import type { PlanDePaiementState } from '../projection-plan-de-paiement/projection';
 import type { DecisionAPrendreState } from '../projection-decision-a-prendre/projection';
-import type { PaiementsAEffectuerState } from '../projection-paiements-a-effectuer/projection';
+import type { TransactionsState } from '../projection-transactions/projection';
 
 
 // =================================
@@ -72,12 +72,15 @@ export type AppEvent =
     | EcriturePeriodeCorrigeeEvent
     | PlanCalculeEvent
     | DecisionValideeEvent
-    | TransactionEffectueeEvent;
+    | TransactionEffectueeEvent
+    | TransactionCreeeEvent
+    | TransactionRemplaceeEvent;
 
 // Command Union (Le "registre central" des commandes)
 export type AppCommand = 
     // Nouveau type d'action pour le pattern Pub/Sub
     | { type: 'DISPATCH_EVENT', event: AppEvent }
+    | { type: 'DISPATCH_EVENTS', events: AppEvent[] }
     // Commandes legacy (à supprimer progressivement)
     | CreateDroitsMutationCommand 
     | SuspendPaiementsCommand 
@@ -151,7 +154,7 @@ export interface AppState extends
     PlanCalculState,
     PlanDePaiementState,
     DecisionAPrendreState,
-    PaiementsAEffectuerState
+    TransactionsState
 {
   eventStream: AppEvent[];
 }

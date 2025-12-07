@@ -50,50 +50,15 @@ export function PlanDePaiementView() {
                             <CardDescription className="font-mono text-xs mt-1">
                                 Mutation ID: {plan.mutationId}
                             </CardDescription>
+                             <CardDescription className="font-mono text-xs mt-1">
+                                Decision ID: {plan.decisionId}
+                            </CardDescription>
                         </div>
                     </AccordionTrigger>
                     <AccordionContent className="px-6 pb-4">
-                        {/* Desktop View: Table */}
-                        <div className="hidden md:block">
-                            <Table>
-                                <TableHeader>
-                                    <TableRow>
-                                        <TableHead className="font-mono w-1/3">Mois</TableHead>
-                                        <TableHead className="text-right w-1/3">Montant du paiement</TableHead>
-                                        <TableHead className="w-1/3">Transaction ID</TableHead>
-                                    </TableRow>
-                                </TableHeader>
-                                <TableBody>
-                                    {plan.paiements.sort((a,b) => a.mois.localeCompare(b.mois)).map((paiement) => {
-                                        return (
-                                            <TableRow key={paiement.transactionId}>
-                                                <TableCell className="font-mono">{paiement.mois}</TableCell>
-                                                <TableCell className={`text-right font-semibold ${paiement.montant >= 0 ? '' : 'text-destructive'}`}>
-                                                    {paiement.montant.toFixed(2)} CHF
-                                                </TableCell>
-                                                <TableCell className="font-mono text-xs">{paiement.transactionId}</TableCell>
-                                            </TableRow>
-                                        );
-                                    })}
-                                </TableBody>
-                            </Table>
-                        </div>
-                        {/* Mobile View: List of Cards */}
-                        <div className="md:hidden space-y-3">
-                            {plan.paiements.sort((a,b) => a.mois.localeCompare(b.mois)).map((paiement) => (
-                                <div key={paiement.transactionId} className="p-3 rounded-lg border bg-muted/50">
-                                    <h4 className="font-mono font-semibold mb-2">{paiement.mois}</h4>
-                                    <div className={`flex justify-between text-sm font-semibold ${paiement.montant >= 0 ? '' : 'text-destructive'}`}>
-                                        <span>Montant</span>
-                                        <span>{paiement.montant.toFixed(2)} CHF</span>
-                                    </div>
-                                    <div className="flex justify-between text-xs mt-2 pt-2 border-t text-muted-foreground">
-                                        <span>Transaction ID</span>
-                                        <span className="font-mono">{paiement.transactionId.substring(0,8)}...</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                       <div className="text-sm text-muted-foreground">
+                           Cet enregistrement confirme la validation du plan de paiement. Les transactions à exécuter sont gérées dans la section "Transactions".
+                       </div>
                    </AccordionContent>
                 </AccordionItem>
             ))}

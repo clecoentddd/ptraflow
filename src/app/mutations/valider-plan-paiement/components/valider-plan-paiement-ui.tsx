@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ArrowRight, ArrowRightCircle, Check, CheckCircle2, Circle } from "lucide-react";
 import { queryTodos } from "../../projection-todolist/projection";
+import { validerPlanPaiementCommandHandler } from "../handler";
 
 export function ValiderPlanPaiementTodoItem({ mutationId }: { mutationId: string }) {
     const { state } = useCqrs();
@@ -39,7 +40,11 @@ export function ValiderPlanPaiementButton({ mutationId }: { mutationId: string }
     const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Valider le plan de paiement');
     
     const handleClick = () => {
-        dispatchEvent({ type: 'VALIDER_PLAN_PAIEMENT', payload: { mutationId } });
+        const command = { type: 'VALIDER_PLAN_PAIEMENT', payload: { mutationId } };
+        dispatchEvent({ 
+            ...command,
+            handler: (state, dispatch) => validerPlanPaiementCommandHandler(state, command, dispatch)
+        } as any);
     };
 
     const isTodo = todo?.status === 'à faire';

@@ -2,15 +2,12 @@
 "use client";
 
 import type { BaseEvent } from '../mutation-lifecycle/domain';
-import type { DecisionDetail } from '../valider-decision/event';
 
-// Event when the whole payment plan is replaced (for DROITS mutations)
+// This event now serves as a marker that a decision was validated and transactions were processed.
 export interface PlanDePaiementValideEvent extends BaseEvent {
     type: 'PLAN_DE_PAIEMENT_VALIDE';
     payload: {
         planDePaiementId: string;
-        paiements: (DecisionDetail & { transactionId: string })[];
-        dateDebut?: string;
-        dateFin?: string;
+        decisionId: string;
     }
 }

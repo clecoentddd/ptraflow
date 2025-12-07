@@ -15,7 +15,7 @@ import { JournalView } from '../../projection-journal/components/journal-ui';
 import { PlanCalculView } from '../../projection-plan-calcul/components/plan-calcul-view';
 import { DecisionAPrendreView } from '../../projection-decision-a-prendre/components/decision-a-prendre-view';
 import { PlanDePaiementView } from '../../projection-plan-de-paiement/components/plan-de-paiement-view';
-import { PaiementsAEffectuerView } from '../../projection-paiements-a-effectuer/components/paiements-a-effectuer-view';
+import { TransactionsView } from '../../projection-transactions/components/transactions-view';
 
 function DashboardContent() {
   const { state } = useCqrs();
@@ -71,8 +71,8 @@ function DashboardContent() {
           </div>
           
           <div>
-            <h2 className="text-2xl font-bold mb-4 text-foreground">Plan de Paiements - Transactions à Effectuer</h2>
-            <PaiementsAEffectuerView />
+            <h2 className="text-2xl font-bold mb-4 text-foreground">Transactions</h2>
+            <TransactionsView />
           </div>
           
           <div>

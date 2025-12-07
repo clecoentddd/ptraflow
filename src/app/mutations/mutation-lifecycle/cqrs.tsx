@@ -34,7 +34,7 @@ import { journalProjectionReducer, initialJournalState } from '../projection-jou
 import { planCalculProjectionReducer, initialPlanCalculState } from '../projection-plan-calcul/projection';
 import { planDePaiementProjectionReducer, initialPlanDePaiementState } from '../projection-plan-de-paiement/projection';
 import { decisionAPrendreProjectionReducer, initialDecisionAPrendreState } from '../projection-decision-a-prendre/projection';
-import { paiementsAEffectuerProjectionReducer, initialPaiementsAEffectuerState } from '../projection-paiements-a-effectuer/projection';
+import { transactionsProjectionReducer, initialTransactionsState } from '../projection-transactions/projection';
 
 
 // 1. INITIAL STATE
@@ -49,7 +49,7 @@ export const initialState: AppState = {
   ...initialPlanCalculState,
   ...initialPlanDePaiementState,
   ...initialDecisionAPrendreState,
-  ...initialPaiementsAEffectuerState,
+  ...initialTransactionsState,
 };
 
 // 2. PROJECTION LOGIC (Le "Subscriber")
@@ -70,7 +70,7 @@ function rebuildStateFromEvents(eventStream: AppState['eventStream']): AppState 
         stateWithStream = ecrituresProjectionReducer(stateWithStream, event);
         stateWithStream = planCalculProjectionReducer(stateWithStream, event);
         stateWithStream = planDePaiementProjectionReducer(stateWithStream, event);
-        stateWithStream = paiementsAEffectuerProjectionReducer(stateWithStream, event);
+        stateWithStream = transactionsProjectionReducer(stateWithStream, event);
     }
     
     // After all individual events are projected, run final projection steps
@@ -94,6 +94,9 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
     if (action.type === 'DISPATCH_EVENT') {
         const newEventStream = [action.event, ...state.eventStream];
         stateAfterEvents = rebuildStateFromEvents(newEventStream);
+    } else if (action.type === 'DISPATCH_EVENTS') {
+        const newEventStream = [...action.events, ...state.eventStream];
+        stateAfterEvents = rebuildStateFromEvents(newEventStream);
     } else if (action.type === 'REPLAY') {
          stateAfterEvents = rebuildStateFromEvents(action.eventStream);
     } else if (action.type === 'REPLAY_COMPLETE') {
@@ -103,6 +106,7 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
     } else {
         // --- Command Handling ---
         let stateAfterCommand: AppState = state;
+        let multipleEventsDispatched = false;
 
         switch (action.type) {
             case 'CREATE_DROITS_MUTATION':
@@ -124,7 +128,10 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
                 stateAfterCommand = analyzeDroitsCommandHandler(state, action);
                 break;
             case 'VALIDER_PLAN_PAIEMENT':
-                stateAfterCommand = validerPlanPaiementCommandHandler(state, action);
+                 validerPlanPaiementCommandHandler(state, action, (events) => {
+                    stateAfterCommand = { ...state, eventStream: [...events, ...state.eventStream] };
+                    multipleEventsDispatched = true;
+                });
                 break;
             case 'VALIDER_PLAN_CALCUL':
                 stateAfterCommand = validerPlanCalculCommandHandler(state, action);
@@ -155,7 +162,7 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
                  return state;
         }
         
-        if (stateAfterCommand.eventStream.length > state.eventStream.length) {
+        if (stateAfterCommand.eventStream.length > state.eventStream.length || multipleEventsDispatched) {
             stateAfterEvents = rebuildStateFromEvents(stateAfterCommand.eventStream);
         } else {
             return stateAfterCommand;
@@ -193,8 +200,13 @@ export function useCqrs() {
     // For commands that generate events via handlers (the new pub/sub pattern)
     // The handler is passed to the command object in the UI.
     if ('handler' in command && typeof command.handler === 'function') {
-        command.handler(context.state, (event: AppEvent) => {
-            context.dispatch({ type: 'DISPATCH_EVENT', event });
+        const handler = command.handler as any;
+        handler(context.state, (events: AppEvent[] | AppEvent) => {
+            if (Array.isArray(events)) {
+                context.dispatch({ type: 'DISPATCH_EVENTS', events });
+            } else {
+                context.dispatch({ type: 'DISPATCH_EVENT', event: events });
+            }
         });
     } else { // For legacy commands or direct event dispatches
         context.dispatch(command);

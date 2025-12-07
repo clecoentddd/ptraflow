@@ -1,10 +1,11 @@
+
 "use client";
 
 import type { AppState } from '../mutation-lifecycle/domain';
 import type { ExecuterTransactionCommand } from './command';
-import type { TransactionEffectueeEvent } from './event';
+import type { TransactionEffectueeEvent } from '../projection-transactions/events';
 import { toast } from 'react-hot-toast';
-import { queryPlanDePaiement } from '../projection-plan-de-paiement/projection';
+import { queryTransactions } from '../projection-transactions/projection';
 import { parse, isBefore, endOfMonth } from 'date-fns';
 
 // Command Handler
@@ -13,29 +14,23 @@ export function executerTransactionCommandHandler(
     command: ExecuterTransactionCommand
 ): AppState {
     const { transactionId, mois } = command.payload;
-    const allPlans = queryPlanDePaiement(state);
+    const allTransactions = queryTransactions(state);
 
-    // 1. Find the latest payment plan in the system
-    const latestPlan = allPlans.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
-    if (!latestPlan) {
-        toast.error("Aucun plan de paiement n'a été trouvé.");
-        return state;
-    }
-
-    // 2. Validity Check: does the transaction belong to the latest plan?
-    const transaction = latestPlan.paiements.find(p => p.transactionId === transactionId);
+    // 1. Find the transaction to execute
+    const transaction = allTransactions.find(t => t.id === transactionId);
+    
     if (!transaction) {
-        toast.error("Cette transaction n'est plus valide.");
+        toast.error("Cette transaction n'existe pas.");
         return state;
     }
 
-    // 3. Execution Check: has this transaction already been executed?
-    if (transaction.status === 'effectué') {
-        toast.error("Transaction déjà effectuée.");
+    // 2. Execution Check: has this transaction already been executed or replaced?
+    if (transaction.statut !== 'A Exécuter') {
+        toast.error(`Transaction déjà ${transaction.statut.toLowerCase()}.`);
         return state;
     }
 
-    // 4. Date Check: is the payment month in the past or current month?
+    // 3. Date Check: is the payment month in the past or current month?
     const transactionMonth = parse(mois, 'MM-yyyy', new Date());
     const currentMonth = new Date();
     if (!isBefore(transactionMonth, endOfMonth(currentMonth))) {
