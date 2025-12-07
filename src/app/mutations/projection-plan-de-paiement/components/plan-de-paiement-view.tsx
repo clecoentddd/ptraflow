@@ -19,14 +19,12 @@ import {
 } from "@/components/ui/accordion";
 import { format, parse, isBefore, endOfMonth } from "date-fns";
 import { Button } from "@/components/ui/button";
-import { queryTransactionsEffectuees } from "../../projection-transactions-effectuees/projection";
 import { CheckCircle, PlayCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function PlanDePaiementView() {
     const { state, dispatchEvent } = useCqrs();
     const plans = queryPlanDePaiement(state);
-    const transactionsEffectuees = queryTransactionsEffectuees(state);
     const currentMonth = new Date();
 
     if (plans.length === 0) {
@@ -78,7 +76,7 @@ export function PlanDePaiementView() {
                                 </TableHeader>
                                 <TableBody>
                                     {plan.paiements.sort((a,b) => a.mois.localeCompare(b.mois)).map((paiement) => {
-                                        const isExecuted = transactionsEffectuees.includes(paiement.transactionId);
+                                        const isExecuted = paiement.status === 'effectué';
                                         const transactionMonth = parse(paiement.mois, 'MM-yyyy', new Date());
                                         const isFuture = !isBefore(transactionMonth, endOfMonth(currentMonth));
                                         
@@ -117,7 +115,7 @@ export function PlanDePaiementView() {
                         {/* Mobile View: List of Cards */}
                         <div className="md:hidden space-y-3">
                             {plan.paiements.sort((a,b) => a.mois.localeCompare(b.mois)).map((paiement) => {
-                                 const isExecuted = transactionsEffectuees.includes(paiement.transactionId);
+                                 const isExecuted = paiement.status === 'effectué';
                                  const transactionMonth = parse(paiement.mois, 'MM-yyyy', new Date());
                                  const isFuture = !isBefore(transactionMonth, endOfMonth(currentMonth));
                                 

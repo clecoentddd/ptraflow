@@ -2,8 +2,8 @@
 "use client";
 
 import type { AppEvent, AppCommand, AppState } from '../mutation-lifecycle/domain';
-import { eachMonthOfInterval, format, parse } from 'date-fns';
 import type { PlanDePaiementValideEvent } from '../valider-plan-paiement/event';
+import type { TransactionEffectueeEvent } from '../executer-transaction/event';
 
 // --- State ---
 export interface PaiementMensuel {
@@ -11,6 +11,7 @@ export interface PaiementMensuel {
     mois: string; // "MM-yyyy"
     montant: number;
     transactionId: string;
+    status: 'à effectuer' | 'effectué';
 }
 
 export interface PlanDePaiement {
@@ -44,10 +45,9 @@ function applyPlanDePaiementValide(state: PlanDePaiementState, event: PlanDePaie
             mois: p.month,
             montant: p.aPayer,
             transactionId: p.transactionId,
+            status: 'à effectuer',
         }));
     } else { // This implies a RESSOURCES mutation (patch)
-        // Find the previous payment plan state to patch upon.
-        // It must be the absolute latest one.
         const previousPlan = [...state.plansDePaiement]
             .sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
             [0];
@@ -55,15 +55,14 @@ function applyPlanDePaiementValide(state: PlanDePaiementState, event: PlanDePaie
         const basePaiements = previousPlan ? previousPlan.paiements : [];
         const monthsToPatch = new Set(paiements.map(p => p.month));
         
-        // Remove old payments for the patched months from the base plan
         const filteredPaiements = basePaiements.filter(p => !monthsToPatch.has(p.mois));
         
-        // Add new payments for the patched months
         const newPaiementsForPatch = paiements.map(p => ({
             planDePaiementId,
             mois: p.month,
             montant: p.aPayer,
             transactionId: p.transactionId,
+            status: 'à effectuer',
         }));
 
         finalPaiements = [...filteredPaiements, ...newPaiementsForPatch];
@@ -79,6 +78,22 @@ function applyPlanDePaiementValide(state: PlanDePaiementState, event: PlanDePaie
     return { ...state, plansDePaiement: [...allOtherPlans, updatedPlan] };
 }
 
+function applyTransactionEffectuee(state: PlanDePaiementState, event: TransactionEffectueeEvent): PlanDePaiementState {
+    const { transactionId } = event.payload;
+
+    return {
+        ...state,
+        plansDePaiement: state.plansDePaiement.map(plan => ({
+            ...plan,
+            paiements: plan.paiements.map(paiement => 
+                paiement.transactionId === transactionId 
+                    ? { ...paiement, status: 'effectué' } 
+                    : paiement
+            )
+        }))
+    };
+}
+
 
 // --- Reducer ---
 
@@ -91,6 +106,8 @@ export function planDePaiementProjectionReducer<T extends PlanDePaiementState>(
         switch (event.type) {
             case 'PLAN_DE_PAIEMENT_VALIDE':
                 return applyPlanDePaiementValide(state, event as PlanDePaiementValideEvent) as T;
+            case 'TRANSACTION_EFFECTUEE':
+                return applyTransactionEffectuee(state, event as TransactionEffectueeEvent) as T;
         }
     }
     return state;
@@ -100,4 +117,12 @@ export function planDePaiementProjectionReducer<T extends PlanDePaiementState>(
 
 export function queryPlanDePaiement(state: AppState): PlanDePaiement[] {
     return state.plansDePaiement;
+}
+
+export function queryPaiementsAEffectuer(state: AppState): PaiementMensuel[] {
+    return state.plansDePaiement.flatMap(p => p.paiements).filter(p => p.status === 'à effectuer');
+}
+
+export function queryPaiementsEffectues(state: AppState): PaiementMensuel[] {
+    return state.plansDePaiement.flatMap(p => p.paiements).filter(p => p.status === 'effectué');
 }

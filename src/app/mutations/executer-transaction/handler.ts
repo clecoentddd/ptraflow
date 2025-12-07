@@ -5,8 +5,7 @@ import type { ExecuterTransactionCommand } from './command';
 import type { TransactionEffectueeEvent } from './event';
 import { toast } from 'react-hot-toast';
 import { queryPlanDePaiement } from '../projection-plan-de-paiement/projection';
-import { queryTransactionsEffectuees } from '../projection-transactions-effectuees/projection';
-import { parse, isBefore, isEqual, endOfMonth } from 'date-fns';
+import { parse, isBefore, endOfMonth } from 'date-fns';
 
 // Command Handler
 export function executerTransactionCommandHandler(
@@ -15,7 +14,6 @@ export function executerTransactionCommandHandler(
 ): AppState {
     const { transactionId, mois } = command.payload;
     const allPlans = queryPlanDePaiement(state);
-    const transactionsEffectuees = queryTransactionsEffectuees(state);
 
     // 1. Find the latest payment plan in the system
     const latestPlan = allPlans.sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())[0];
@@ -32,7 +30,7 @@ export function executerTransactionCommandHandler(
     }
 
     // 3. Execution Check: has this transaction already been executed?
-    if (transactionsEffectuees.includes(transactionId)) {
+    if (transaction.status === 'effectué') {
         toast.error("Transaction déjà effectuée.");
         return state;
     }
