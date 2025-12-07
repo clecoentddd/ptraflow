@@ -32,12 +32,14 @@ export function validerDecisionCommandHandler(state: AppState, command: ValiderD
 
   // --- Transform MonthlyResult into DecisionDetail ---
   const detailCalcul: DecisionDetail[] = decision.planDeCalcul.detail.map(monthlyResult => {
-      const paiementsEffectues = 0; // Will be implemented later
+      // Règle métier: si le montant à payer est négatif (remboursement), il est mis à 0 dans l'événement de validation.
+      const aPayerFinal = monthlyResult.aPayer < 0 ? 0 : monthlyResult.aPayer;
+      
       return {
           month: monthlyResult.month,
           calcul: monthlyResult.calcul,
-          paiementsEffectues: paiementsEffectues,
-          aPayer: monthlyResult.calcul - paiementsEffectues
+          paiementsEffectues: monthlyResult.paiementsEffectues,
+          aPayer: aPayerFinal
       };
   });
 
@@ -47,7 +49,7 @@ export function validerDecisionCommandHandler(state: AppState, command: ValiderD
     mutationId,
     decisionId: decision.decisionId,
     ressourceVersionId: lastRessourceVersionIdEvent.ressourceVersionId,
-    planDePaiementId: decision.planDePaiementId, // This will be null if no plan exists yet
+    planDePaiementId: decision.planDePaiementId || crypto.randomUUID(), // Ensure we always have an ID
     timestamp: new Date().toISOString(),
     payload: {
         mutationType: decision.mutationType,
