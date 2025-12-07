@@ -45,6 +45,7 @@ export function validerPlanPaiementCommandHandler(
     // If an active or pending transaction exists, it must be replaced.
     if (existingTransactionForMonth) {
       if (existingTransactionForMonth.statut !== 'Exécuté') {
+        const remplaceeParId = crypto.randomUUID(); // This ID will be used for the new transaction
         const replaceEvent: TransactionRemplaceeEvent = {
           id: crypto.randomUUID(),
           type: 'TRANSACTION_REMPLACEE',
@@ -52,31 +53,47 @@ export function validerPlanPaiementCommandHandler(
           timestamp: new Date(now.getTime() + 1).toISOString(),
           payload: {
             transactionId: existingTransactionForMonth.id,
-            remplaceeParTransactionId: crypto.randomUUID(), // This link is for future-proofing
+            remplaceeParTransactionId: remplaceeParId, // This link is for future-proofing
           }
         };
         eventsToDispatch.push(replaceEvent);
+        
+         // Create the new transaction that replaces the old one.
+        const createEvent: TransactionCreeeEvent = {
+          id: crypto.randomUUID(),
+          type: 'TRANSACTION_CREEE',
+          mutationId,
+          timestamp: new Date(now.getTime() + 2).toISOString(),
+          payload: {
+            transactionId: remplaceeParId,
+            planDePaiementId: newPlanDePaiementId,
+            mois: paiement.month,
+            montant: paiement.aPayer,
+          }
+        };
+        eventsToDispatch.push(createEvent);
+
       } else {
         // A transaction has already been executed for this month. 
         // We skip creating a new one. In a real scenario, this might need more complex handling.
         continue;
       }
+    } else {
+       // No existing transaction for this month, just create a new one.
+        const createEvent: TransactionCreeeEvent = {
+          id: crypto.randomUUID(),
+          type: 'TRANSACTION_CREEE',
+          mutationId,
+          timestamp: new Date(now.getTime() + 2).toISOString(),
+          payload: {
+            transactionId: crypto.randomUUID(),
+            planDePaiementId: newPlanDePaiementId,
+            mois: paiement.month,
+            montant: paiement.aPayer,
+          }
+        };
+        eventsToDispatch.push(createEvent);
     }
-
-    // Create the new transaction.
-    const createEvent: TransactionCreeeEvent = {
-      id: crypto.randomUUID(),
-      type: 'TRANSACTION_CREEE',
-      mutationId,
-      timestamp: new Date(now.getTime() + 2).toISOString(),
-      payload: {
-        transactionId: crypto.randomUUID(),
-        planDePaiementId: newPlanDePaiementId,
-        mois: paiement.month,
-        montant: paiement.aPayer,
-      }
-    };
-    eventsToDispatch.push(createEvent);
   }
 
   // 4. Create the final "Plan Validated" event.

@@ -88,5 +88,9 @@ export function transactionsProjectionReducer<T extends TransactionsState>(
 
 export function queryTransactions(state: AppState): Transaction[] {
     // Sort by month
-    return [...state.transactions].sort((a, b) => a.mois.localeCompare(b.mois));
+    return [...state.transactions].sort((a, b) => {
+        const dateA = new Date(a.mois.split('-')[1], parseInt(a.mois.split('-')[0]) - 1);
+        const dateB = new Date(b.mois.split('-')[1], parseInt(b.mois.split('-')[0]) - 1);
+        return dateA.getTime() - dateB.getTime();
+    });
 }
