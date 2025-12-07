@@ -3,6 +3,7 @@
 
 import type { AppEvent, AppCommand, AppState } from '../mutation-lifecycle/domain';
 import { eachMonthOfInterval, format, parse } from 'date-fns';
+import type { PlanDePaiementValideEvent } from '../valider-plan-paiement/event';
 
 // --- State ---
 export interface PaiementMensuel {
@@ -30,19 +31,11 @@ export const initialPlanDePaiementState: PlanDePaiementState = {
 
 // --- Projection Logic ---
 
-function applyPlanDePaiementValide(state: PlanDePaiementState, event: AppEvent): PlanDePaiementState {
-    if (event.type !== 'PLAN_DE_PAIEMENT_VALIDE') return state;
-    
+function applyPlanDePaiementValide(state: PlanDePaiementState, event: PlanDePaiementValideEvent): PlanDePaiementState {
     const { planDePaiementId, paiements, dateDebut, dateFin } = event.payload;
 
-    const otherPlans = state.plansDePaiement.filter(p => p.id !== planDePaiementId);
+    const allOtherPlans = state.plansDePaiement.filter(p => p.id !== planDePaiementId);
     
-    // Find the previous version of the plan for the *same mutation*, if it exists
-    const previousPlanForMutation = state.plansDePaiement
-        .filter(p => p.mutationId === event.mutationId)
-        .sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-        [0];
-
     let finalPaiements: PaiementMensuel[];
 
     if (dateDebut && dateFin) { // This implies a DROITS mutation (replace)
@@ -53,22 +46,27 @@ function applyPlanDePaiementValide(state: PlanDePaiementState, event: AppEvent):
             transactionId: p.transactionId,
         }));
     } else { // This implies a RESSOURCES mutation (patch)
-        const basePaiements = previousPlanForMutation ? previousPlanForMutation.paiements : [];
-        const updatedPaiements = [...basePaiements];
+        // Find the previous payment plan state to patch upon.
+        // It must be the absolute latest one.
+        const previousPlan = [...state.plansDePaiement]
+            .sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+            [0];
+
+        const basePaiements = previousPlan ? previousPlan.paiements : [];
         const monthsToPatch = new Set(paiements.map(p => p.month));
         
-        // Remove old payments for the patched months
-        const filteredPaiements = updatedPaiements.filter(p => !monthsToPatch.has(p.mois));
+        // Remove old payments for the patched months from the base plan
+        const filteredPaiements = basePaiements.filter(p => !monthsToPatch.has(p.mois));
         
         // Add new payments for the patched months
-        const newPaiements = paiements.map(p => ({
+        const newPaiementsForPatch = paiements.map(p => ({
             planDePaiementId,
             mois: p.month,
             montant: p.aPayer,
             transactionId: p.transactionId,
         }));
 
-        finalPaiements = [...filteredPaiements, ...newPaiements];
+        finalPaiements = [...filteredPaiements, ...newPaiementsForPatch];
     }
     
     const updatedPlan: PlanDePaiement = { 
@@ -78,7 +76,7 @@ function applyPlanDePaiementValide(state: PlanDePaiementState, event: AppEvent):
         paiements: finalPaiements 
     };
 
-    return { ...state, plansDePaiement: [...otherPlans, updatedPlan] };
+    return { ...state, plansDePaiement: [...allOtherPlans, updatedPlan] };
 }
 
 
@@ -92,7 +90,7 @@ export function planDePaiementProjectionReducer<T extends PlanDePaiementState>(
         const event = eventOrCommand;
         switch (event.type) {
             case 'PLAN_DE_PAIEMENT_VALIDE':
-                return applyPlanDePaiementValide(state, event) as T;
+                return applyPlanDePaiementValide(state, event as PlanDePaiementValideEvent) as T;
         }
     }
     return state;
