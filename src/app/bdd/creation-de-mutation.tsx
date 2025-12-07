@@ -10,7 +10,7 @@ import { cqrsReducer } from '../mutations/mutation-lifecycle/cqrs';
 // Import event types for correct test data creation
 import type { DroitsMutationCreatedEvent } from '../mutations/create-mutation/event';
 import type { PaiementsSuspendusEvent } from '../mutations/suspend-paiements/event';
-import type { PlanDePaiementValideEvent } from '../mutations/valider-plan-paiement/event';
+import type { PlanDePaiementValideEvent } from '../paiements/valider-plan-paiement/event';
 
 
 // Definition of Test 1

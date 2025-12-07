@@ -5,7 +5,7 @@
 import type { AppEvent, AppCommand, AppState, Mutation } from '../mutation-lifecycle/domain';
 import type { DroitsMutationCreatedEvent } from '../create-mutation/event';
 import type { PaiementsSuspendusEvent } from '../suspend-paiements/event';
-import type { PlanDePaiementValideEvent } from '../valider-plan-paiement/event';
+import type { PlanDePaiementValideEvent } from '@/app/paiements/valider-plan-paiement/event';
 import type { RessourcesMutationCreatedEvent } from '../create-ressources-mutation/event';
 
 // 1. State Slice and Initial State

@@ -6,7 +6,7 @@ import type { AppState, AppEvent } from '../mutations/mutation-lifecycle/domain'
 import { TestComponent } from '../mutations/bdd/test-harness';
 
 // Import event types for correct test data creation
-import type { PlanDePaiementValideEvent } from '../mutations/valider-plan-paiement/event';
+import type { PlanDePaiementValideEvent } from '../paiements/valider-plan-paiement/event';
 import { validatedPeriodsProjectionReducer, initialValidatedPeriodsState, queryValidatedPeriods } from '../mutations/projection-periodes-de-droits/projection';
 
 

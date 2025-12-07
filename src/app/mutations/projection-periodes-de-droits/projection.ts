@@ -3,7 +3,7 @@
 "use client";
 
 import type { AppEvent, AppCommand, AppState } from '../mutation-lifecycle/domain';
-import type { PlanDePaiementValideEvent } from '../valider-plan-paiement/event';
+import type { PlanDePaiementValideEvent } from '@/app/paiements/valider-plan-paiement/event';
 
 // 1. State Slice and Initial State
 export interface ValidatedPeriod {
@@ -23,11 +23,12 @@ export const initialValidatedPeriodsState: ValidatedPeriodsState = {
 
 // 2. Projection Logic for this Slice
 function applyPlanDePaiementValide(state: ValidatedPeriodsState, event: PlanDePaiementValideEvent): ValidatedPeriodsState {
-    if (event.payload.dateDebut && event.payload.dateFin) {
+    const decisionEvent = state.eventStream.find(e => e.type === 'DECISION_VALIDEE' && e.mutationId === event.mutationId) as any;
+    if (decisionEvent && decisionEvent.payload?.periodeDroits) {
         const newValidatedPeriod: ValidatedPeriod = {
             mutationId: event.mutationId,
-            dateDebut: event.payload.dateDebut,
-            dateFin: event.payload.dateFin,
+            dateDebut: decisionEvent.payload.periodeDroits.dateDebut,
+            dateFin: decisionEvent.payload.periodeDroits.dateFin,
         };
         // Business rule: always overwrite with the latest validated period.
         return { ...state, validatedPeriods: [newValidatedPeriod] };
@@ -36,7 +37,7 @@ function applyPlanDePaiementValide(state: ValidatedPeriodsState, event: PlanDePa
 }
 
 // 3. Slice Reducer
-export function validatedPeriodsProjectionReducer<T extends ValidatedPeriodsState>(
+export function validatedPeriodsProjectionReducer<T extends ValidatedPeriodsState & { eventStream: AppEvent[] }>(
     state: T, 
     eventOrCommand: AppEvent | AppCommand
 ): T {

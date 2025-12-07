@@ -6,7 +6,7 @@ import type { AppEvent } from '../mutations/mutation-lifecycle/domain';
 import { TestComponent, mockToast } from '../mutations/bdd/test-harness';
 import { createRessourcesMutationCommandHandler } from '../mutations/create-ressources-mutation/handler';
 import { cqrsReducer } from '../mutations/mutation-lifecycle/cqrs';
-import type { PlanDePaiementValideEvent } from '../mutations/valider-plan-paiement/event';
+import type { PlanDePaiementValideEvent } from '../paiements/valider-plan-paiement/event';
 
 // Definition of Test for Resource Mutation Creation
 export const BDDTestCreationRessources: React.FC = () => (

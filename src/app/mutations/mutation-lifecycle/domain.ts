@@ -13,14 +13,14 @@ import type { EcritureSupprimeeEvent } from '../ecritures/supprimer-ecriture/eve
 import type { PlanCalculeEvent } from '../calculer-plan/event';
 import type { EcriturePeriodeCorrigeeEvent } from '../ecritures/mettre-a-jour-ecriture/event';
 import type { DecisionValideeEvent } from '../valider-decision/event';
-import type { PlanDePaiementValideEvent } from '../valider-plan-paiement/event';
-import type { TransactionEffectueeEvent, TransactionCreeeEvent, TransactionRemplaceeEvent } from '../projection-transactions/events';
+import type { PlanDePaiementValideEvent } from '@/app/paiements/valider-plan-paiement/event';
+import type { TransactionEffectueeEvent, TransactionCreeeEvent, TransactionRemplaceeEvent } from '@/app/paiements/projection-transactions/events';
 
 
 import type { CreateDroitsMutationCommand } from '../create-mutation/command';
 import type { SuspendPaiementsCommand } from '../suspend-paiements/command';
 import type { AnalyzeDroitsCommand } from '../analyze-droits/command';
-import type { ValiderPlanPaiementCommand } from '../valider-plan-paiement/command';
+import type { ValiderPlanPaiementCommand } from '@/app/paiements/valider-plan-paiement/command';
 import type { CreateRessourcesMutationCommand } from '../create-ressources-mutation/command';
 import type { AutoriserModificationDroitsCommand } from '../autoriser-modification-des-droits/command';
 import type { AutoriserModificationRessourcesCommand } from '../autoriser-modification-des-ressources/command';
@@ -31,7 +31,7 @@ import type { SupprimerEcritureCommand } from '../ecritures/supprimer-ecriture/c
 import type { MettreAJourEcritureCommand } from '../ecritures/mettre-a-jour-ecriture/command';
 import type { ValiderPlanCalculCommand } from '../calculer-plan/command';
 import type { ValiderDecisionCommand } from '../valider-decision/command';
-import type { ExecuterTransactionCommand } from '../executer-transaction/command';
+import type { ExecuterTransactionCommand } from '@/app/paiements/executer-transaction/command';
 
 import type { ValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
 import type { MutationsState } from '../projection-mutations/projection';
@@ -39,9 +39,9 @@ import type { TodolistState } from '../projection-todolist/projection';
 import type { EcrituresState } from '../projection-ecritures/projection';
 import type { JournalState } from '../projection-journal/projection';
 import type { PlanCalculState } from '../projection-plan-calcul/projection';
-import type { PlanDePaiementState } from '../projection-plan-de-paiement/projection';
+import type { PlanDePaiementState } from '@/app/paiements/projection-plan-de-paiement/projection';
 import type { DecisionAPrendreState } from '../projection-decision-a-prendre/projection';
-import type { TransactionsState } from '../projection-transactions/projection';
+import type { TransactionsState } from '@/app/paiements/projection-transactions/projection';
 
 
 // =================================

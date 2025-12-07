@@ -8,7 +8,7 @@ import type { RessourcesMutationCreatedEvent } from '../create-ressources-mutati
 import type { PaiementsSuspendusEvent } from '../suspend-paiements/event';
 import type { ModificationDroitsAutoriseeEvent } from '../autoriser-modification-des-droits/event';
 import type { DroitsAnalysesEvent } from '../analyze-droits/event';
-import type { PlanDePaiementValideEvent } from '../valider-plan-paiement/event';
+import type { PlanDePaiementValideEvent } from '@/app/paiements/valider-plan-paiement/event';
 import type { ModificationRessourcesAutoriseeEvent } from '../autoriser-modification-des-ressources/event';
 import type { ModificationRessourcesValideeEvent } from '../valider-modification-ressources/event';
 import type { PlanCalculeEvent } from '../calculer-plan/event';

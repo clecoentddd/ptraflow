@@ -14,8 +14,8 @@ import { AllEcrituresListView } from '../../ecritures/supprimer-ecriture/compone
 import { JournalView } from '../../projection-journal/components/journal-ui';
 import { PlanCalculView } from '../../projection-plan-calcul/components/plan-calcul-view';
 import { DecisionAPrendreView } from '../../projection-decision-a-prendre/components/decision-a-prendre-view';
-import { PlanDePaiementView } from '../../projection-plan-de-paiement/components/plan-de-paiement-view';
-import { TransactionsView } from '../../projection-transactions/components/transactions-view';
+import { PlanDePaiementView } from '@/app/paiements/projection-plan-de-paiement/components/plan-de-paiement-view';
+import { TransactionsView } from '@/app/paiements/projection-transactions/components/transactions-view';
 
 function DashboardContent() {
   const { state } = useCqrs();
