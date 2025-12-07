@@ -204,11 +204,11 @@ export function useCqrs() {
     // The handler is passed to the command object in the UI.
     if ('handler' in command && typeof command.handler === 'function') {
         const handler = command.handler as any;
-        handler(context.state, (events: AppEvent[] | AppEvent) => {
-            if (Array.isArray(events)) {
-                context.dispatch({ type: 'DISPATCH_EVENTS', events });
+        handler(context.state, (eventsOrEvent: AppEvent[] | AppEvent) => {
+            if (Array.isArray(eventsOrEvent)) {
+                context.dispatch({ type: 'DISPATCH_EVENTS', events: eventsOrEvent });
             } else {
-                context.dispatch({ type: 'DISPATCH_EVENT', event: events });
+                context.dispatch({ type: 'DISPATCH_EVENT', event: eventsOrEvent });
             }
         });
     } else { // For legacy commands or direct event dispatches

@@ -13,14 +13,15 @@ import type { EcritureSupprimeeEvent } from '../ecritures/supprimer-ecriture/eve
 import type { PlanCalculeEvent } from '../calculer-plan/event';
 import type { EcriturePeriodeCorrigeeEvent } from '../ecritures/mettre-a-jour-ecriture/event';
 import type { DecisionValideeEvent } from '../valider-decision/event';
+
+// Importation des événements de paiement
 import type { PlanDePaiementValideEvent } from '@/app/paiements/valider-plan-paiement/event';
 import type { TransactionEffectueeEvent, TransactionCreeeEvent, TransactionRemplaceeEvent } from '@/app/paiements/projection-transactions/events';
 
-
+// Importation des commandes de mutation
 import type { CreateDroitsMutationCommand } from '../create-mutation/command';
 import type { SuspendPaiementsCommand } from '../suspend-paiements/command';
 import type { AnalyzeDroitsCommand } from '../analyze-droits/command';
-import type { ValiderPlanPaiementCommand } from '@/app/paiements/valider-plan-paiement/command';
 import type { CreateRessourcesMutationCommand } from '../create-ressources-mutation/command';
 import type { AutoriserModificationDroitsCommand } from '../autoriser-modification-des-droits/command';
 import type { AutoriserModificationRessourcesCommand } from '../autoriser-modification-des-ressources/command';
@@ -31,7 +32,11 @@ import type { SupprimerEcritureCommand } from '../ecritures/supprimer-ecriture/c
 import type { MettreAJourEcritureCommand } from '../ecritures/mettre-a-jour-ecriture/command';
 import type { ValiderPlanCalculCommand } from '../calculer-plan/command';
 import type { ValiderDecisionCommand } from '../valider-decision/command';
+
+// Importation des commandes de paiement
+import type { ValiderPlanPaiementCommand } from '@/app/paiements/valider-plan-paiement/command';
 import type { ExecuterTransactionCommand } from '@/app/paiements/executer-transaction/command';
+
 
 import type { ValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
 import type { MutationsState } from '../projection-mutations/projection';
@@ -81,7 +86,7 @@ export type AppCommand =
     // Nouveau type d'action pour le pattern Pub/Sub
     | { type: 'DISPATCH_EVENT', event: AppEvent }
     | { type: 'DISPATCH_EVENTS', events: AppEvent[] }
-    // Commandes legacy (à supprimer progressivement)
+    // Commandes
     | CreateDroitsMutationCommand 
     | SuspendPaiementsCommand 
     | AnalyzeDroitsCommand 

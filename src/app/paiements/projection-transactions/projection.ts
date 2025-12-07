@@ -87,14 +87,14 @@ export function transactionsProjectionReducer<T extends TransactionsState>(
 // --- Queries ---
 
 export function queryTransactions(state: AppState): Transaction[] {
-    // Sort by month
+    // Sort by month, then by status to keep active ones visible
     return [...state.transactions].sort((a, b) => {
         const dateA = new Date(a.mois.split('-')[1], parseInt(a.mois.split('-')[0]) - 1);
         const dateB = new Date(b.mois.split('-')[1], parseInt(b.mois.split('-')[0]) - 1);
         if (dateA.getTime() !== dateB.getTime()) {
             return dateA.getTime() - dateB.getTime();
         }
-        // If months are equal, sort by status to keep active ones visible
+        // If months are equal, sort by status
         const statusOrder = { 'A Exécuter': 1, 'Exécuté': 2, 'Remplacé': 3 };
         return statusOrder[a.statut] - statusOrder[b.statut];
     });
