@@ -53,7 +53,7 @@ function rebuildDecisionState(state: AppState): DecisionAPrendreState {
         }
         
         // Find the latest payment plan for this mutation, if any
-        const latestPlanDePaiement = plansDePaiement
+        const latestPlanDePaiementForThisMutation = plansDePaiement
             .filter(p => p.mutationId === entry.mutationId)
             .sort((a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
             [0];
@@ -66,7 +66,7 @@ function rebuildDecisionState(state: AppState): DecisionAPrendreState {
                 calculId: planDeCalcul.calculId,
                 detail: planDeCalcul.detail,
             },
-            planDePaiementId: latestPlanDePaiement ? latestPlanDePaiement.id : null,
+            planDePaiementId: latestPlanDePaiementForThisMutation ? latestPlanDePaiementForThisMutation.id : null,
         };
 
         if (entry.mutationType === 'DROITS') {
