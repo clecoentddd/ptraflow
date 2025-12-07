@@ -20,7 +20,8 @@ export const mockToast = {
 };
 
 const projectEvents = (eventStream: AppEvent[]): AppState => {
-    let projectedState = cqrsReducer({ ...initialState, eventStream }, { type: 'REPLAY' });
+    // Pass the event stream as part of the action payload
+    let projectedState = cqrsReducer(initialState, { type: 'REPLAY', eventStream });
     return projectedState;
 }
 
@@ -257,3 +258,5 @@ export const TestComponent: React.FC<TestComponentProps> = ({ title, description
         </Card>
     );
 };
+
+    

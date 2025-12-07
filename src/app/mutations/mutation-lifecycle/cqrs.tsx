@@ -105,7 +105,7 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
                     {
                         type: 'PREPARER_TRANSACTIONS',
                         payload: {
-                            planDePaiementId: event.payload.planDePaiementId,
+                            planDePaiementId: (event.payload as any).planDePaiementId,
                             mutationId: event.mutationId
                         }
                     },
@@ -136,9 +136,14 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
         stateAfterEvents = rebuildStateFromEvents(newEventStream);
         stateAfterEvents = runProcessManagers(stateAfterEvents, action.events);
     } else if (action.type === 'REPLAY') {
-        stateAfterEvents = rebuildStateFromEvents(action.eventStream);
-        // Important: When replaying, we also need to simulate process managers
-        stateAfterEvents = runProcessManagers(stateAfterEvents, action.eventStream);
+         // The action for REPLAY must contain the event stream
+        if ('eventStream' in action) {
+             stateAfterEvents = rebuildStateFromEvents(action.eventStream);
+             // Important: When replaying, we also need to simulate process managers
+             stateAfterEvents = runProcessManagers(stateAfterEvents, action.eventStream);
+        } else {
+            return state;
+        }
     } else if (action.type === 'REPLAY_COMPLETE') {
         // This action type is only used by projections that need to run at the end.
         // We just return the state as is, because the final step will handle it.
@@ -274,3 +279,5 @@ export function useCqrs() {
 
   return { state: context.state, dispatchEvent };
 }
+
+    
