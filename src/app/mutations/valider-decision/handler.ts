@@ -32,14 +32,12 @@ export function validerDecisionCommandHandler(state: AppState, command: ValiderD
 
   // --- Transform MonthlyResult into DecisionDetail ---
   const detailCalcul: DecisionDetail[] = decision.planDeCalcul.detail.map(monthlyResult => {
-      // Règle métier: si le montant à payer est négatif (remboursement), il est mis à 0 dans l'événement de validation.
-      const aPayerFinal = monthlyResult.aPayer < 0 ? 0 : monthlyResult.aPayer;
-      
+      // Règle métier: les montants (positifs ou négatifs) sont conservés tels quels.
       return {
           month: monthlyResult.month,
           calcul: monthlyResult.calcul,
           paiementsEffectues: monthlyResult.paiementsEffectues,
-          aPayer: aPayerFinal
+          aPayer: monthlyResult.aPayer
       };
   });
 
@@ -61,3 +59,5 @@ export function validerDecisionCommandHandler(state: AppState, command: ValiderD
 
   return { ...state, eventStream: [event, ...state.eventStream] };
 }
+
+    

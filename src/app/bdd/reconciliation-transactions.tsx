@@ -132,7 +132,7 @@ const TestReconciliationAvecPaiementsEffectues: React.FC = () => (
 const TestValidationDecisionAvecRemboursement: React.FC = () => (
     <TestComponent
         title="Test Validation Décision avec Montants Négatifs"
-        description="Etant donné une décision à prendre avec des montants à payer négatifs (remboursements), quand l'utilisateur valide cette décision, alors l'événement DecisionValideeEvent doit transformer ces montants négatifs en zéro."
+        description="Etant donné une décision à prendre avec des montants à payer négatifs (remboursements), quand l'utilisateur valide cette décision, alors l'événement DecisionValideeEvent doit conserver ces montants négatifs."
         given={() => {
             const events: AppEvent[] = [
                 // --- Setup to create a state where a reimbursement is needed ---
@@ -150,7 +150,8 @@ const TestValidationDecisionAvecRemboursement: React.FC = () => (
                 ]} },
             ];
             // After these events, queryDecisionsAPrendre will show { aPayer: -50 } for Oct-2025.
-            return { eventStream: events };
+            const initialState = cqrsReducer({ eventStream: [] } as any, { type: 'REPLAY', eventStream: events });
+            return initialState;
         }}
         when={(initialState) => {
             // WHEN: The user validates the decision for the second mutation.
@@ -166,7 +167,7 @@ const TestValidationDecisionAvecRemboursement: React.FC = () => (
             });
         }}
         then={(finalState) => {
-            // THEN: The newly created DecisionValideeEvent should have its negative aPayer value set to 0.
+            // THEN: The newly created DecisionValideeEvent should have its negative aPayer value preserved.
             const aPayerEvent = finalState.eventStream.find(e => e.type === 'DECISION_VALIDEE' && e.mutationId === 'mut-remboursement-2') as DecisionValideeEvent | undefined;
 
             if (!aPayerEvent) {
@@ -176,13 +177,13 @@ const TestValidationDecisionAvecRemboursement: React.FC = () => (
             const octDetail = aPayerEvent.payload.detailCalcul.find(d => d.month === '10-2025');
             const novDetail = aPayerEvent.payload.detailCalcul.find(d => d.month === '11-2025');
             
-            const pass = octDetail?.aPayer === 0 && novDetail?.aPayer === 100;
+            const pass = octDetail?.aPayer === -50 && novDetail?.aPayer === 100;
             
             return {
                 pass,
                 message: pass
-                    ? `Succès: Le montant à payer pour Octobre a été transformé en 0 dans l'événement (reçu: ${octDetail?.aPayer}).`
-                    : `Échec: Le montant à payer pour Octobre aurait dû être 0. Reçu: ${octDetail?.aPayer}.`
+                    ? `Succès: Le montant à payer pour Octobre a été conservé à -50 dans l'événement (reçu: ${octDetail?.aPayer}).`
+                    : `Échec: Le montant à payer pour Octobre aurait dû être -50. Reçu: ${octDetail?.aPayer}.`
             };
         }}
     />
@@ -197,5 +198,7 @@ export const BDDTestReconciliationWrapper: React.FC = () => (
         <TestValidationDecisionAvecRemboursement />
     </div>
 );
+
+    
 
     
