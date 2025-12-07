@@ -110,7 +110,11 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
         // --- Command Handling ---
         let stateAfterCommand: AppState = state;
         let multipleEventsDispatched = false;
-        let events: AppEvent[] = [];
+
+        const dispatchEvents = (events: AppEvent[]) => {
+            stateAfterCommand = { ...stateAfterCommand, eventStream: [...events, ...stateAfterCommand.eventStream] };
+            multipleEventsDispatched = true;
+        }
 
         switch (action.type) {
             case 'CREATE_DROITS_MUTATION':
@@ -132,16 +136,14 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
                 stateAfterCommand = analyzeDroitsCommandHandler(state, action);
                 break;
             case 'VALIDER_PLAN_PAIEMENT':
-                 validerPlanPaiementCommandHandler(state, action, (event) => {
-                    stateAfterCommand = { ...state, eventStream: [event, ...state.eventStream] };
+                 validerPlanPaiementCommandHandler(state, action, (events) => {
+                    dispatchEvents(events);
                 });
                 break;
             case 'PREPARER_TRANSACTIONS':
-                preparerTransactionsCommandHandler(state, action, (dispatchedEvents) => {
-                    events = dispatchedEvents;
+                preparerTransactionsCommandHandler(state, action, (events) => {
+                    dispatchEvents(events);
                 });
-                stateAfterCommand = { ...state, eventStream: [...events, ...state.eventStream] };
-                multipleEventsDispatched = true;
                 break;
             case 'VALIDER_PLAN_CALCUL':
                 stateAfterCommand = validerPlanCalculCommandHandler(state, action);
