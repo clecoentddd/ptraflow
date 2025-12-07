@@ -5,8 +5,6 @@ import React from 'react';
 import type { AppState, AppEvent } from '../mutations/mutation-lifecycle/domain';
 import { TestComponent } from '../mutations/bdd/test-harness';
 
-// Import event types for correct test data creation
-import type { PlanDePaiementValideEvent } from '../paiements/valider-plan-paiement/event';
 import { validatedPeriodsProjectionReducer, initialValidatedPeriodsState, queryValidatedPeriods } from '../mutations/projection-periodes-de-droits/projection';
 
 
@@ -17,15 +15,18 @@ export const BDDTestProjectionPeriodes: React.FC = () => (
         description="Etant donné que plusieurs mutations ont été validées, quand on consulte la projection, alors seule la période de la dernière mutation validée est conservée."
         given={() => {
             const events: AppEvent[] = [
-                 {
-                    id: "78b8ad33-31cb-4428-9c57-3652e6412a7c",
-                    type: "PLAN_DE_PAIEMENT_VALIDE",
-                    mutationId: "6cce8359-c6b5-4497-8c88-7356230c544f",
-                    timestamp: "2025-12-03T19:29:40.062Z",
+                // --- First mutation ---
+                {
+                    id: "dec-1",
+                    type: "DECISION_VALIDEE",
+                    mutationId: "0789426d-b6a8-46fb-ab76-8b86b2a423f4",
+                    timestamp: "2025-12-03T19:28:57.000Z",
                     payload: {
-                        userEmail: "anonymous",
-                        dateDebut: "01-2025",
-                        dateFin: "08-2025"
+                        mutationType: 'DROITS',
+                        periodeDroits: {
+                            dateDebut: "05-2025",
+                            dateFin: "12-2025"
+                        }
                     }
                 } as any,
                 {
@@ -33,11 +34,29 @@ export const BDDTestProjectionPeriodes: React.FC = () => (
                     type: "PLAN_DE_PAIEMENT_VALIDE",
                     mutationId: "0789426d-b6a8-46fb-ab76-8b86b2a423f4",
                     timestamp: "2025-12-03T19:28:58.675Z",
+                    payload: {}
+                } as any,
+                
+                // --- Second (later) mutation ---
+                 {
+                    id: "dec-2",
+                    type: "DECISION_VALIDEE",
+                    mutationId: "6cce8359-c6b5-4497-8c88-7356230c544f",
+                    timestamp: "2025-12-03T19:29:39.000Z",
                     payload: {
-                        userEmail: "anonymous",
-                        dateDebut: "05-2025",
-                        dateFin: "12-2025"
+                         mutationType: 'DROITS',
+                        periodeDroits: {
+                            dateDebut: "01-2025",
+                            dateFin: "08-2025"
+                        }
                     }
+                } as any,
+                 {
+                    id: "78b8ad33-31cb-4428-9c57-3652e6412a7c",
+                    type: "PLAN_DE_PAIEMENT_VALIDE",
+                    mutationId: "6cce8359-c6b5-4497-8c88-7356230c544f",
+                    timestamp: "2025-12-03T19:29:40.062Z",
+                    payload: {}
                 } as any,
             ];
             // We provide the events in reverse chronological order to simulate the event stream
@@ -46,12 +65,13 @@ export const BDDTestProjectionPeriodes: React.FC = () => (
         }}
         when={(initialState: AppState) => {
             // WHEN: we manually run the projection logic on the given events
-            let projectionState = initialValidatedPeriodsState;
+            let projectionState: AppState = { ...initialState, ...initialValidatedPeriodsState };
+            
             // The events must be processed in chronological order for the projection to be correct
             const sortedEvents = [...initialState.eventStream].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
             for (const event of sortedEvents) {
-                // We call the slice reducer directly
+                // We call the slice reducer directly, passing the full state so it can find the DECISION_VALIDEE event
                 projectionState = validatedPeriodsProjectionReducer(projectionState, event);
             }
             // We return a state shape that the 'then' block can inspect.
