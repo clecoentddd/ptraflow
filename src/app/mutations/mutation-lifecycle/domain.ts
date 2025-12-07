@@ -36,6 +36,7 @@ import type { ValiderDecisionCommand } from '../valider-decision/command';
 // Importation des commandes de paiement
 import type { ValiderPlanPaiementCommand } from '@/app/paiements/valider-plan-paiement/command';
 import type { ExecuterTransactionCommand } from '@/app/paiements/executer-transaction/command';
+import type { PreparerTransactionsCommand } from '@/app/paiements/preparer-transactions/command';
 
 
 import type { ValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
@@ -103,6 +104,7 @@ export type AppCommand =
     | ValiderPlanCalculCommand
     | ValiderDecisionCommand
     | ExecuterTransactionCommand
+    | PreparerTransactionsCommand
     // Actions pour les tests
     | { type: 'REPLAY', eventStream: AppEvent[] } 
     | { type: 'REPLAY_COMPLETE' };

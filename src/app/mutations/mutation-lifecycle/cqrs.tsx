@@ -24,6 +24,7 @@ import { validerDecisionCommandHandler } from '../valider-decision/handler';
 // Importation des command handlers de 'paiements'
 import { validerPlanPaiementCommandHandler } from '@/app/paiements/valider-plan-paiement/handler';
 import { executerTransactionCommandHandler } from '@/app/paiements/executer-transaction/handler';
+import { preparerTransactionsCommandHandler } from '@/app/paiements/preparer-transactions/handler';
 
 // Importation des logiques de projection de 'mutations'
 import { validatedPeriodsProjectionReducer, initialValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
@@ -109,6 +110,7 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
         // --- Command Handling ---
         let stateAfterCommand: AppState = state;
         let multipleEventsDispatched = false;
+        let events: AppEvent[] = [];
 
         switch (action.type) {
             case 'CREATE_DROITS_MUTATION':
@@ -130,10 +132,16 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
                 stateAfterCommand = analyzeDroitsCommandHandler(state, action);
                 break;
             case 'VALIDER_PLAN_PAIEMENT':
-                 validerPlanPaiementCommandHandler(state, action, (events) => {
-                    stateAfterCommand = { ...state, eventStream: [...events, ...state.eventStream] };
-                    multipleEventsDispatched = true;
+                 validerPlanPaiementCommandHandler(state, action, (event) => {
+                    stateAfterCommand = { ...state, eventStream: [event, ...state.eventStream] };
                 });
+                break;
+            case 'PREPARER_TRANSACTIONS':
+                preparerTransactionsCommandHandler(state, action, (dispatchedEvents) => {
+                    events = dispatchedEvents;
+                });
+                stateAfterCommand = { ...state, eventStream: [...events, ...state.eventStream] };
+                multipleEventsDispatched = true;
                 break;
             case 'VALIDER_PLAN_CALCUL':
                 stateAfterCommand = validerPlanCalculCommandHandler(state, action);

@@ -6,6 +6,7 @@ import { BDDTest1, BDDTest2 } from './creation-de-mutation';
 import { BDDTestProjectionPeriodes } from './projection-periodes-validees';
 import { BDDTestCreationRessources, BDDTestCreationRessourcesAvecPeriode } from './creation-ressources-mutation';
 import { BDDTestsMiseAJourEcritures } from '../mutations/bdd/mise-a-jour-ecritures';
+import { BDDTestPreparationTransactions } from './preparation-transactions';
 
 export default function BDDPage() {
     return (
@@ -21,6 +22,7 @@ export default function BDDPage() {
                 <BDDTestCreationRessources />
                 <BDDTestCreationRessourcesAvecPeriode />
                 <BDDTestsMiseAJourEcritures />
+                <BDDTestPreparationTransactions />
             </main>
         </div>
     );
