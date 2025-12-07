@@ -17,7 +17,7 @@ export function validerPlanPaiementCommandHandler(
 ): void {
   const { mutationId } = command.payload;
 
-  // 1. Find the validated decision for this mutation
+  // 1. Find the validated decision for this mutation to get the data
   const decisionEvent = state.eventStream
     .find(event => event.mutationId === mutationId && event.type === 'DECISION_VALIDEE') as DecisionValideeEvent | undefined;
 
@@ -26,89 +26,27 @@ export function validerPlanPaiementCommandHandler(
     return;
   }
   
-  // 2. Concurrency Check
-  // Note: this check is now less critical since we're creating transaction events, but it's good practice.
-  // We can re-evaluate its necessity later.
-
-  // 3. Generate Transaction Events
-  const eventsToDispatch: AppEvent[] = [];
-  const now = new Date();
-  const existingTransactions = queryTransactions(state);
+  // 2. Prepare the main event payload
   const newPlanDePaiementId = crypto.randomUUID();
+  const paiementsAAjouter = decisionEvent.payload.detailCalcul.map(p => ({
+      mois: p.month,
+      montant: p.aPayer
+  }));
 
-  // For each payment in the validated decision, we create or replace a transaction.
-  for (const paiement of decisionEvent.payload.detailCalcul) {
-    const existingTransactionForMonth = existingTransactions.find(
-      t => t.mois === paiement.month && t.statut !== 'Remplacé'
-    );
-
-    // If an active or pending transaction exists, it must be replaced.
-    if (existingTransactionForMonth) {
-      if (existingTransactionForMonth.statut !== 'Exécuté') {
-        const remplaceeParId = crypto.randomUUID(); // This ID will be used for the new transaction
-        const replaceEvent: TransactionRemplaceeEvent = {
-          id: crypto.randomUUID(),
-          type: 'TRANSACTION_REMPLACEE',
-          mutationId,
-          timestamp: new Date(now.getTime() + 1).toISOString(),
-          payload: {
-            transactionId: existingTransactionForMonth.id,
-            remplaceeParTransactionId: remplaceeParId, // This link is for future-proofing
-          }
-        };
-        eventsToDispatch.push(replaceEvent);
-        
-         // Create the new transaction that replaces the old one.
-        const createEvent: TransactionCreeeEvent = {
-          id: crypto.randomUUID(),
-          type: 'TRANSACTION_CREEE',
-          mutationId,
-          timestamp: new Date(now.getTime() + 2).toISOString(),
-          payload: {
-            transactionId: remplaceeParId,
-            planDePaiementId: newPlanDePaiementId,
-            mois: paiement.month,
-            montant: paiement.aPayer,
-          }
-        };
-        eventsToDispatch.push(createEvent);
-
-      } else {
-        // A transaction has already been executed for this month. 
-        // We skip creating a new one. In a real scenario, this might need more complex handling.
-        continue;
-      }
-    } else {
-       // No existing transaction for this month, just create a new one.
-        const createEvent: TransactionCreeeEvent = {
-          id: crypto.randomUUID(),
-          type: 'TRANSACTION_CREEE',
-          mutationId,
-          timestamp: new Date(now.getTime() + 2).toISOString(),
-          payload: {
-            transactionId: crypto.randomUUID(),
-            planDePaiementId: newPlanDePaiementId,
-            mois: paiement.month,
-            montant: paiement.aPayer,
-          }
-        };
-        eventsToDispatch.push(createEvent);
-    }
-  }
-
-  // 4. Create the final "Plan Validated" event.
-  const finalEvent: PlanDePaiementValideEvent = {
+  // 3. Create the final "Plan Validated" event, which now carries the data.
+  const planValideEvent: PlanDePaiementValideEvent = {
     id: crypto.randomUUID(),
     type: 'PLAN_DE_PAIEMENT_VALIDE',
     mutationId,
-    timestamp: new Date(now.getTime() + 3).toISOString(),
+    timestamp: new Date().toISOString(),
     payload: {
         planDePaiementId: newPlanDePaiementId,
-        // The payload now just confirms the decision it was based on.
-        decisionId: decisionEvent.decisionId
+        decisionId: decisionEvent.decisionId,
+        paiements: paiementsAAjouter
     }
   };
-  eventsToDispatch.push(finalEvent);
 
-  dispatch(eventsToDispatch);
+  // Dispatch only this single, authoritative event.
+  // The projections will handle the transaction creation logic.
+  dispatch([planValideEvent]);
 }
