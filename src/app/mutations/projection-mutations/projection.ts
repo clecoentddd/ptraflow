@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import type { AppEvent, AppCommand, AppState, Mutation } from '../mutation-lifecycle/domain';
@@ -53,7 +54,7 @@ function applyDecisionValidee(state: MutationsState, event: DecisionValideeEvent
     return {
         ...state,
         mutations: state.mutations.map(m =>
-            m.id === event.mutationId ? { ...m, history: [...m.history, event] } : m // No status change here
+            m.id === event.mutationId ? { ...m, history: [...m.history, event], status: 'COMPLETEE' as const } : m
         ),
     };
 }
