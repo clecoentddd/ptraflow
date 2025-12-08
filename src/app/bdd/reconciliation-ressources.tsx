@@ -23,6 +23,8 @@ const TestReconciliationRessourcesAvecPaiementsEffectues: React.FC = () => (
                 // --- New RESSOURCES Mutation (In Progress) ---
                 { id: "evt-mut-reco-res-2-created", type: "RESSOURCES_MUTATION_CREATED", mutationId: "mut-reco-res-2", timestamp: "2025-11-01T09:00:00.000Z", payload: { mutationType: 'RESSOURCES'} as any },
                 { id: "evt-mut-reco-res-2-suspended", type: "PAIEMENTS_SUSPENDUS", mutationId: "mut-reco-res-2", timestamp: "2025-11-01T09:01:00.000Z", payload: { userEmail: 'test'} as any },
+                // This event is NECESSARY for the journal to know the modified period
+                { id: "evt-rev-added-for-reco", type: "REVENU_AJOUTE", mutationId: "mut-reco-res-2", ressourceVersionId: "v-reco-res-2", timestamp: "2025-11-01T09:01:30.000Z", payload: { ecritureId: "ecr-reco-res", code: "101", libelle: "Salaire", montant: 8000, dateDebut: "11-2025", dateFin: "12-2025" } as any },
             ];
             return { eventStream: events };
         }}
@@ -48,10 +50,8 @@ const TestReconciliationRessourcesAvecPaiementsEffectues: React.FC = () => (
             const decisions = queryDecisionsAPrendre(finalState);
             const decision = decisions.find(d => d.mutationId === 'mut-reco-res-2');
             const decisionDetail = decision?.planDeCalcul?.detail;
-
-            // THIS IS THE FAILURE CONDITION
+            
             // For a RESSOURCES mutation, the decision should ONLY contain the modified months.
-            // The current logic will fail because it also includes Oct-2025.
             const pass = decisionDetail?.length === 2 
                          && decisionDetail.some(d => d.month === '11-2025')
                          && decisionDetail.some(d => d.month === '12-2025')
@@ -60,8 +60,8 @@ const TestReconciliationRessourcesAvecPaiementsEffectues: React.FC = () => (
             return {
                 pass,
                 message: pass
-                    ? `Succès (inattendu): La projection de décision a été correctement filtrée pour ne contenir que les mois modifiés.`
-                    : `ÉCHEC (attendu): La décision devrait contenir 2 mois, mais en contient ${decisionDetail?.length}. Le mois d'Octobre est inclus à tort.`
+                    ? `Succès: La projection de décision a été correctement filtrée pour ne contenir que les mois modifiés.`
+                    : `ÉCHEC: La décision devrait contenir 2 mois, mais en contient ${decisionDetail?.length}. Le mois d'Octobre a été inclus à tort.`
             };
         }}
     />
@@ -81,13 +81,15 @@ const TestValidationDecisionRessourcesAvecPeriodeIncorrecte: React.FC = () => (
                 // --- New RESSOURCES mutation that will lead to a new calculation ---
                 { id: "evt-mut-remboursement-res-2-created", type: "RESSOURCES_MUTATION_CREATED", mutationId: "mut-remboursement-res-2", timestamp: "2025-11-01T09:00:00.000Z", payload: { mutationType: 'RESSOURCES'} as any },
                 { id: "evt-mut-remboursement-res-2-suspended", type: "PAIEMENTS_SUSPENDUS", mutationId: "mut-remboursement-res-2", timestamp: "2025-11-01T09:01:00.000Z", payload: { userEmail: 'test'} as any },
+                 // This event is NECESSARY for the journal to know the modified period
+                { id: "evt-rev-added-for-validation", type: "REVENU_AJOUTE", mutationId: "mut-remboursement-res-2", ressourceVersionId: "v-remboursement-res-2", timestamp: "2025-11-01T09:01:30.000Z", payload: { ecritureId: "ecr-validation-res", code: "101", libelle: "Salaire", montant: 1000, dateDebut: "11-2025", dateFin: "12-2025" } as any },
                 { id: "evt-mut-remboursement-res-2-calcul", type: "PLAN_CALCUL_EFFECTUE", mutationId: "mut-remboursement-res-2", timestamp: "2025-11-01T09:02:00.000Z", ressourceVersionId: 'v-remboursement-res-2', payload: { calculId: 'calcul-remboursement-res-2', detail: [
                     // The new calculation is only for Nov and Dec
-                     { month: '11-2025', revenus: 8000, depenses: 0, resultat: 8000, calcul: 800 },
-                     { month: '12-2025', revenus: 8000, depenses: 0, resultat: 8000, calcul: 800 }
+                     { month: '11-2025', revenus: 1000, depenses: 0, resultat: 1000, calcul: 100 },
+                     { month: '12-2025', revenus: 1000, depenses: 0, resultat: 1000, calcul: 100 }
                 ]} as any },
             ];
-            // After these events, queryDecisionsAPrendre will wrongly show a decision for Oct, Nov, Dec.
+            // After these events, queryDecisionsAPrendre will show a decision for Nov, Dec.
             const initialState = cqrsReducer({ eventStream: [] } as any, { type: 'REPLAY', eventStream: events });
             return initialState;
         }}
@@ -113,6 +115,7 @@ const TestValidationDecisionRessourcesAvecPeriodeIncorrecte: React.FC = () => (
             const detail = decisionValideeEvent.payload.detailCalcul;
             
             // THIS IS THE FAILURE CONDITION
+            // The handler still includes October because it reads from the faulty decision projection
             const pass = detail.length === 2
                          && detail.some(d => d.month === '11-2025')
                          && detail.some(d => d.month === '12-2025')
@@ -121,8 +124,8 @@ const TestValidationDecisionRessourcesAvecPeriodeIncorrecte: React.FC = () => (
             return {
                 pass,
                 message: pass
-                    ? `Succès (inattendu): L'événement DECISION_VALIDEE a été correctement filtré pour ne contenir que les mois modifiés.`
-                    : `ÉCHEC (attendu): L'événement DECISION_VALIDEE devrait contenir 2 mois, mais en contient ${detail.length}. Le mois d'Octobre est inclus à tort.`
+                    ? `Succès: L'événement DECISION_VALIDEE a été correctement filtré pour ne contenir que les mois modifiés.`
+                    : `ÉCHEC: L'événement DECISION_VALIDEE devrait contenir 2 mois, mais en contient ${detail.length}. Le mois d'Octobre est inclus à tort.`
             };
         }}
     />
