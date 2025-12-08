@@ -8,6 +8,7 @@ import { BDDTestCreationRessources, BDDTestCreationRessourcesAvecPeriode } from 
 import { BDDTestsMiseAJourEcritures } from '../mutations/bdd/mise-a-jour-ecritures';
 import { BDDTestPreparationTransactions } from './preparation-transactions';
 import { BDDTestReconciliationWrapper } from './reconciliation-transactions';
+import { BDDTestReconciliationRessourcesWrapper } from './reconciliation-ressources';
 
 export default function BDDPage() {
     return (
@@ -25,6 +26,7 @@ export default function BDDPage() {
                 <BDDTestsMiseAJourEcritures />
                 <BDDTestPreparationTransactions />
                 <BDDTestReconciliationWrapper />
+                <BDDTestReconciliationRessourcesWrapper />
             </main>
         </div>
     );
