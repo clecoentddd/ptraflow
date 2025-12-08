@@ -6,6 +6,7 @@ import type { DroitsMutationCreatedEvent } from '../create-mutation/event';
 import type { PaiementsSuspendusEvent } from '../suspend-paiements/event';
 import type { PlanDePaiementValideEvent } from '../valider-plan-paiement/event';
 import type { RessourcesMutationCreatedEvent } from '../create-ressources-mutation/event';
+import type { DecisionValideeEvent } from '../valider-decision/event';
 
 // 1. State Slice and Initial State
 export interface MutationsState {
@@ -48,6 +49,16 @@ function applyPaiementsSuspendus(state: MutationsState, event: PaiementsSuspendu
     };
 }
 
+function applyDecisionValidee(state: MutationsState, event: DecisionValideeEvent): MutationsState {
+    return {
+        ...state,
+        mutations: state.mutations.map(m =>
+            m.id === event.mutationId ? { ...m, history: [...m.history, event] } : m // No status change here
+        ),
+    };
+}
+
+
 function applyPlanDePaiementValide(state: MutationsState, event: PlanDePaiementValideEvent): MutationsState {
     return {
         ...state,
@@ -84,8 +95,10 @@ export function mutationsProjectionReducer<T extends MutationsState>(
                     return applyRessourcesMutationCreated(nextState, event) as T;
                 case 'PAIEMENTS_SUSPENDUS':
                     return applyPaiementsSuspendus(nextState, event) as T;
+                case 'DECISION_VALIDEE':
+                    return applyDecisionValidee(nextState, event as DecisionValideeEvent) as T;
                 case 'PLAN_DE_PAIEMENT_VALIDE':
-                    return applyPlanDePaiementValide(nextState, event) as T;
+                    return applyPlanDePaiementValide(nextState, event as PlanDePaiementValideEvent) as T;
                 default:
                     return nextState as T;
             }
