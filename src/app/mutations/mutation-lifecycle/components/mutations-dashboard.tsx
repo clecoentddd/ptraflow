@@ -1,3 +1,4 @@
+
 "use client";
 
 import { CqrsProvider, useCqrs } from '@/app/mutations/mutation-lifecycle/cqrs';
