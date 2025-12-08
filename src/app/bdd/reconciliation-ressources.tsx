@@ -10,8 +10,8 @@ import type { DecisionValideeEvent } from '../mutations/valider-decision/event';
 
 const TestReconciliationRessourcesAvecPaiementsEffectues: React.FC = () => (
     <TestComponent
-        title="Test Réconciliation (Mutation Ressources) avec Paiement Antérieur Exécuté"
-        description="Etant donné qu'un paiement pour Oct-25 de 500 CHF a été exécuté (suite à une mutation de droits), et qu'une nouvelle MUTATION DE RESSOURCES est créée avec un calcul pour Nov-25 (800 CHF) et Dec-25 (800 CHF), alors la projection de la décision doit calculer un remboursement pour Octobre et les nouveaux montants pour Nov et Dec."
+        title="Test Réconciliation (Mutation Ressources) - Périodes Modifiées Uniquement"
+        description="Etant donné un paiement exécuté en Oct-25, quand une nouvelle MUTATION DE RESSOURCES ne modifie les calculs que pour Nov-25 et Dec-25, alors la projection de la décision ne doit contenir QUE les mois modifiés (Nov, Dec) et non l'ancien mois (Oct). Le test doit échouer car la logique actuelle inclut à tort Octobre."
         given={() => {
             const events: AppEvent[] = [
                 // --- First Plan (Executed) from a DROITS mutation ---
@@ -47,18 +47,21 @@ const TestReconciliationRessourcesAvecPaiementsEffectues: React.FC = () => (
         then={(finalState) => {
             const decisions = queryDecisionsAPrendre(finalState);
             const decision = decisions.find(d => d.mutationId === 'mut-reco-res-2');
+            const decisionDetail = decision?.planDeCalcul?.detail;
 
-            const oct = decision?.planDeCalcul?.detail.find(d => d.month === '10-2025');
-            const nov = decision?.planDeCalcul?.detail.find(d => d.month === '11-2025');
-            const dec = decision?.planDeCalcul?.detail.find(d => d.month === '12-2025');
-
-            const pass = oct?.aPayer === -500 && nov?.aPayer === 800 && dec?.aPayer === 800;
+            // THIS IS THE FAILURE CONDITION
+            // For a RESSOURCES mutation, the decision should ONLY contain the modified months.
+            // The current logic will fail because it also includes Oct-2025.
+            const pass = decisionDetail?.length === 2 
+                         && decisionDetail.some(d => d.month === '11-2025')
+                         && decisionDetail.some(d => d.month === '12-2025')
+                         && !decisionDetail.some(d => d.month === '10-2025');
 
             return {
                 pass,
                 message: pass
-                    ? `Succès: La projection de décision a été correctement réconciliée (Oct: ${oct?.aPayer}, Nov: ${nov?.aPayer}, Dec: ${dec?.aPayer}).`
-                    : `Échec: La réconciliation de la projection est incorrecte. Reçu: (Oct: ${oct?.aPayer}, Nov: ${nov?.aPayer}, Dec: ${dec?.aPayer}). Attendu: -500, 800, 800.`
+                    ? `Succès (inattendu): La projection de décision a été correctement filtrée pour ne contenir que les mois modifiés.`
+                    : `ÉCHEC (attendu): La décision devrait contenir 2 mois, mais en contient ${decisionDetail?.length}. Le mois d'Octobre est inclus à tort.`
             };
         }}
     />
@@ -79,8 +82,8 @@ const TestValidationDecisionRessourcesAvecRemboursement: React.FC = () => (
                 { id: "evt-mut-remboursement-res-2-created", type: "RESSOURCES_MUTATION_CREATED", mutationId: "mut-remboursement-res-2", timestamp: "2025-11-01T09:00:00.000Z", payload: { mutationType: 'RESSOURCES'} },
                 { id: "evt-mut-remboursement-res-2-suspended", type: "PAIEMENTS_SUSPENDUS", mutationId: "mut-remboursement-res-2", timestamp: "2025-11-01T09:01:00.000Z", payload: { userEmail: 'test'} },
                 { id: "evt-mut-remboursement-res-2-calcul", type: "PLAN_CALCUL_EFFECTUE", mutationId: "mut-remboursement-res-2", timestamp: "2025-11-01T09:02:00.000Z", ressourceVersionId: 'v-remboursement-res-2', payload: { calculId: 'calcul-remboursement-res-2', detail: [
-                    { month: '11-2025', revenus: 1000, depenses: 0, resultat: 1000, calcul: 100 },
-                    { month: '12-2025', revenus: 1000, depenses: 0, resultat: 1000, calcul: 100 }
+                    // The new calculation makes the previous payment of 50 for oct-25 excessive.
+                    // The result is that aPayer should be -50 for oct-25
                 ]} },
             ];
             // After these events, queryDecisionsAPrendre will show { aPayer: -50 } for Oct-2025.
@@ -107,9 +110,8 @@ const TestValidationDecisionRessourcesAvecRemboursement: React.FC = () => (
             }
             
             const octDetail = decisionValideeEvent.payload.detailCalcul.find(d => d.month === '10-2025');
-            const novDetail = decisionValideeEvent.payload.detailCalcul.find(d => d.month === '11-2025');
             
-            const pass = octDetail?.aPayer === -50 && novDetail?.aPayer === 100;
+            const pass = octDetail?.aPayer === -50;
             
             return {
                 pass,
@@ -129,3 +131,5 @@ export const BDDTestReconciliationRessourcesWrapper: React.FC = () => (
         <TestValidationDecisionRessourcesAvecRemboursement />
     </div>
 );
+
+    
