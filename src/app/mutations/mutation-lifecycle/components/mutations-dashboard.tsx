@@ -5,7 +5,7 @@ import { CqrsProvider, useCqrs } from '@/app/mutations/mutation-lifecycle/cqrs';
 import { AppHeader } from '@/app/mutations/create-mutation/components/app-header';
 import { MutationCard } from '@/app/mutations/mutation-lifecycle/components/mutation-card';
 import { EventStreamView } from '@/app/mutations/mutation-lifecycle/components/event-stream-view';
-import { TodoListView } from '@/app/mutations/projection-todolist/components/todo-list-view';
+import { TodoListView } from '@/app/mutations/mutation-lifecycle/components/todo-list-view';
 import { Card } from '@/components/ui/card';
 import { ScrollArea }from "@/components/ui/scroll-area";
 import { ValidatedPeriodsView } from '@/app/mutations/projection-periodes-de-droits/components/validated-periods-view';
