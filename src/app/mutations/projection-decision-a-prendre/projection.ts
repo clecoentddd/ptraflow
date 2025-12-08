@@ -5,7 +5,6 @@ import type { AppEvent, AppCommand, AppState, MutationType } from '../mutation-l
 import type { MonthlyResult } from '../shared/plan-de-calcul.service';
 import { queryJournal } from '../projection-journal/projection';
 import { queryPlansDeCalcul } from '../projection-plan-calcul/projection';
-import { queryValidatedPeriods } from '../projection-periodes-de-droits/projection';
 import { queryPlanDePaiement } from '../../paiements/projection-plan-de-paiement/projection';
 import { queryTransactions } from '../../paiements/projection-transactions/projection';
 import { parse, format, eachMonthOfInterval, min, max } from 'date-fns';
@@ -65,10 +64,20 @@ function rebuildDecisionState(state: AppState): DecisionAPrendreState {
             paiementsParMois[tx.mois] = (paiementsParMois[tx.mois] || 0) + tx.montant;
         });
 
-        const allMonths = new Set([...Object.keys(paiementsParMois), ...planDeCalcul.detail.map(d => d.month)]);
-        const sortedMonths = Array.from(allMonths).sort((a,b) => parse(a, 'MM-yyyy', new Date()).getTime() - parse(b, 'MM-yyyy', new Date()).getTime());
+        let moisAConsiderer: string[];
 
-        const detailAvecPaiements = sortedMonths.map(month => {
+        // ---- Règle métier : Différence entre DROITS et RESSOURCES ----
+        if (entry.mutationType === 'RESSOURCES' && entry.ressourcesDateDebut && entry.ressourcesDateFin) {
+            // Pour une mutation de RESSOURCES, on ne considère que les mois du nouveau calcul.
+            moisAConsiderer = planDeCalcul.detail.map(d => d.month);
+        } else {
+            // Pour une mutation de DROITS, on considère l'union de tous les paiements et du nouveau calcul.
+            const allMonths = new Set([...Object.keys(paiementsParMois), ...planDeCalcul.detail.map(d => d.month)]);
+            moisAConsiderer = Array.from(allMonths).sort((a,b) => parse(a, 'MM-yyyy', new Date()).getTime() - parse(b, 'MM-yyyy', new Date()).getTime());
+        }
+        // -------------------------------------------------------------
+
+        const detailAvecPaiements = moisAConsiderer.map(month => {
             const calculDuMois = planDeCalcul.detail.find(d => d.month === month);
             const montantCalcule = calculDuMois ? calculDuMois.calcul : 0;
             const paiementsEffectues = paiementsParMois[month] || 0;

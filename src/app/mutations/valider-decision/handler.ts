@@ -31,8 +31,16 @@ export function validerDecisionCommandHandler(state: AppState, command: ValiderD
   }
 
   // --- Transform MonthlyResult into DecisionDetail ---
-  const detailCalcul: DecisionDetail[] = decision.planDeCalcul.detail.map(monthlyResult => {
-      // Règle métier: les montants (positifs ou négatifs) sont conservés tels quels.
+  // Pour une mutation de RESSOURCES, on ne prend que les mois qui sont dans le plan de calcul
+  // Pour une mutation de DROITS, on prend tout
+  let detailSource = decision.planDeCalcul.detail;
+  if (decision.mutationType === 'RESSOURCES') {
+      const moisDuCalcul = new Set(decision.planDeCalcul.detail.map(d => d.month));
+      detailSource = detailSource.filter(d => moisDuCalcul.has(d.month));
+  }
+  
+  const detailCalcul: DecisionDetail[] = detailSource.map(monthlyResult => {
+      // Règle métier : les montants négatifs (remboursements) sont conservés.
       return {
           month: monthlyResult.month,
           calcul: monthlyResult.calcul,
@@ -40,6 +48,7 @@ export function validerDecisionCommandHandler(state: AppState, command: ValiderD
           aPayer: monthlyResult.aPayer
       };
   });
+
 
   const event: DecisionValideeEvent = {
     id: crypto.randomUUID(),
@@ -59,5 +68,3 @@ export function validerDecisionCommandHandler(state: AppState, command: ValiderD
 
   return { ...state, eventStream: [event, ...state.eventStream] };
 }
-
-    
