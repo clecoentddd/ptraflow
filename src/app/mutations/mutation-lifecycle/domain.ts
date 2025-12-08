@@ -1,5 +1,4 @@
 
-
 import type { DroitsMutationCreatedEvent } from '../create-mutation/event';
 import type { PaiementsSuspendusEvent } from '../suspend-paiements/event';
 import type { DroitsAnalysesEvent } from '../analyze-droits/event';
@@ -13,10 +12,8 @@ import type { EcritureSupprimeeEvent } from '../ecritures/supprimer-ecriture/eve
 import type { PlanCalculeEvent } from '../calculer-plan/event';
 import type { EcriturePeriodeCorrigeeEvent } from '../ecritures/mettre-a-jour-ecriture/event';
 import type { DecisionValideeEvent } from '../valider-decision/event';
-
-// Importation des événements de paiement
-import type { PlanDePaiementValideEvent } from '@/app/paiements/valider-plan-paiement/event';
-import type { TransactionCreeeEvent, TransactionEffectueeEvent, TransactionRemplaceeEvent } from '@/app/paiements/projection-transactions/events';
+import type { PlanDePaiementValideEvent } from '../valider-plan-paiement/event';
+import type { TransactionCreeeEvent, TransactionEffectueeEvent, TransactionRemplaceeEvent } from '../projection-transactions/events';
 
 // Importation des commandes de mutation
 import type { CreateDroitsMutationCommand } from '../create-mutation/command';
@@ -32,22 +29,20 @@ import type { SupprimerEcritureCommand } from '../ecritures/supprimer-ecriture/c
 import type { MettreAJourEcritureCommand } from '../ecritures/mettre-a-jour-ecriture/command';
 import type { ValiderPlanCalculCommand } from '../calculer-plan/command';
 import type { ValiderDecisionCommand } from '../valider-decision/command';
+import type { ValiderPlanPaiementCommand } from '../valider-plan-paiement/command';
+import type { ExecuterTransactionCommand } from '../executer-transaction/command';
+import type { PreparerTransactionsCommand } from '../preparer-transactions/command';
 
-// Importation des commandes de paiement
-import type { ValiderPlanPaiementCommand } from '@/app/paiements/valider-plan-paiement/command';
-import type { ExecuterTransactionCommand } from '@/app/paiements/executer-transaction/command';
-import type { PreparerTransactionsCommand } from '@/app/paiements/preparer-transactions/command';
-
-
+// Importation des états de projection
 import type { ValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
 import type { MutationsState } from '../projection-mutations/projection';
 import type { TodolistState } from '../projection-todolist/projection';
 import type { EcrituresState } from '../projection-ecritures/projection';
 import type { JournalState } from '../projection-journal/projection';
 import type { PlanCalculState } from '../projection-plan-calcul/projection';
-import type { PlanDePaiementState } from '@/app/paiements/projection-plan-de-paiement/projection';
+import type { PlanDePaiementState } from '../projection-plan-de-paiement/projection';
 import type { DecisionAPrendreState } from '../projection-decision-a-prendre/projection';
-import type { TransactionsState } from '@/app/paiements/projection-transactions/projection';
+import type { TransactionsState } from '../projection-transactions/projection';
 
 
 // =================================

@@ -1,8 +1,8 @@
 
 "use client";
 
-import type { AppEvent, AppCommand, AppState } from '../mutation-lifecycle/domain';
-import type { PlanDePaiementValideEvent } from '../valider-plan-paiement/event';
+import type { AppEvent, AppCommand, AppState } from '../../mutation-lifecycle/domain';
+import type { PlanDePaiementValideEvent } from '../../valider-plan-paiement/event';
 
 // --- State ---
 // This projection now only serves as a historical record of validated plans.

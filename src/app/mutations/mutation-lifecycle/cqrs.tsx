@@ -6,7 +6,7 @@ import React, { createContext, useContext, useReducer, type Dispatch } from 'rea
 // Importation des types de commandes, événements et état depuis le domaine
 import type { AppCommand, AppEvent, AppState } from './domain';
 
-// Importation des command handlers de 'mutations'
+// Importation des command handlers
 import { createDroitsMutationCommandHandler } from '../create-mutation/handler';
 import { createRessourcesMutationCommandHandler } from '../create-ressources-mutation/handler';
 import { suspendPaiementsCommandHandler } from '../suspend-paiements/handler';
@@ -20,13 +20,11 @@ import { supprimerEcritureCommandHandler } from '../ecritures/supprimer-ecriture
 import { mettreAJourEcritureCommandHandler } from '../ecritures/mettre-a-jour-ecriture/handler';
 import { validerPlanCalculCommandHandler } from '../calculer-plan/handler';
 import { validerDecisionCommandHandler } from '../valider-decision/handler';
+import { validerPlanPaiementCommandHandler } from '../valider-plan-paiement/handler';
+import { executerTransactionCommandHandler } from '../executer-transaction/handler';
+import { preparerTransactionsCommandHandler } from '../preparer-transactions/handler';
 
-// Importation des command handlers de 'paiements'
-import { validerPlanPaiementCommandHandler } from '@/app/paiements/valider-plan-paiement/handler';
-import { executerTransactionCommandHandler } from '@/app/paiements/executer-transaction/handler';
-import { preparerTransactionsCommandHandler } from '@/app/paiements/preparer-transactions/handler';
-
-// Importation des logiques de projection de 'mutations'
+// Importation des logiques de projection
 import { validatedPeriodsProjectionReducer, initialValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
 import { mutationsProjectionReducer, initialMutationsState } from '../projection-mutations/projection';
 import { todolistProjectionReducer, initialTodolistState } from '../projection-todolist/projection';
@@ -34,10 +32,8 @@ import { ecrituresProjectionReducer, initialEcrituresState } from '../projection
 import { journalProjectionReducer, initialJournalState } from '../projection-journal/projection';
 import { planCalculProjectionReducer, initialPlanCalculState } from '../projection-plan-calcul/projection';
 import { decisionAPrendreProjectionReducer, initialDecisionAPrendreState } from '../projection-decision-a-prendre/projection';
-
-// Importation des logiques de projection de 'paiements'
-import { planDePaiementProjectionReducer, initialPlanDePaiementState } from '@/app/paiements/projection-plan-de-paiement/projection';
-import { transactionsProjectionReducer, initialTransactionsState } from '@/app/paiements/projection-transactions/projection';
+import { planDePaiementProjectionReducer, initialPlanDePaiementState } from '../projection-plan-de-paiement/projection';
+import { transactionsProjectionReducer, initialTransactionsState } from '../projection-transactions/projection';
 
 
 // 1. INITIAL STATE
@@ -279,5 +275,3 @@ export function useCqrs() {
 
   return { state: context.state, dispatchEvent };
 }
-
-    

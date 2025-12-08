@@ -1,11 +1,11 @@
 
 "use client";
 
-import type { AppState, AppEvent } from '../../mutations/mutation-lifecycle/domain';
+import type { AppState, AppEvent } from '../mutation-lifecycle/domain';
 import type { PreparerTransactionsCommand } from './command';
-import type { PlanDePaiementValideEvent } from '../../mutations/valider-plan-paiement/event';
-import type { TransactionCreeeEvent, TransactionRemplaceeEvent } from '../../mutations/projection-transactions/events';
-import { queryTransactions } from '../../mutations/projection-transactions/projection';
+import type { PlanDePaiementValideEvent } from '../valider-plan-paiement/event';
+import type { TransactionCreeeEvent, TransactionRemplaceeEvent } from '../projection-transactions/events';
+import { queryTransactions } from '../projection-transactions/projection';
 import { toast } from 'react-hot-toast';
 
 // Command Handler / Processor

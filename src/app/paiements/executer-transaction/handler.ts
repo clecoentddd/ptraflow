@@ -3,9 +3,9 @@
 
 import type { AppState } from '../../mutations/mutation-lifecycle/domain';
 import type { ExecuterTransactionCommand } from './command';
-import type { TransactionEffectueeEvent } from '../../paiements/projection-transactions/events';
+import type { TransactionEffectueeEvent } from '../../mutations/projection-transactions/events';
 import { toast } from 'react-hot-toast';
-import { queryTransactions } from '../projection-transactions/projection';
+import { queryTransactions } from '../../mutations/projection-transactions/projection';
 import { parse, isBefore, endOfMonth } from 'date-fns';
 
 // Command Handler
