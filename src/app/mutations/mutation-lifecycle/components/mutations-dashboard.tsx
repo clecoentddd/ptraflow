@@ -8,14 +8,14 @@ import { EventStreamView } from '@/app/mutations/mutation-lifecycle/components/e
 import { TodoListView } from '@/app/mutations/projection-todolist/components/todo-list-view';
 import { Card } from '@/components/ui/card';
 import { ScrollArea }from "@/components/ui/scroll-area";
-import { ValidatedPeriodsView } from '../../../projection-periodes-de-droits/components/validated-periods-view';
-import { queryMutations } from '../../../projection-mutations/projection';
-import { AllEcrituresListView } from '../../../ecritures/components/ecritures-list-ui';
-import { JournalView } from '../../../projection-journal/components/journal-ui';
-import { PlanCalculView } from '../../../projection-plan-calcul/components/plan-calcul-view';
-import { DecisionAPrendreView } from '../../../projection-decision-a-prendre/components/decision-a-prendre-view';
-import { PlanDePaiementView } from '../../../projection-plan-de-paiement/components/plan-de-paiement-view';
-import { TransactionsView } from '../../../projection-transactions/components/transactions-view';
+import { ValidatedPeriodsView } from '@/app/mutations/projection-periodes-de-droits/components/validated-periods-view';
+import { queryMutations } from '@/app/mutations/projection-mutations/projection';
+import { AllEcrituresListView } from '@/app/mutations/ecritures/components/ecritures-list-ui';
+import { JournalView } from '@/app/mutations/projection-journal/components/journal-ui';
+import { PlanCalculView } from '@/app/mutations/projection-plan-calcul/components/plan-calcul-view';
+import { DecisionAPrendreView } from '@/app/mutations/projection-decision-a-prendre/components/decision-a-prendre-view';
+import { PlanDePaiementView } from '@/app/mutations/projection-plan-de-paiement/components/plan-de-paiement-view';
+import { TransactionsView } from '@/app/mutations/projection-transactions/components/transactions-view';
 
 function DashboardContent() {
   const { state } = useCqrs();
