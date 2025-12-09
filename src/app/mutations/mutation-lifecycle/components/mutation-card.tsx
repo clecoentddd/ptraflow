@@ -22,6 +22,7 @@ import { AutoriserModificationDroitsButton, AutoriserModificationDroitsTodoItem 
 import { AutoriserModificationRessourcesButton, AutoriserModificationRessourcesTodoItem } from "../../autoriser-modification-des-ressources/components/autoriser-modification-ressources-ui";
 import { ValiderModificationRessourcesButton, ValiderModificationRessourcesTodoItem } from "../../valider-modification-ressources/components/valider-modification-ressources-ui";
 import { CalculerPlanButton, CalculerPlanTodoItem } from "../../calculer-plan/components/calculer-plan-ui";
+import { PreparerDecisionTodoItem } from "../../preparer-decision/components/preparer-decision-ui";
 import { ValiderDecisionButton, ValiderDecisionTodoItem } from "../../valider-decision/components/valider-decision-ui";
 
 
@@ -71,6 +72,7 @@ export function MutationCard({ mutation }: { mutation: Mutation }) {
               <AutoriserModificationRessourcesTodoItem mutationId={mutation.id} />
               <ValiderModificationRessourcesTodoItem mutationId={mutation.id} />
               <CalculerPlanTodoItem mutationId={mutation.id} />
+              <PreparerDecisionTodoItem mutationId={mutation.id} />
               <ValiderDecisionTodoItem mutationId={mutation.id} />
               <ValiderPlanPaiementTodoItem mutationId={mutation.id} />
           </ul>

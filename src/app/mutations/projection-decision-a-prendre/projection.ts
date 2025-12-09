@@ -3,30 +3,17 @@
 
 import type { AppEvent, AppCommand, AppState, MutationType } from '../mutation-lifecycle/domain';
 import type { MonthlyResult } from '../shared/plan-de-calcul.service';
-import { queryJournal } from '../projection-journal/projection';
-import { queryPlansDeCalcul } from '../projection-plan-calcul/projection';
-import { queryPlanDePaiement } from '../../paiements/projection-plan-de-paiement/projection';
-import { queryTransactions } from '../../paiements/projection-transactions/projection';
+import { queryTransactions } from '../projection-transactions/projection';
 import { parse, format, eachMonthOfInterval, min, max } from 'date-fns';
+import type { DecisionPreparteeEvent } from '../preparer-decision/event';
 
 // 1. State Slice and Initial State
 export interface DecisionData {
     decisionId: string;
     mutationId: string;
-    mutationType: MutationType;
-    planDeCalcul?: {
-        calculId: string;
-        detail: MonthlyResult & { paiementsEffectues: number; aPayer: number }[];
-    };
+    calculId: string;
     planDePaiementId: string | null;
-    periodeDroits?: {
-        dateDebut: string;
-        dateFin: string;
-    };
-    periodeModifications?: {
-        dateDebut: string;
-        dateFin: string;
-    };
+    detail: (MonthlyResult & { paiementsEffectues: number; aPayer: number })[];
 }
 
 export interface DecisionAPrendreState {
@@ -39,98 +26,47 @@ export const initialDecisionAPrendreState: DecisionAPrendreState = {
 
 
 // 2. Projection Logic
-function rebuildDecisionState(state: AppState): DecisionAPrendreState {
-    const journal = queryJournal(state);
-    const plansDeCalcul = queryPlansDeCalcul(state);
-    const allPlansDePaiement = queryPlanDePaiement(state);
-    const allTransactions = queryTransactions(state);
+function applyDecisionPrepartee(state: DecisionAPrendreState, event: DecisionPreparteeEvent): DecisionAPrendreState {
+    const { mutationId, decisionId, calculId, planDePaiementId, detail } = event.payload;
 
-    const latestPlanDePaiement = [...allPlansDePaiement].sort(
-        (a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-    )[0];
-    const latestPlanDePaiementId = latestPlanDePaiement ? latestPlanDePaiement.id : null;
+    const newDecision: DecisionData = {
+        mutationId,
+        decisionId,
+        calculId,
+        planDePaiementId,
+        detail
+    };
 
-    const decisions: DecisionData[] = journal.map(entry => {
-        const planDeCalcul = plansDeCalcul.find(p => p.mutationId === entry.mutationId);
-        
-        if (!planDeCalcul) {
-            return null;
-        }
-
-        const transactionsExecutees = allTransactions.filter(t => t.statut === 'Exécuté');
-        const paiementsParMois: Record<string, number> = {};
-
-        transactionsExecutees.forEach(tx => {
-            paiementsParMois[tx.mois] = (paiementsParMois[tx.mois] || 0) + tx.montant;
-        });
-
-        let moisAConsiderer: string[];
-
-        // ---- Règle métier : Différence entre DROITS et RESSOURCES ----
-        if (entry.mutationType === 'RESSOURCES' && entry.ressourcesDateDebut && entry.ressourcesDateFin) {
-            // Pour une mutation de RESSOURCES, on ne considère que les mois du nouveau calcul.
-            moisAConsiderer = planDeCalcul.detail.map(d => d.month);
-        } else {
-            // Pour une mutation de DROITS, on considère l'union de tous les paiements et du nouveau calcul.
-            const allMonths = new Set([...Object.keys(paiementsParMois), ...planDeCalcul.detail.map(d => d.month)]);
-            moisAConsiderer = Array.from(allMonths).sort((a,b) => parse(a, 'MM-yyyy', new Date()).getTime() - parse(b, 'MM-yyyy', new Date()).getTime());
-        }
-        // -------------------------------------------------------------
-
-        const detailAvecPaiements = moisAConsiderer.map(month => {
-            const calculDuMois = planDeCalcul.detail.find(d => d.month === month);
-            const montantCalcule = calculDuMois ? calculDuMois.calcul : 0;
-            const paiementsEffectues = paiementsParMois[month] || 0;
-            const aPayer = montantCalcule - paiementsEffectues;
-
-            return {
-                ...(calculDuMois || { month, revenus: 0, depenses: 0, resultat: 0, calcul: 0 }),
-                paiementsEffectues,
-                aPayer
-            };
-        });
-
-        const decision: DecisionData = {
-            decisionId: crypto.randomUUID(),
-            mutationId: entry.mutationId,
-            mutationType: entry.mutationType,
-            planDeCalcul: {
-                calculId: planDeCalcul.calculId,
-                detail: detailAvecPaiements,
-            },
-            planDePaiementId: latestPlanDePaiementId,
-        };
-
-        if (entry.mutationType === 'DROITS') {
-            const droitsAnalysesEvent = state.eventStream.find(
-                e => e.mutationId === entry.mutationId && e.type === 'DROITS_ANALYSES'
-            ) as any;
-            if (droitsAnalysesEvent) {
-                 decision.periodeDroits = {
-                    dateDebut: droitsAnalysesEvent.payload.dateDebut,
-                    dateFin: droitsAnalysesEvent.payload.dateFin,
-                };
-            }
-        }
-
-        if (entry.ressourcesDateDebut && entry.ressourcesDateFin) {
-            decision.periodeModifications = {
-                dateDebut: entry.ressourcesDateDebut,
-                dateFin: entry.ressourcesDateFin,
-            };
-        }
-        
-        return decision;
-    }).filter((d): d is DecisionData => d !== null);
-
-    return { decisions };
+    // Remove any existing decision for this mutation to ensure we only have the latest one.
+    const otherDecisions = state.decisions.filter(d => d.mutationId !== mutationId);
+    
+    return {
+        ...state,
+        decisions: [...otherDecisions, newDecision]
+    };
 }
 
+function applyDecisionValidee(state: DecisionAPrendreState, event: AppEvent): DecisionAPrendreState {
+    if (event.type !== 'DECISION_VALIDEE') return state;
+
+    // When a decision is validated, it's no longer "à prendre". We remove it from the list.
+    return {
+        ...state,
+        decisions: state.decisions.filter(d => d.decisionId !== (event as any).decisionId)
+    };
+}
+
+
 // 3. Slice Reducer
-export function decisionAPrendreProjectionReducer(state: AppState, command: AppCommand): AppState {
-    if (command.type === 'REPLAY_COMPLETE') {
-        const newDecisionState = rebuildDecisionState(state);
-        return { ...state, ...newDecisionState };
+export function decisionAPrendreProjectionReducer(state: AppState, commandOrEvent: AppCommand | AppEvent): AppState {
+    if ('type' in commandOrEvent && 'payload' in commandOrEvent) {
+        const event = commandOrEvent as AppEvent;
+        switch(event.type) {
+            case 'DECISION_PREPAREE':
+                return { ...state, ...applyDecisionPrepartee(state, event) };
+            case 'DECISION_VALIDEE':
+                return { ...state, ...applyDecisionValidee(state, event) };
+        }
     }
     return state;
 }

@@ -12,6 +12,7 @@ import type { PlanDePaiementValideEvent } from '@/app/paiements/valider-plan-pai
 import type { ModificationRessourcesAutoriseeEvent } from '../autoriser-modification-des-ressources/event';
 import type { ModificationRessourcesValideeEvent } from '../valider-modification-ressources/event';
 import type { PlanCalculeEvent } from '../calculer-plan/event';
+import type { DecisionPreparteeEvent } from '../preparer-decision/event';
 import type { DecisionValideeEvent } from '../valider-decision/event';
 
 
@@ -35,6 +36,7 @@ function applyDroitsMutationCreated(state: TodolistState, event: DroitsMutationC
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Autoriser la modification de ressources", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la modification des ressources", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Calculer le plan", status: 'en attente' },
+        { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Préparer la décision", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la décision", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider le plan de paiement", status: 'en attente' },
     ];
@@ -47,6 +49,7 @@ function applyRessourcesMutationCreated(state: TodolistState, event: RessourcesM
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Autoriser la modification de ressources", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la modification des ressources", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Calculer le plan", status: 'en attente' },
+        { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Préparer la décision", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider la décision", status: 'en attente' },
         { id: crypto.randomUUID(), mutationId: event.mutationId, description: "Valider le plan de paiement", status: 'en attente' },
     ];
@@ -135,6 +138,18 @@ function applyPlanCalcule(state: TodolistState, event: PlanCalculeEvent): Todoli
         todos: state.todos.map(t => {
             if (t.mutationId !== event.mutationId) return t;
             if (t.description === "Calculer le plan") return { ...t, status: 'fait' };
+            if (t.description === "Préparer la décision") return { ...t, status: 'à faire' };
+            return t;
+        })
+    };
+}
+
+function applyDecisionPrepartee(state: TodolistState, event: DecisionPreparteeEvent): TodolistState {
+    return {
+        ...state,
+        todos: state.todos.map(t => {
+            if (t.mutationId !== event.mutationId) return t;
+            if (t.description === "Préparer la décision") return { ...t, status: 'fait' };
             if (t.description === "Valider la décision") return { ...t, status: 'à faire' };
             return t;
         })
@@ -191,6 +206,8 @@ export function todolistProjectionReducer<T extends TodolistState & { mutations:
                 return applyModificationRessourcesValidee(state, event) as T;
             case 'PLAN_CALCUL_EFFECTUE':
                 return applyPlanCalcule(state, event) as T;
+            case 'DECISION_PREPAREE':
+                return applyDecisionPrepartee(state, event) as T;
             case 'DECISION_VALIDEE':
                 return applyDecisionValidee(state, event) as T;
             case 'PLAN_DE_PAIEMENT_VALIDE':

@@ -11,6 +11,7 @@ import type { ModificationRessourcesValideeEvent } from '../valider-modification
 import type { EcritureSupprimeeEvent } from '../ecritures/supprimer-ecriture/event';
 import type { PlanCalculeEvent } from '../calculer-plan/event';
 import type { EcriturePeriodeCorrigeeEvent } from '../ecritures/mettre-a-jour-ecriture/event';
+import type { DecisionPreparteeEvent } from '../preparer-decision/event';
 import type { DecisionValideeEvent } from '../valider-decision/event';
 import type { PlanDePaiementValideEvent } from '../valider-plan-paiement/event';
 import type { TransactionCreeeEvent, TransactionEffectueeEvent, TransactionRemplaceeEvent } from '../projection-transactions/events';
@@ -28,6 +29,7 @@ import type { ValiderModificationRessourcesCommand } from '../valider-modificati
 import type { SupprimerEcritureCommand } from '../ecritures/supprimer-ecriture/command';
 import type { MettreAJourEcritureCommand } from '../ecritures/mettre-a-jour-ecriture/command';
 import type { ValiderPlanCalculCommand } from '../calculer-plan/command';
+import type { PreparerDecisionCommand } from '../preparer-decision/command';
 import type { ValiderDecisionCommand } from '../valider-decision/command';
 import type { ValiderPlanPaiementCommand } from '../valider-plan-paiement/command';
 import type { ExecuterTransactionCommand } from '../executer-transaction/command';
@@ -72,6 +74,7 @@ export type AppEvent =
     | EcritureSupprimeeEvent
     | EcriturePeriodeCorrigeeEvent
     | PlanCalculeEvent
+    | DecisionPreparteeEvent
     | DecisionValideeEvent
     | TransactionCreeeEvent
     | TransactionRemplaceeEvent
@@ -97,6 +100,7 @@ export type AppCommand =
     | SupprimerEcritureCommand
     | MettreAJourEcritureCommand
     | ValiderPlanCalculCommand
+    | PreparerDecisionCommand
     | ValiderDecisionCommand
     | ExecuterTransactionCommand
     | PreparerTransactionsCommand

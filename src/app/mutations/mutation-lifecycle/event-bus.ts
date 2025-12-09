@@ -16,6 +16,7 @@ import { ajouterDepenseCommandHandler } from '../ecritures/ajouter-depense/handl
 import { supprimerEcritureCommandHandler } from '../ecritures/supprimer-ecriture/handler';
 import { mettreAJourEcritureCommandHandler } from '../ecritures/mettre-a-jour-ecriture/handler';
 import { validerPlanCalculCommandHandler } from '../calculer-plan/handler';
+import { preparerDecisionCommandHandler } from '../preparer-decision/handler';
 import { validerDecisionCommandHandler } from '../valider-decision/handler';
 import { validerPlanPaiementCommandHandler } from '../valider-plan-paiement/handler';
 import { executerTransactionCommandHandler } from '../executer-transaction/handler';
@@ -70,10 +71,11 @@ class EventBusManager {
             newState = planCalculProjectionReducer(newState, event);
             newState = planDePaiementProjectionReducer(newState, event);
             newState = transactionsProjectionReducer(newState, event);
+            newState = decisionAPrendreProjectionReducer(newState, event); // Now event-driven
         }
         
+        // Journal is rebuilt at the end as it depends on other projections' results on the state
         newState = journalProjectionReducer(newState, { type: 'REPLAY_COMPLETE' });
-        newState = decisionAPrendreProjectionReducer(newState, { type: 'REPLAY_COMPLETE' });
         
         newState.eventStream = [...this.eventStream].reverse(); // Keep reverse chronological order for display
         this.state = newState;
@@ -81,8 +83,6 @@ class EventBusManager {
 
     // Exécute les logiques qui doivent réagir à de nouveaux événements (Sagas / Process Managers).
     private runProcessManagers(newEvents: AppEvent[]) {
-        const eventsFromProcesses: AppEvent[] = [];
-        
         for (const event of newEvents) {
             if (event.type === 'PLAN_DE_PAIEMENT_VALIDE') {
                 preparerTransactionsCommandHandler(
@@ -95,6 +95,15 @@ class EventBusManager {
                         }
                     }
                 );
+            }
+             if (event.type === 'PLAN_CALCUL_EFFECTUE') {
+                preparerDecisionCommandHandler(this.state, {
+                    type: 'PREPARER_DECISION',
+                    payload: {
+                        mutationId: event.mutationId,
+                        calculId: event.payload.calculId
+                    }
+                });
             }
         }
     }
@@ -182,12 +191,15 @@ export function dispatchCommand(command: AppCommand) {
             break;
         case 'VALIDER_PLAN_PAIEMENT':
              validerPlanPaiementCommandHandler(currentState, command);
-            break;
+             break;
         case 'PREPARER_TRANSACTIONS':
              preparerTransactionsCommandHandler(currentState, command);
              break;
         case 'VALIDER_PLAN_CALCUL':
             validerPlanCalculCommandHandler(currentState, command);
+            break;
+        case 'PREPARER_DECISION':
+            preparerDecisionCommandHandler(currentState, command);
             break;
         case 'AJOUTER_REVENU':
             ajouterRevenuCommandHandler(currentState, command);
