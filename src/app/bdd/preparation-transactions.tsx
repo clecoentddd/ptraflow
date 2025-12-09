@@ -5,7 +5,7 @@ import React from 'react';
 import type { AppState, AppEvent } from '../mutations/mutation-lifecycle/domain';
 import { TestComponent } from '../mutations/bdd/test-harness';
 import { EventBus, rehydrateStateForTesting } from '../mutations/mutation-lifecycle/event-bus';
-import type { PlanDePaiementValideEvent } from '../paiements/valider-plan-paiement/event';
+import type { PlanDePaiementValideEvent } from '../mutations/valider-plan-paiement/event';
 
 export const BDDTestPreparationTransactions: React.FC = () => (
     <TestComponent
@@ -15,12 +15,11 @@ export const BDDTestPreparationTransactions: React.FC = () => (
             const planDePaiementId = "plan-abc";
             const mutationId = "mut-123";
             const event: PlanDePaiementValideEvent = {
-                id: "evt-plan-valide",
+                id: planDePaiementId, // The event ID is the plan ID
                 type: "PLAN_DE_PAIEMENT_VALIDE",
                 mutationId: mutationId,
                 timestamp: new Date().toISOString(),
                 payload: {
-                    planDePaiementId: planDePaiementId,
                     decisionId: "dec-xyz",
                     detailCalcul: [
                         { month: "08-2025", aPayer: 123 },

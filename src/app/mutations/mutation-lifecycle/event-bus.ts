@@ -86,7 +86,7 @@ class EventBusManager {
                     {
                         type: 'PREPARER_TRANSACTIONS',
                         payload: {
-                            planDePaiementId: (event.payload as any).planDePaiementId,
+                            planDePaiementId: event.id, // The event ID is the plan ID
                             mutationId: event.mutationId
                         }
                     }
@@ -105,6 +105,15 @@ class EventBusManager {
              // Une décision validée déclenche la validation du plan de paiement
             if (event.type === 'DECISION_VALIDEE') {
                 validerPlanPaiementCommandHandler(this.state, {
+                    type: 'VALIDER_PLAN_PAIEMENT',
+                    payload: {
+                        mutationId: event.mutationId,
+                    }
+                });
+            }
+            // Une transaction effectuée déclenche aussi un nouveau plan de paiement
+            if (event.type === 'TRANSACTION_EFFECTUEE') {
+                 validerPlanPaiementCommandHandler(this.state, {
                     type: 'VALIDER_PLAN_PAIEMENT',
                     payload: {
                         mutationId: event.mutationId,

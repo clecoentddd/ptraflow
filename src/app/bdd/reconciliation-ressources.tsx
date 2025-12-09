@@ -15,16 +15,16 @@ const TestReconciliationRessourcesAvecPaiementsEffectues: React.FC = () => (
         given={() => {
             const events: AppEvent[] = [
                 // --- First Plan (Executed) from a DROITS mutation ---
-                { id: "evt-plan1-reco-res", type: "PLAN_DE_PAIEMENT_VALIDE", mutationId: "mut-reco-res-1", timestamp: "2025-09-01T10:00:00.000Z", payload: { planDePaiementId: "plan-reco-res-1", decisionId: "dec-reco-res-1", detailCalcul: [] } as any },
-                { id: "tx-creee-oct-reco-res", type: "TRANSACTION_CREEE", mutationId: "mut-reco-res-1", timestamp: "2025-09-01T10:01:00.000Z", payload: { transactionId: "tx-oct-reco-res", planDePaiementId: "plan-reco-res-1", mois: "10-2025", montant: 500 } as any },
-                { id: "tx-creee-nov-reco-res", type: "TRANSACTION_CREEE", mutationId: "mut-reco-res-1", timestamp: "2025-09-01T10:02:00.000Z", payload: { transactionId: "tx-nov-reco-res", planDePaiementId: "plan-reco-res-1", mois: "11-2025", montant: 300 } as any },
-                { id: "tx-exec-oct-reco-res", type: "TRANSACTION_EFFECTUEE", mutationId: "mut-reco-res-1", timestamp: "2025-10-05T10:00:00.000Z", payload: { transactionId: "tx-oct-reco-res" } as any },
+                { id: "plan-reco-res-1", type: "PLAN_DE_PAIEMENT_VALIDE", mutationId: "mut-reco-res-1", timestamp: "2025-09-01T10:00:00.000Z", payload: { decisionId: "dec-reco-res-1", detailCalcul: [] } } as any,
+                { id: "tx-creee-oct-reco-res", type: "TRANSACTION_CREEE", mutationId: "mut-reco-res-1", timestamp: "2025-09-01T10:01:00.000Z", payload: { transactionId: "tx-oct-reco-res", planDePaiementId: "plan-reco-res-1", mois: "10-2025", montant: 500 } } as any,
+                { id: "tx-creee-nov-reco-res", type: "TRANSACTION_CREEE", mutationId: "mut-reco-res-1", timestamp: "2025-09-01T10:02:00.000Z", payload: { transactionId: "tx-nov-reco-res", planDePaiementId: "plan-reco-res-1", mois: "11-2025", montant: 300 } } as any,
+                { id: "tx-exec-oct-reco-res", type: "TRANSACTION_EFFECTUEE", mutationId: "mut-reco-res-1", timestamp: "2025-10-05T10:00:00.000Z", payload: { transactionId: "tx-oct-reco-res" } } as any,
 
                 // --- New RESSOURCES Mutation (In Progress) ---
-                { id: "evt-mut-reco-res-2-created", type: "RESSOURCES_MUTATION_CREATED", mutationId: "mut-reco-res-2", timestamp: "2025-11-01T09:00:00.000Z", payload: { mutationType: 'RESSOURCES'} as any },
-                { id: "evt-mut-reco-res-2-suspended", type: "PAIEMENTS_SUSPENDUS", mutationId: "mut-reco-res-2", timestamp: "2025-11-01T09:01:00.000Z", payload: { userEmail: 'test'} as any },
+                { id: "evt-mut-reco-res-2-created", type: "RESSOURCES_MUTATION_CREATED", mutationId: "mut-reco-res-2", timestamp: "2025-11-01T09:00:00.000Z", payload: { mutationType: 'RESSOURCES'} } as any,
+                { id: "evt-mut-reco-res-2-suspended", type: "PAIEMENTS_SUSPENDUS", mutationId: "mut-reco-res-2", timestamp: "2025-11-01T09:01:00.000Z", payload: { userEmail: 'test'} } as any,
                 // This event is NECESSARY for the journal to know the modified period
-                { id: "evt-rev-added-for-reco", type: "REVENU_AJOUTE", mutationId: "mut-reco-res-2", ressourceVersionId: "v-reco-res-2", timestamp: "2025-11-01T09:01:30.000Z", payload: { ecritureId: "ecr-reco-res", code: "101", libelle: "Salaire", montant: 8000, dateDebut: "11-2025", dateFin: "12-2025" } as any },
+                { id: "evt-rev-added-for-reco", type: "REVENU_AJOUTE", mutationId: "mut-reco-res-2", ressourceVersionId: "v-reco-res-2", timestamp: "2025-11-01T09:01:30.000Z", payload: { ecritureId: "ecr-reco-res", code: "101", libelle: "Salaire", montant: 8000, dateDebut: "11-2025", dateFin: "12-2025" } } as any,
             ];
             return { eventStream: events };
         }}
@@ -68,20 +68,20 @@ const TestValidationDecisionRessourcesAvecPeriodeIncorrecte: React.FC = () => (
         given={() => {
             const events: AppEvent[] = [
                 // --- Setup from a DROITS mutation ---
-                { id: "evt-plan-remboursement-res", type: "PLAN_DE_PAIEMENT_VALIDE", mutationId: "mut-remboursement-res-1", timestamp: "2025-09-01T10:00:00.000Z", payload: { planDePaiementId: "plan-remboursement-res", decisionId: "dec-remboursement-res", detailCalcul: [] } as any },
-                { id: "tx-creee-oct-remboursement-res", type: "TRANSACTION_CREEE", mutationId: "mut-remboursement-res-1", timestamp: "2025-09-01T10:01:00.000Z", payload: { transactionId: "tx-oct-remboursement-res", planDePaiementId: "plan-remboursement-res", mois: "10-2025", montant: 50 } as any },
-                { id: "tx-exec-oct-remboursement-res", type: "TRANSACTION_EFFECTUEE", mutationId: "mut-remboursement-res-1", timestamp: "2025-10-05T10:00:00.000Z", payload: { transactionId: "tx-oct-remboursement-res" } as any },
+                { id: "plan-remboursement-res", type: "PLAN_DE_PAIEMENT_VALIDE", mutationId: "mut-remboursement-res-1", timestamp: "2025-09-01T10:00:00.000Z", payload: { decisionId: "dec-remboursement-res", detailCalcul: [] } } as any,
+                { id: "tx-creee-oct-remboursement-res", type: "TRANSACTION_CREEE", mutationId: "mut-remboursement-res-1", timestamp: "2025-09-01T10:01:00.000Z", payload: { transactionId: "tx-oct-remboursement-res", planDePaiementId: "plan-remboursement-res", mois: "10-2025", montant: 50 } } as any,
+                { id: "tx-exec-oct-remboursement-res", type: "TRANSACTION_EFFECTUEE", mutationId: "mut-remboursement-res-1", timestamp: "2025-10-05T10:00:00.000Z", payload: { transactionId: "tx-oct-remboursement-res" } } as any,
                 
                 // --- New RESSOURCES mutation that will lead to a new calculation ---
-                { id: "evt-mut-remboursement-res-2-created", type: "RESSOURCES_MUTATION_CREATED", mutationId: "mut-remboursement-res-2", timestamp: "2025-11-01T09:00:00.000Z", payload: { mutationType: 'RESSOURCES'} as any },
-                { id: "evt-mut-remboursement-res-2-suspended", type: "PAIEMENTS_SUSPENDUS", mutationId: "mut-remboursement-res-2", timestamp: "2025-11-01T09:01:00.000Z", payload: { userEmail: 'test'} as any },
+                { id: "evt-mut-remboursement-res-2-created", type: "RESSOURCES_MUTATION_CREATED", mutationId: "mut-remboursement-res-2", timestamp: "2025-11-01T09:00:00.000Z", payload: { mutationType: 'RESSOURCES'} } as any,
+                { id: "evt-mut-remboursement-res-2-suspended", type: "PAIEMENTS_SUSPENDUS", mutationId: "mut-remboursement-res-2", timestamp: "2025-11-01T09:01:00.000Z", payload: { userEmail: 'test'} } as any,
                  // This event is NECESSARY for the journal to know the modified period
-                { id: "evt-rev-added-for-validation", type: "REVENU_AJOUTE", mutationId: "mut-remboursement-res-2", ressourceVersionId: "v-remboursement-res-2", timestamp: "2025-11-01T09:01:30.000Z", payload: { ecritureId: "ecr-validation-res", code: "101", libelle: "Salaire", montant: 1000, dateDebut: "11-2025", dateFin: "12-2025" } as any },
+                { id: "evt-rev-added-for-validation", type: "REVENU_AJOUTE", mutationId: "mut-remboursement-res-2", ressourceVersionId: "v-remboursement-res-2", timestamp: "2025-11-01T09:01:30.000Z", payload: { ecritureId: "ecr-validation-res", code: "101", libelle: "Salaire", montant: 1000, dateDebut: "11-2025", dateFin: "12-2025" } } as any,
                 { id: "evt-mut-remboursement-res-2-calcul", type: "PLAN_CALCUL_EFFECTUE", mutationId: "mut-remboursement-res-2", timestamp: "2025-11-01T09:02:00.000Z", ressourceVersionId: 'v-remboursement-res-2', payload: { calculId: 'calcul-remboursement-res-2', detail: [
                     // The new calculation is only for Nov and Dec
                      { month: '11-2025', revenus: 1000, depenses: 0, resultat: 1000, calcul: 100 },
                      { month: '12-2025', revenus: 1000, depenses: 0, resultat: 1000, calcul: 100 }
-                ]} as any },
+                ]} } as any,
             ];
             rehydrateStateForTesting(events);
             // Manually trigger decision preparation after rehydrating state with the calculation
@@ -108,7 +108,12 @@ const TestValidationDecisionRessourcesAvecPeriodeIncorrecte: React.FC = () => (
                 return { pass: false, message: "Échec: L'événement DECISION_VALIDEE n'a pas été trouvé." };
             }
             
-            const detail = decisionValideeEvent.payload.detailCalcul;
+            // This is now checked on the subsequent PLAN_DE_PAIEMENT_VALIDE event
+            const planValideEvent = finalState.eventStream.find(e => e.type === 'PLAN_DE_PAIEMENT_VALIDE' && e.mutationId === 'mut-remboursement-res-2') as any;
+            if (!planValideEvent) {
+                return { pass: false, message: "Échec: L'événement PLAN_DE_PAIEMENT_VALIDE n'a pas été trouvé." };
+            }
+            const detail = planValideEvent.payload.detailCalcul;
             
             // THIS IS THE FAILURE CONDITION
             // The handler still includes October because it reads from the faulty decision projection
@@ -120,8 +125,8 @@ const TestValidationDecisionRessourcesAvecPeriodeIncorrecte: React.FC = () => (
             return {
                 pass,
                 message: pass
-                    ? `Succès: L'événement DECISION_VALIDEE a été correctement filtré pour ne contenir que les mois modifiés.`
-                    : `ÉCHEC: L'événement DECISION_VALIDEE devrait contenir 2 mois, mais en contient ${detail.length}. Le mois d'Octobre est inclus à tort.`
+                    ? `Succès: L'événement PLAN_DE_PAIEMENT_VALIDE a été correctement filtré pour ne contenir que les mois modifiés.`
+                    : `ÉCHEC: L'événement PLAN_DE_PAIEMENT_VALIDE devrait contenir 2 mois, mais en contient ${detail.length}. Le mois d'Octobre est inclus à tort.`
             };
         }}
     />

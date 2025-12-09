@@ -16,8 +16,8 @@ export function validerPlanPaiementCommandHandler(
 ): void {
   const { mutationId } = command.payload;
 
-  // 1. Find the `DecisionValideeEvent` for this mutation to get the `decisionId`.
-  const decisionValideeEvent = state.eventStream.find(
+  // 1. Find the latest `DecisionValideeEvent` for this mutation to get the `decisionId`.
+  const decisionValideeEvent = [...state.eventStream].reverse().find(
       e => e.mutationId === mutationId && e.type === 'DECISION_VALIDEE'
   ) as DecisionValideeEvent | undefined;
   
@@ -36,16 +36,14 @@ export function validerPlanPaiementCommandHandler(
     return;
   }
   
-  // 3. Create the "Plan Validated" event.
+  // 3. Create the "Plan Validated" event. The event's ID becomes the plan ID.
   const finalEvent: PlanDePaiementValideEvent = {
-    id: crypto.randomUUID(),
+    id: crypto.randomUUID(), // This ID IS the planDePaiementId
     type: 'PLAN_DE_PAIEMENT_VALIDE',
     mutationId,
     timestamp: new Date().toISOString(),
     payload: {
-        planDePaiementId: crypto.randomUUID(),
         decisionId: decisionDetails.payload.decisionId,
-        // CORRECTED: Use 'detail' from the payload, not 'detailCalcul'
         detailCalcul: decisionDetails.payload.detail.map(d => ({ month: d.month, aPayer: d.aPayer }))
     }
   };

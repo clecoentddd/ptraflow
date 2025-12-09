@@ -7,7 +7,7 @@ import type { PlanDePaiementValideEvent } from '../../valider-plan-paiement/even
 // --- State ---
 // This projection now only serves as a historical record of validated plans.
 export interface PlanDePaiement {
-    id: string; // planDePaiementId
+    id: string; // planDePaiementId (which is the event id)
     mutationId: string;
     decisionId: string;
     timestamp: string;
@@ -26,7 +26,7 @@ export const initialPlanDePaiementState: PlanDePaiementState = {
 
 function applyPlanDePaiementValide(state: PlanDePaiementState, event: PlanDePaiementValideEvent): PlanDePaiementState {
     const newPlan: PlanDePaiement = { 
-        id: event.payload.planDePaiementId,
+        id: event.id, // The event ID is the plan ID
         mutationId: event.mutationId,
         decisionId: event.payload.decisionId,
         timestamp: event.timestamp,
