@@ -32,11 +32,17 @@ export function preparerDecisionCommandHandler(
     toast.error("Données de journal ou de calcul manquantes pour préparer la décision.");
     return;
   }
-  // This check prevents creating a duplicate decision for the same calculation
   if (existingDecisions.some(d => d.calculId === calculId)) {
     console.log(`Une décision pour le calcul ${calculId} a déjà été préparée.`);
     return;
   }
+  
+  const lastRessourceVersionIdEvent = [...state.eventStream].reverse().find(e => 'ressourceVersionId' in e && e.mutationId === mutationId);
+  if (!lastRessourceVersionIdEvent || !('ressourceVersionId' in lastRessourceVersionIdEvent)) {
+      toast.error("Impossible de trouver la version de ressource (ressourceVersionId).");
+      return;
+  }
+  const ressourceVersionId = lastRessourceVersionIdEvent.ressourceVersionId;
 
   // --- 3. Business Logic: Reconciliation ---
   const latestPlanDePaiement = [...allPlansDePaiement].sort(
@@ -78,10 +84,17 @@ export function preparerDecisionCommandHandler(
     mutationId,
     timestamp: new Date().toISOString(),
     payload: {
-        mutationId,
         decisionId: crypto.randomUUID(),
         calculId: planDeCalcul.calculId,
+        ressourceVersionId: ressourceVersionId,
         planDePaiementId: latestPlanDePaiementId,
+        mutationType: journalEntry.mutationType,
+        periodeDroits: journalEntry.droitsDateDebut && journalEntry.droitsDateFin 
+            ? { dateDebut: journalEntry.droitsDateDebut, dateFin: journalEntry.droitsDateFin }
+            : undefined,
+        periodeModifications: journalEntry.ressourcesDateDebut && journalEntry.ressourcesDateFin
+            ? { dateDebut: journalEntry.ressourcesDateDebut, dateFin: journalEntry.ressourcesDateFin }
+            : undefined,
         detail: detailAvecPaiements
     }
   };

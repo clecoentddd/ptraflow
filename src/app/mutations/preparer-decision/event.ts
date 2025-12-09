@@ -1,17 +1,20 @@
 
 "use client";
 
-import type { BaseEvent } from '../mutation-lifecycle/domain';
+import type { BaseEvent, MutationType } from '../mutation-lifecycle/domain';
 import type { MonthlyResult } from '../shared/plan-de-calcul.service';
 
 // Event
 export interface DecisionPreparteeEvent extends BaseEvent {
     type: 'DECISION_PREPAREE';
     payload: {
-        mutationId: string;
         decisionId: string;
         calculId: string;
+        ressourceVersionId: string;
         planDePaiementId: string | null;
+        mutationType: MutationType;
+        periodeDroits?: { dateDebut: string; dateFin: string };
+        periodeModifications?: { dateDebut: string; dateFin: string };
         detail: (MonthlyResult & { paiementsEffectues: number; aPayer: number })[];
     }
 }

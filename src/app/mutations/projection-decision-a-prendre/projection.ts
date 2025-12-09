@@ -12,7 +12,11 @@ export interface DecisionData {
     decisionId: string;
     mutationId: string;
     calculId: string;
+    ressourceVersionId: string;
     planDePaiementId: string | null;
+    mutationType: MutationType;
+    periodeDroits?: { dateDebut: string; dateFin: string };
+    periodeModifications?: { dateDebut: string; dateFin: string };
     detail: (MonthlyResult & { paiementsEffectues: number; aPayer: number })[];
 }
 
@@ -27,18 +31,13 @@ export const initialDecisionAPrendreState: DecisionAPrendreState = {
 
 // 2. Projection Logic
 function applyDecisionPrepartee(state: DecisionAPrendreState, event: DecisionPreparteeEvent): DecisionAPrendreState {
-    const { mutationId, decisionId, calculId, planDePaiementId, detail } = event.payload;
-
     const newDecision: DecisionData = {
-        mutationId,
-        decisionId,
-        calculId,
-        planDePaiementId,
-        detail
+        mutationId: event.mutationId,
+        ...event.payload
     };
 
     // Remove any existing decision for this mutation to ensure we only have the latest one.
-    const otherDecisions = state.decisions.filter(d => d.mutationId !== mutationId);
+    const otherDecisions = state.decisions.filter(d => d.mutationId !== event.mutationId);
     
     return {
         ...state,
@@ -52,7 +51,7 @@ function applyDecisionValidee(state: DecisionAPrendreState, event: AppEvent): De
     // When a decision is validated, it's no longer "à prendre". We remove it from the list.
     return {
         ...state,
-        decisions: state.decisions.filter(d => d.decisionId !== (event as any).decisionId)
+        decisions: state.decisions.filter(d => d.decisionId !== (event as any).payload.decisionId)
     };
 }
 
