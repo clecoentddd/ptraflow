@@ -20,6 +20,7 @@ const statusStyles: Record<TodoStatus, string> = {
     'à faire': 'bg-yellow-500 text-black animate-pulse',
     'fait': 'bg-green-500 text-white',
     'en attente': 'bg-gray-400 text-white',
+    'annulée': 'bg-destructive/80 text-destructive-foreground',
 };
 
 const taskOrder: Record<string, number> = {
@@ -29,13 +30,16 @@ const taskOrder: Record<string, number> = {
     "Autoriser la modification de ressources": 4,
     "Valider la modification des ressources": 5,
     "Calculer le plan": 6,
-    "Valider la mutation": 7,
+    "Préparer la décision": 7,
+    "Valider la décision": 8,
+    "Valider le plan de paiement": 9,
 };
 
 const statusOrder: Record<TodoStatus, number> = {
     'à faire': 1,
     'en attente': 2,
     'fait': 3,
+    'annulée': 4,
 };
 
 const typeDetails: Record<MutationType, { title: string, icon: React.ElementType }> = {
@@ -109,7 +113,7 @@ export function TodoListView() {
                                     <ul className="space-y-2">
                                         {todos.map((todo) => (
                                             <li key={todo.id} className="flex items-center justify-between p-2 rounded-md hover:bg-muted/50">
-                                                <span className="font-medium text-sm">{todo.description}</span>
+                                                <span className={cn("font-medium text-sm", todo.status === 'annulée' && "line-through text-muted-foreground")}>{todo.description}</span>
                                                 <Badge className={cn("capitalize text-xs", statusStyles[todo.status])}>
                                                     {todo.status}
                                                 </Badge>
