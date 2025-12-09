@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
@@ -30,7 +31,7 @@ export function ValidatedPeriodsView() {
             <Table>
                 <TableHeader>
                     <TableRow>
-                        <TableHead>Dernière Période Validée</TableHead>
+                        <TableHead>Période Validée</TableHead>
                         <TableHead>ID de la Mutation</TableHead>
                     </TableRow>
                 </TableHeader>

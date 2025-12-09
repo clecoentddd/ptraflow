@@ -41,8 +41,8 @@ function applyDecisionValidee(state: AppState, event: DecisionValideeEvent): Val
             dateDebut: periodeDroits.dateDebut,
             dateFin: periodeDroits.dateFin,
         };
-        // Business rule: always overwrite with the latest validated period.
-        return { ...state, validatedPeriods: [newValidatedPeriod] };
+        // Business rule: add the new period to the history, don't overwrite.
+        return { ...state, validatedPeriods: [...state.validatedPeriods, newValidatedPeriod] };
     }
     return state;
 }
@@ -70,5 +70,10 @@ export function validatedPeriodsProjectionReducer(
 
 // 4. Query (Selector)
 export function queryValidatedPeriods(state: AppState): ValidatedPeriod[] {
-    return state.validatedPeriods;
+    return state.validatedPeriods.sort((a,b) => {
+        const aEvent = state.eventStream.find(e => e.mutationId === a.mutationId && e.type === 'DECISION_VALIDEE');
+        const bEvent = state.eventStream.find(e => e.mutationId === b.mutationId && e.type === 'DECISION_VALIDEE');
+        if (!aEvent || !bEvent) return 0;
+        return new Date(bEvent.timestamp).getTime() - new Date(aEvent.timestamp).getTime();
+    });
 }
