@@ -45,6 +45,7 @@ export function validerPlanPaiementCommandHandler(
     payload: {
         planDePaiementId: crypto.randomUUID(),
         decisionId: decisionDetails.payload.decisionId,
+        // CORRECTED: Use 'detail' from the payload, not 'detailCalcul'
         detailCalcul: decisionDetails.payload.detail.map(d => ({ month: d.month, aPayer: d.aPayer }))
     }
   };

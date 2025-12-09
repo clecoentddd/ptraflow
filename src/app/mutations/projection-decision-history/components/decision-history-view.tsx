@@ -42,9 +42,11 @@ export function DecisionHistoryView() {
                          <div className="flex flex-col items-start text-left w-full">
                              <div className="flex justify-between w-full items-center">
                                 <CardTitle className="text-lg">Décision Validée</CardTitle>
-                                <Badge variant={decision.payload.mutationType === 'DROITS' ? 'default' : 'secondary'}>
-                                    {decision.payload.mutationType}
-                                </Badge>
+                                {decision.payload.mutationType && (
+                                    <Badge variant={decision.payload.mutationType === 'DROITS' ? 'default' : 'secondary'}>
+                                        {decision.payload.mutationType}
+                                    </Badge>
+                                )}
                              </div>
                              <div className="flex justify-between w-full">
                                 <CardDescription className="font-mono text-xs mt-1">
@@ -67,7 +69,7 @@ export function DecisionHistoryView() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {decision.payload.detailCalcul.map((monthlyResult) => {
+                                {decision.payload.detail && decision.payload.detail.map((monthlyResult) => {
                                     const { aPayer, calcul, paiementsEffectues } = monthlyResult;
                                     return (
                                         <TableRow key={monthlyResult.month}>
@@ -88,4 +90,3 @@ export function DecisionHistoryView() {
         </Accordion>
     );
 }
-
