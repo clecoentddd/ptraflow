@@ -17,7 +17,7 @@ import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
 import { queryTodos } from "../../projection-todolist/projection";
 import { SuspendPaiementsButton, SuspendPaiementsTodoItem } from "@/app/mutations/suspend-paiements/components/suspend-paiements-ui";
 import { AnalyzeDroitsButton, AnalyzeDroitsTodoItem } from "@/app/mutations/analyze-droits/components/analyze-droits-ui";
-import { ValiderPlanPaiementButton, ValiderPlanPaiementTodoItem } from "@/app/paiements/valider-plan-paiement/components/valider-plan-paiement-ui";
+import { ValiderPlanPaiementTodoItem } from "@/app/mutations/valider-plan-paiement/components/valider-plan-paiement-ui";
 import { AutoriserModificationDroitsButton, AutoriserModificationDroitsTodoItem } from "../../autoriser-modification-des-droits/components/autoriser-modification-des-droits-ui";
 import { AutoriserModificationRessourcesButton, AutoriserModificationRessourcesTodoItem } from "../../autoriser-modification-des-ressources/components/autoriser-modification-ressources-ui";
 import { ValiderModificationRessourcesButton, ValiderModificationRessourcesTodoItem } from "../../valider-modification-ressources/components/valider-modification-ressources-ui";
@@ -90,7 +90,7 @@ export function MutationCard({ mutation }: { mutation: Mutation }) {
          <ValiderModificationRessourcesButton mutationId={mutation.id} />
          <CalculerPlanButton mutationId={mutation.id} />
          <ValiderDecisionButton mutationId={mutation.id} />
-         <ValiderPlanPaiementButton mutationId={mutation.id} />
+         {/* ValiderPlanPaiementButton is removed as it's automated */}
       </CardFooter>
     </Card>
   );

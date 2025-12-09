@@ -2,10 +2,11 @@
 "use client";
 
 import type { AppEvent, AppCommand, AppState } from '../../mutation-lifecycle/domain';
-import type { DecisionValideeEvent } from '../../valider-decision/event';
+import type { DecisionPreparteeEvent } from '../../preparer-decision/event';
 
 // --- State ---
-export interface DecisionHistoryEntry extends DecisionValideeEvent {}
+// This projection now holds the full detail of the prepared decision.
+export interface DecisionHistoryEntry extends DecisionPreparteeEvent {}
 
 export interface DecisionHistoryState {
   decisionHistory: DecisionHistoryEntry[];
@@ -18,11 +19,12 @@ export const initialDecisionHistoryState: DecisionHistoryState = {
 
 // --- Projection Logic ---
 
-function applyDecisionValidee(state: DecisionHistoryState, event: DecisionValideeEvent): DecisionHistoryState {
+function applyDecisionPrepartee(state: DecisionHistoryState, event: DecisionPreparteeEvent): DecisionHistoryState {
     const newEntry: DecisionHistoryEntry = { 
         ...event
     };
     
+    // Add the prepared decision to our history.
     return { ...state, decisionHistory: [...state.decisionHistory, newEntry] };
 }
 
@@ -36,8 +38,9 @@ export function decisionHistoryProjectionReducer<T extends DecisionHistoryState>
     if ('type' in eventOrCommand && 'payload' in eventOrCommand) {
         const event = eventOrCommand;
         switch (event.type) {
-            case 'DECISION_VALIDEE':
-                return applyDecisionValidee(state, event as DecisionValideeEvent) as T;
+            case 'DECISION_PREPAREE':
+                // This projection now listens to DECISION_PREPAREE to store the "claim check" payload.
+                return applyDecisionPrepartee(state, event as DecisionPreparteeEvent) as T;
         }
     }
     return state;

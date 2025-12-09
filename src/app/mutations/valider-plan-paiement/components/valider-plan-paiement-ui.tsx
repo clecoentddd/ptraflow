@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
@@ -32,33 +33,8 @@ export function ValiderPlanPaiementTodoItem({ mutationId }: { mutationId: string
     )
 }
 
+// This button is no longer needed as the process is now automated.
+// A DECISION_VALIDEE event automatically triggers the `validerPlanPaiementCommandHandler`.
 export function ValiderPlanPaiementButton({ mutationId }: { mutationId: string }) {
-    const { state, dispatchEvent } = useCqrs();
-    const todos = queryTodos(state);
-    const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Valider le plan de paiement');
-    
-    const handleClick = () => {
-        dispatchEvent({ type: 'VALIDER_PLAN_PAIEMENT', payload: { mutationId } });
-    };
-
-    const isTodo = todo?.status === 'à faire';
-    const isDone = todo?.status === 'fait';
-
-    const getVariant = () => {
-        if (isTodo) return 'default';
-        if (isDone) return 'secondary';
-        return 'outline';
-    }
-
-    return (
-         <Button 
-            onClick={handleClick} 
-            disabled={!isTodo}
-            variant={getVariant()}
-            className="w-full"
-        >
-            {isDone ? <Check className="mr-2 h-4 w-4" /> : <ArrowRight className="mr-2 h-4 w-4" />}
-            Valider le plan de paiement
-        </Button>
-    )
+   return null;
 }

@@ -57,17 +57,19 @@ class EventBusManager {
         };
     }
 
-    private applyProjections(state: AppState, event: AppEvent): AppState {
+    private applyProjections(state: AppState, events: AppEvent[]): AppState {
         let newState = state;
-        newState = mutationsProjectionReducer(newState, event);
-        newState = todolistProjectionReducer(newState, event);
-        newState = validatedPeriodsProjectionReducer(newState, event);
-        newState = ecrituresProjectionReducer(newState, event);
-        newState = planCalculProjectionReducer(newState, event);
-        newState = planDePaiementProjectionReducer(newState, event);
-        newState = transactionsProjectionReducer(newState, event);
-        newState = decisionAPrendreProjectionReducer(newState, event);
-        newState = decisionHistoryProjectionReducer(newState, event);
+        for (const event of events) {
+            newState = mutationsProjectionReducer(newState, event);
+            newState = todolistProjectionReducer(newState, event);
+            newState = validatedPeriodsProjectionReducer(newState, event);
+            newState = ecrituresProjectionReducer(newState, event);
+            newState = planCalculProjectionReducer(newState, event);
+            newState = planDePaiementProjectionReducer(newState, event);
+            newState = transactionsProjectionReducer(newState, event);
+            newState = decisionAPrendreProjectionReducer(newState, event);
+            newState = decisionHistoryProjectionReducer(newState, event);
+        }
         return newState;
     }
 
@@ -77,6 +79,7 @@ class EventBusManager {
         const sortedNewEvents = [...newEvents].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
         for (const event of sortedNewEvents) {
+            // Un plan validé déclenche la préparation des transactions
             if (event.type === 'PLAN_DE_PAIEMENT_VALIDE') {
                 preparerTransactionsCommandHandler(
                     this.state,
@@ -89,6 +92,7 @@ class EventBusManager {
                     }
                 );
             }
+             // Un calcul effectué déclenche la préparation de la décision
              if (event.type === 'PLAN_CALCUL_EFFECTUE') {
                 preparerDecisionCommandHandler(this.state, {
                     type: 'PREPARER_DECISION',
@@ -98,21 +102,34 @@ class EventBusManager {
                     }
                 });
             }
+             // Une décision validée déclenche la validation du plan de paiement
+            if (event.type === 'DECISION_VALIDEE') {
+                validerPlanPaiementCommandHandler(this.state, {
+                    type: 'VALIDER_PLAN_PAIEMENT',
+                    payload: {
+                        mutationId: event.mutationId,
+                    }
+                });
+            }
         }
     }
     
     // Ajoute un ou plusieurs événements au flux.
     public appendEvents(events: AppEvent[]) {
-        // 1. Add new events to the current state
-        let newState = this.state;
-        for(const event of events) {
-            newState.eventStream = [event, ...newState.eventStream];
-            newState = this.applyProjections(newState, event);
-        }
-        this.state = newState;
+        if (events.length === 0) return;
+        const sortedEvents = [...events].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
         
-        // 2. Run any process managers that react to these new events
-        this.runProcessManagers(events);
+        // 1. Add new events to the stream
+        this.state = {
+            ...this.state,
+            eventStream: [...sortedEvents, ...this.state.eventStream],
+        }
+
+        // 2. Apply projections for new events
+        this.state = this.applyProjections(this.state, sortedEvents);
+        
+        // 3. Run any process managers that react to these new events
+        this.runProcessManagers(sortedEvents);
     }
     
     // Notifie tous les abonnés du nouvel état.
@@ -138,11 +155,12 @@ class EventBusManager {
         let state = this.getInitialState();
         const sortedEvents = [...events].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
-        for (const event of sortedEvents) {
-            state = this.applyProjections(state, event);
+        state = {
+            ...state,
+            eventStream: [...sortedEvents].reverse(),
         }
         
-        state.eventStream = [...events].reverse();
+        state = this.applyProjections(state, sortedEvents);
         this.state = state;
 
         this.runProcessManagers(sortedEvents); // Run processes on the rehydrated state
