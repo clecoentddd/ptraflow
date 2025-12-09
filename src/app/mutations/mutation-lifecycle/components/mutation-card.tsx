@@ -100,7 +100,7 @@ export function MutationCard({ mutation }: { mutation: Mutation }) {
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
                         <span className="bg-card px-2 text-muted-foreground">
-                        Actions Dangereuses
+                        Annulation Possible Tant que la décision n'est pas validée
                         </span>
                     </div>
                 </div>
