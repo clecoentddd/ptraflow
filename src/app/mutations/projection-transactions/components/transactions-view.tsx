@@ -177,15 +177,16 @@ export function TransactionsView() {
                     <AlertDialogHeader>
                         <AlertDialogTitle>Confirmer l'exécution de la transaction</AlertDialogTitle>
                         <AlertDialogDescription>
-                            Vous êtes sur le point d'exécuter la transaction suivante :
-                            <div className="mt-4 space-y-2 text-foreground">
-                                <div><strong>Mois :</strong> <span className="font-mono">{selectedTransaction?.mois}</span></div>
-                                <div><strong>Montant :</strong> <span className="font-mono">{selectedTransaction?.montant.toFixed(2)} CHF</span></div>
-                                <div><strong>Date d'exécution :</strong> <span className="font-mono">{format(new Date(), 'dd MMMM yyyy', { locale: fr })}</span></div>
-                            </div>
-                            Êtes-vous sûr de vouloir continuer ?
+                            Êtes-vous sûr de vouloir exécuter cette transaction ?
                         </AlertDialogDescription>
                     </AlertDialogHeader>
+                    <div className="text-sm">
+                        <div className="mt-2 space-y-2 text-foreground bg-muted/50 p-4 rounded-md">
+                            <div><strong>Mois :</strong> <span className="font-mono">{selectedTransaction?.mois}</span></div>
+                            <div><strong>Montant :</strong> <span className="font-mono">{selectedTransaction?.montant.toFixed(2)} CHF</span></div>
+                            <div><strong>Date d'exécution :</strong> <span className="font-mono">{format(new Date(), 'dd MMMM yyyy', { locale: fr })}</span></div>
+                        </div>
+                    </div>
                     <AlertDialogFooter>
                         <AlertDialogCancel onClick={() => setSelectedTransaction(null)}>Annuler</AlertDialogCancel>
                         <AlertDialogAction onClick={handleConfirmExecute}>Confirmer</AlertDialogAction>
