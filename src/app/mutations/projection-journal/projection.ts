@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import type { AppEvent, AppCommand, AppState, MutationType, Ecriture } from '../mutation-lifecycle/domain';
@@ -54,77 +55,131 @@ function getSymmetricDifferenceMonths(payload: EcriturePeriodeCorrigeeEvent['pay
     return difference;
 }
 
-// --- Full Rebuild Logic ---
-// This function rebuilds the entire journal state from the final state of ecritures and events.
-function rebuildJournal(state: AppState): JournalState {
-    const journalMap = new Map<string, JournalEntry>();
+const getOrCreateEntry = (state: JournalState, event: AppEvent): { newState: JournalState, entry: JournalEntry } => {
+    let entry = state.journal.find(j => j.mutationId === event.mutationId);
+    if (entry) {
+        return { newState: state, entry };
+    }
 
-    const sortedEvents = [...state.eventStream].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    // It should have been created by DROITS_MUTATION_CREATED or RESSOURCES_MUTATION_CREATED
+    // This is a safeguard, but the logic should ensure this doesn't happen.
+    // We'll create it on the fly if needed.
+    const mutationCreationEvent = (event as any); // a bit of a hack for typing
+    entry = {
+        mutationId: event.mutationId,
+        mutationType: mutationCreationEvent.payload.mutationType,
+        timestamp: event.timestamp,
+    };
+    const newState = { ...state, journal: [...state.journal, entry] };
+    return { newState, entry };
+};
 
-    // First pass: create journal entries and handle DROITS mutations
-    for (const event of sortedEvents) {
-        if ((event.type === 'DROITS_MUTATION_CREATED' || event.type === 'RESSOURCES_MUTATION_CREATED') && !journalMap.has(event.mutationId)) {
-            journalMap.set(event.mutationId, {
-                mutationId: event.mutationId,
-                mutationType: event.payload.mutationType,
+// 3. Slice Reducer
+export function journalProjectionReducer(state: AppState, event: AppEvent): AppState {
+    
+    let entry: JournalEntry | undefined;
+    let newJournal = [...state.journal];
+
+    const updateEntry = (mutationId: string, updates: Partial<JournalEntry>) => {
+        let found = false;
+        newJournal = newJournal.map(e => {
+            if (e.mutationId === mutationId) {
+                found = true;
+                return { ...e, ...updates };
+            }
+            return e;
+        });
+        if (!found && 'mutationType' in updates) {
+             newJournal.push({
+                mutationId: mutationId,
                 timestamp: event.timestamp,
-            });
+                ...updates,
+            } as JournalEntry);
         }
-        const entry = journalMap.get(event.mutationId);
-        if (!entry) continue;
+    };
 
-        if (event.type === 'DROITS_ANALYSES') {
-            entry.droitsDateDebut = event.payload.dateDebut;
-            entry.droitsDateFin = event.payload.dateFin;
+
+    switch(event.type) {
+        case 'DROITS_MUTATION_CREATED':
+        case 'RESSOURCES_MUTATION_CREATED':
+            updateEntry(event.mutationId, { mutationType: event.payload.mutationType });
+            break;
+
+        case 'DROITS_ANALYSES':
+            updateEntry(event.mutationId, {
+                droitsDateDebut: event.payload.dateDebut,
+                droitsDateFin: event.payload.dateFin,
+            });
+            break;
+
+        case 'REVENU_AJOUTE':
+        case 'DEPENSE_AJOUTEE': {
+            entry = newJournal.find(j => j.mutationId === event.mutationId);
+            if (!entry || entry.mutationType !== 'RESSOURCES') break;
+            
+            const newDates = [parse(event.payload.dateDebut, 'MM-yyyy', new Date()), parse(event.payload.dateFin, 'MM-yyyy', new Date())];
+            if(entry.ressourcesDateDebut) newDates.push(parse(entry.ressourcesDateDebut, 'MM-yyyy', new Date()));
+            if(entry.ressourcesDateFin) newDates.push(parse(entry.ressourcesDateFin, 'MM-yyyy', new Date()));
+
+            const minDate = min(newDates);
+            const maxDate = max(newDates);
+            
+            updateEntry(event.mutationId, {
+                ressourcesDateDebut: format(minDate, 'MM-yyyy'),
+                ressourcesDateFin: format(maxDate, 'MM-yyyy'),
+            });
+            break;
+        }
+
+        case 'ECRITURE_SUPPRIMEE': {
+            // Deleting an ecriture is like a 'replace' with nothing.
+            // The journal must expand to include the entire period of the deleted item.
+            entry = newJournal.find(j => j.mutationId === event.mutationId);
+            const originalEcriture = state.ecritures.find(e => e.id === event.payload.ecritureId);
+
+            if (!entry || !originalEcriture || entry.mutationType !== 'RESSOURCES') break;
+
+            const existingDates: Date[] = [];
+            if(entry.ressourcesDateDebut) existingDates.push(parse(entry.ressourcesDateDebut, 'MM-yyyy', new Date()));
+            if(entry.ressourcesDateFin) existingDates.push(parse(entry.ressourcesDateFin, 'MM-yyyy', new Date()));
+            existingDates.push(parse(originalEcriture.dateDebut, 'MM-yyyy', new Date()));
+            existingDates.push(parse(originalEcriture.dateFin, 'MM-yyyy', new Date()));
+            
+            const minDate = min(existingDates);
+            const maxDate = max(existingDates);
+
+             updateEntry(event.mutationId, {
+                ressourcesDateDebut: format(minDate, 'MM-yyyy'),
+                ressourcesDateFin: format(maxDate, 'MM-yyyy'),
+            });
+            break;
+        }
+
+        case 'ECRITURE_PERIODE_CORRIGEE': {
+             entry = newJournal.find(j => j.mutationId === event.mutationId);
+             if (!entry || entry.mutationType !== 'RESSOURCES') break;
+
+             const diffMonths = getSymmetricDifferenceMonths(event.payload);
+             if (diffMonths.size === 0) break;
+
+             const affectedDates = Array.from(diffMonths).map(m => parse(m, 'MM-yyyy', new Date()));
+             if (entry.ressourcesDateDebut) affectedDates.push(parse(entry.ressourcesDateDebut, 'MM-yyyy', new Date()));
+             if (entry.ressourcesDateFin) affectedDates.push(parse(entry.ressourcesDateFin, 'MM-yyyy', new Date()));
+
+             const minDate = min(affectedDates);
+             const maxDate = max(affectedDates);
+
+             updateEntry(event.mutationId, {
+                ressourcesDateDebut: format(minDate, 'MM-yyyy'),
+                ressourcesDateFin: format(maxDate, 'MM-yyyy'),
+            });
+            break;
         }
     }
     
-    // --- Second pass: determine RESSOURCES modification periods ---
-    for (const entry of journalMap.values()) {
-        if (entry.mutationType !== 'RESSOURCES') continue;
-        
-        const affectedMonths = new Set<string>();
-        const mutationEvents = sortedEvents.filter(e => e.mutationId === entry.mutationId);
-
-        for (const event of mutationEvents) {
-            // Case 1: Simple add or delete. The full period is affected.
-            if (event.type === 'REVENU_AJOUTE' || event.type === 'DEPENSE_AJOUTEE') {
-                const start = parse(event.payload.dateDebut, 'MM-yyyy', new Date());
-                const end = parse(event.payload.dateFin, 'MM-yyyy', new Date());
-                eachMonthOfInterval({start, end}).forEach(d => affectedMonths.add(format(d, 'MM-yyyy')));
-            } else if (event.type === 'ECRITURE_SUPPRIMEE') {
-                 // The 'replace' pattern (delete+add) is treated as a single logical operation
-                 // We need to find the ecriture state *before* it was deleted
-                 const originalEcriture = state.ecritures.find(e => e.id === event.payload.ecritureId);
-                 if (originalEcriture) { // Should exist if it's a replace
-                     const start = parse(originalEcriture.dateDebut, 'MM-yyyy', new Date());
-                     const end = parse(originalEcriture.dateFin, 'MM-yyyy', new Date());
-                     eachMonthOfInterval({start, end}).forEach(d => affectedMonths.add(format(d, 'MM-yyyy')));
-                 }
-            } else if (event.type === 'ECRITURE_PERIODE_CORRIGEE') {
-                // Case 2: A period was corrected. Use symmetric difference.
-                const diffMonths = getSymmetricDifferenceMonths(event.payload);
-                diffMonths.forEach(m => affectedMonths.add(m));
-            }
-        }
-
-        if (affectedMonths.size > 0) {
-            const allDates = Array.from(affectedMonths.values()).map(m => parse(m, 'MM-yyyy', new Date()));
-            const minDate = min(allDates);
-            const maxDate = max(allDates);
-            entry.ressourcesDateDebut = format(minDate, 'MM-yyyy');
-            entry.ressourcesDateFin = format(maxDate, 'MM-yyyy');
-        }
-    }
-
-    return { journal: Array.from(journalMap.values()) };
+    return { ...state, journal: newJournal };
 }
 
-// 3. Slice Reducer
-export function journalProjectionReducer(state: AppState): AppState {
-    const newJournalState = rebuildJournal(state);
-    return { ...state, ...newJournalState };
-}
 
 // 4. Queries (Selectors)
 export function queryJournal(state: AppState): JournalEntry[] {
