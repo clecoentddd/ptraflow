@@ -10,21 +10,18 @@ import { toast } from 'react-hot-toast';
 import { publishEvents } from '../mutation-lifecycle/event-bus';
 
 // Command Handler / Processor
+// This handler now receives the event directly, which is more robust
+// as it doesn't depend on the event being present in the state yet.
 export function preparerTransactionsCommandHandler(
   state: AppState, 
-  command: PreparerTransactionsCommand
+  planEvent: PlanDePaiementValideEvent
 ): void {
-  const { planDePaiementId, mutationId } = command.payload;
+  const { id: planDePaiementId, mutationId } = planEvent;
   const now = new Date();
   const generatedEvents: AppEvent[] = [];
 
-  // 1. Find the source event: PlanDePaiementValideEvent
-  const planEvent = state.eventStream.find(
-      e => e.type === 'PLAN_DE_PAIEMENT_VALIDE' && (e.payload as any).planDePaiementId === planDePaiementId
-  ) as PlanDePaiementValideEvent | undefined;
-
-  if (!planEvent || !planEvent.payload.detailCalcul) {
-    toast.error(`Plan de paiement valide (${planDePaiementId}) non trouvé ou sans détail.`);
+  if (!planEvent.payload.detailCalcul) {
+    toast.error(`Le plan de paiement valide (${planDePaiementId}) est sans détail de calcul.`);
     return;
   }
   

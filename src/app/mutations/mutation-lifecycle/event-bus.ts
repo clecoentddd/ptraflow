@@ -79,20 +79,11 @@ class EventBusManager {
         const sortedNewEvents = [...newEvents].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
         for (const event of sortedNewEvents) {
-            // Un plan validé déclenche la préparation des transactions
+            // A validated plan triggers transaction preparation
             if (event.type === 'PLAN_DE_PAIEMENT_VALIDE') {
-                preparerTransactionsCommandHandler(
-                    this.state,
-                    {
-                        type: 'PREPARER_TRANSACTIONS',
-                        payload: {
-                            planDePaiementId: event.id, // The event ID is the plan ID
-                            mutationId: event.mutationId
-                        }
-                    }
-                );
+                preparerTransactionsCommandHandler(this.state, event);
             }
-             // Un calcul effectué déclenche la préparation de la décision
+             // A calculation triggers decision preparation
              if (event.type === 'PLAN_CALCUL_EFFECTUE') {
                 preparerDecisionCommandHandler(this.state, {
                     type: 'PREPARER_DECISION',
@@ -102,7 +93,7 @@ class EventBusManager {
                     }
                 });
             }
-             // Une décision validée déclenche la validation du plan de paiement
+             // A validated decision triggers payment plan validation
             if (event.type === 'DECISION_VALIDEE') {
                 validerPlanPaiementCommandHandler(this.state, {
                     type: 'VALIDER_PLAN_PAIEMENT',
@@ -111,7 +102,7 @@ class EventBusManager {
                     }
                 });
             }
-            // Une transaction effectuée déclenche aussi un nouveau plan de paiement
+            // An executed transaction also triggers a new payment plan validation
             if (event.type === 'TRANSACTION_EFFECTUEE') {
                  validerPlanPaiementCommandHandler(this.state, {
                     type: 'VALIDER_PLAN_PAIEMENT',
@@ -131,7 +122,7 @@ class EventBusManager {
         // 1. Add new events to the stream
         this.state = {
             ...this.state,
-            eventStream: [...sortedEvents, ...this.state.eventStream],
+            eventStream: [...this.state.eventStream, ...sortedEvents],
         }
 
         // 2. Apply projections for new events
@@ -166,7 +157,7 @@ class EventBusManager {
 
         state = {
             ...state,
-            eventStream: [...sortedEvents].reverse(),
+            eventStream: sortedEvents,
         }
         
         state = this.applyProjections(state, sortedEvents);
@@ -228,9 +219,10 @@ export function dispatchCommand(command: AppCommand) {
         case 'VALIDER_PLAN_PAIEMENT':
              validerPlanPaiementCommandHandler(currentState, command);
              break;
-        case 'PREPARER_TRANSACTIONS':
-             preparerTransactionsCommandHandler(currentState, command);
-             break;
+        // PREPARER_TRANSACTIONS is now internal to the event bus
+        // case 'PREPARER_TRANSACTIONS':
+        //      preparerTransactionsCommandHandler(currentState, command);
+        //      break;
         case 'VALIDER_PLAN_CALCUL':
             validerPlanCalculCommandHandler(currentState, command);
             break;
