@@ -121,15 +121,9 @@ function rebuildJournal(state: AppState): JournalState {
 }
 
 // 3. Slice Reducer
-export function journalProjectionReducer(state: AppState, eventOrCommand: AppEvent | AppCommand): AppState {
-    // This projection is now simple: it always rebuilds itself from the full state.
-    // It's called after all other projections have run.
-    if (eventOrCommand.type === 'REPLAY' || eventOrCommand.type === 'REPLAY_COMPLETE') {
-         const newJournalState = rebuildJournal(state);
-         return { ...state, ...newJournalState };
-    }
-
-    return state;
+export function journalProjectionReducer(state: AppState): AppState {
+    const newJournalState = rebuildJournal(state);
+    return { ...state, ...newJournalState };
 }
 
 // 4. Queries (Selectors)

@@ -71,11 +71,11 @@ class EventBusManager {
             newState = planCalculProjectionReducer(newState, event);
             newState = planDePaiementProjectionReducer(newState, event);
             newState = transactionsProjectionReducer(newState, event);
-            newState = decisionAPrendreProjectionReducer(newState, event); // Now event-driven
+            newState = decisionAPrendreProjectionReducer(newState, event);
         }
         
         // Journal is rebuilt at the end as it depends on other projections' results on the state
-        newState = journalProjectionReducer(newState, { type: 'REPLAY_COMPLETE' });
+        newState = journalProjectionReducer(newState);
         
         newState.eventStream = [...this.eventStream].reverse(); // Keep reverse chronological order for display
         this.state = newState;
@@ -111,6 +111,7 @@ class EventBusManager {
     // Ajoute un ou plusieurs événements au flux.
     public appendEvents(events: AppEvent[]) {
         this.eventStream.push(...events);
+        // We always rebuild state and then run process managers
         this.rebuildState();
         this.runProcessManagers(events);
     }
@@ -136,6 +137,7 @@ class EventBusManager {
     // Réinitialise et réhydrate l'état pour les tests.
     public rehydrateForTesting(events: AppEvent[]) {
         this.eventStream = [...events].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+        // For tests, we rebuild and then run managers, which might add more events, then we publish.
         this.rebuildState();
         this.runProcessManagers(this.eventStream);
     }
