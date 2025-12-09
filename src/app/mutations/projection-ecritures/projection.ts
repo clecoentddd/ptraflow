@@ -59,6 +59,14 @@ function applyEcriturePeriodeCorrigee(state: EcrituresState, event: EcriturePeri
     };
 }
 
+function applyMutationAnnulee(state: EcrituresState, event: AppEvent): EcrituresState {
+    if (event.type !== 'MUTATION_ANNULEE') return state;
+    return {
+        ...state,
+        ecritures: state.ecritures.filter(e => e.mutationId !== event.mutationId)
+    };
+}
+
 
 // 3. Slice Reducer
 export function ecrituresProjectionReducer<T extends EcrituresState>(
@@ -76,6 +84,8 @@ export function ecrituresProjectionReducer<T extends EcrituresState>(
                 return applyEcritureSupprimee(state, event) as T;
             case 'ECRITURE_PERIODE_CORRIGEE':
                 return applyEcriturePeriodeCorrigee(state, event) as T;
+            case 'MUTATION_ANNULEE':
+                return applyMutationAnnulee(state, event) as T;
         }
     }
     return state;

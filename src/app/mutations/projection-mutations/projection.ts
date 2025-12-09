@@ -7,6 +7,7 @@ import type { DroitsMutationCreatedEvent } from '../create-mutation/event';
 import type { PaiementsSuspendusEvent } from '../suspend-paiements/event';
 import type { RessourcesMutationCreatedEvent } from '../create-ressources-mutation/event';
 import type { DecisionValideeEvent } from '../valider-decision/event';
+import type { MutationAnnuleeEvent } from '../annuler-mutation/event';
 
 // 1. State Slice and Initial State
 export interface MutationsState {
@@ -58,6 +59,15 @@ function applyDecisionValidee(state: MutationsState, event: DecisionValideeEvent
     };
 }
 
+function applyMutationAnnulee(state: MutationsState, event: MutationAnnuleeEvent): MutationsState {
+    return {
+        ...state,
+        mutations: state.mutations.map(m =>
+            m.id === event.mutationId ? { ...m, history: [...m.history, event], status: 'ANNULEE' as const } : m
+        ),
+    };
+}
+
 function addEventToHistory<T extends { id: string, history: AppEvent[] }>(items: T[], event: AppEvent): T[] {
     return items.map(item => 
         item.id === event.mutationId 
@@ -87,6 +97,8 @@ export function mutationsProjectionReducer<T extends MutationsState>(
                     return applyPaiementsSuspendus(nextState, event) as T;
                 case 'DECISION_VALIDEE':
                     return applyDecisionValidee(nextState, event as DecisionValideeEvent) as T;
+                case 'MUTATION_ANNULEE':
+                    return applyMutationAnnulee(nextState, event as MutationAnnuleeEvent) as T;
                 default:
                     return nextState as T;
             }

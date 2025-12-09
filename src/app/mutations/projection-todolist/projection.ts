@@ -8,12 +8,13 @@ import type { RessourcesMutationCreatedEvent } from '../create-ressources-mutati
 import type { PaiementsSuspendusEvent } from '../suspend-paiements/event';
 import type { ModificationDroitsAutoriseeEvent } from '../autoriser-modification-des-droits/event';
 import type { DroitsAnalysesEvent } from '../analyze-droits/event';
-import type { PlanDePaiementValideEvent } from '@/app/paiements/valider-plan-paiement/event';
+import type { PlanDePaiementValideEvent } from '../valider-plan-paiement/event';
 import type { ModificationRessourcesAutoriseeEvent } from '../autoriser-modification-des-ressources/event';
 import type { ModificationRessourcesValideeEvent } from '../valider-modification-ressources/event';
 import type { PlanCalculeEvent } from '../calculer-plan/event';
 import type { DecisionPreparteeEvent } from '../preparer-decision/event';
 import type { DecisionValideeEvent } from '../valider-decision/event';
+import type { MutationAnnuleeEvent } from '../annuler-mutation/event';
 
 
 // 1. State Slice and Initial State
@@ -181,6 +182,17 @@ function applyPlanDePaiementValide(state: TodolistState, event: PlanDePaiementVa
     };
 }
 
+function applyMutationAnnulee(state: TodolistState, event: MutationAnnuleeEvent): TodolistState {
+    return {
+        ...state,
+        todos: state.todos.map(t => 
+            t.mutationId === event.mutationId && t.status !== 'fait' 
+                ? { ...t, status: 'annulée' } 
+                : t
+        )
+    };
+}
+
 
 // 3. Slice Reducer
 export function todolistProjectionReducer<T extends TodolistState & { mutations: AppState['mutations'] }>(
@@ -212,6 +224,8 @@ export function todolistProjectionReducer<T extends TodolistState & { mutations:
                 return applyDecisionValidee(state, event) as T;
             case 'PLAN_DE_PAIEMENT_VALIDE':
                 return applyPlanDePaiementValide(state, event) as T;
+            case 'MUTATION_ANNULEE':
+                return applyMutationAnnulee(state, event as MutationAnnuleeEvent) as T;
         }
     }
     return state;

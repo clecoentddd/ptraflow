@@ -55,6 +55,14 @@ function applyDecisionValidee(state: DecisionAPrendreState, event: AppEvent): De
     };
 }
 
+function applyMutationAnnulee(state: DecisionAPrendreState, event: AppEvent): DecisionAPrendreState {
+    if (event.type !== 'MUTATION_ANNULEE') return state;
+    return {
+        ...state,
+        decisions: state.decisions.filter(d => d.mutationId !== event.mutationId)
+    };
+}
+
 
 // 3. Slice Reducer
 export function decisionAPrendreProjectionReducer(state: AppState, commandOrEvent: AppCommand | AppEvent): AppState {
@@ -65,6 +73,8 @@ export function decisionAPrendreProjectionReducer(state: AppState, commandOrEven
                 return { ...state, ...applyDecisionPrepartee(state, event) };
             case 'DECISION_VALIDEE':
                 return { ...state, ...applyDecisionValidee(state, event) };
+            case 'MUTATION_ANNULEE':
+                return { ...state, ...applyMutationAnnulee(state, event) };
         }
     }
     return state;

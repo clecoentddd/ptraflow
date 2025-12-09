@@ -175,6 +175,11 @@ export function journalProjectionReducer(state: AppState, event: AppEvent): AppS
             });
             break;
         }
+        
+        case 'MUTATION_ANNULEE': {
+             newJournal = newJournal.filter(j => j.mutationId !== event.mutationId);
+             break;
+        }
     }
     
     return { ...state, journal: newJournal };

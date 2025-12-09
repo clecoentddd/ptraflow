@@ -1,5 +1,4 @@
 
-
 import type { DroitsMutationCreatedEvent } from '../create-mutation/event';
 import type { PaiementsSuspendusEvent } from '../suspend-paiements/event';
 import type { DroitsAnalysesEvent } from '../analyze-droits/event';
@@ -16,6 +15,7 @@ import type { DecisionPreparteeEvent } from '../preparer-decision/event';
 import type { DecisionValideeEvent } from '../valider-decision/event';
 import type { PlanDePaiementValideEvent } from '../valider-plan-paiement/event';
 import type { TransactionCreeeEvent, TransactionEffectueeEvent, TransactionRemplaceeEvent } from '../projection-transactions/events';
+import type { MutationAnnuleeEvent } from '../annuler-mutation/event';
 
 // Importation des commandes de mutation
 import type { CreateDroitsMutationCommand } from '../create-mutation/command';
@@ -35,6 +35,7 @@ import type { ValiderDecisionCommand } from '../valider-decision/command';
 import type { ValiderPlanPaiementCommand } from '../valider-plan-paiement/command';
 import type { ExecuterTransactionCommand } from '../executer-transaction/command';
 import type { PreparerTransactionsCommand } from '../preparer-transactions/command';
+import type { AnnulerMutationCommand } from '../annuler-mutation/command';
 
 // Importation des états de projection
 import type { ValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
@@ -79,7 +80,8 @@ export type AppEvent =
     | DecisionValideeEvent
     | TransactionCreeeEvent
     | TransactionRemplaceeEvent
-    | TransactionEffectueeEvent;
+    | TransactionEffectueeEvent
+    | MutationAnnuleeEvent;
 
 
 // Command Union (Le "registre central" des commandes)
@@ -105,6 +107,7 @@ export type AppCommand =
     | ValiderDecisionCommand
     | ExecuterTransactionCommand
     | PreparerTransactionsCommand
+    | AnnulerMutationCommand
     // Actions pour les tests
     | { type: 'REPLAY', eventStream: AppEvent[] } 
     | { type: 'REPLAY_COMPLETE' };
@@ -115,7 +118,7 @@ export type AppCommand =
 // =================================
 
 export type MutationType = 'DROITS' | 'RESSOURCES';
-export type MutationStatus = 'OUVERTE' | 'EN_COURS' | 'COMPLETEE' | 'REJETEE';
+export type MutationStatus = 'OUVERTE' | 'EN_COURS' | 'COMPLETEE' | 'ANNULEE';
 
 export interface Mutation {
   id: string;
@@ -124,7 +127,7 @@ export interface Mutation {
   history: AppEvent[];
 }
 
-export type TodoStatus = 'à faire' | 'fait' | 'en attente';
+export type TodoStatus = 'à faire' | 'fait' | 'en attente' | 'annulée';
 
 export interface Todo {
     id: string;

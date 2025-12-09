@@ -22,6 +22,7 @@ import { validerDecisionCommandHandler } from '../valider-decision/handler';
 import { validerPlanPaiementCommandHandler } from '../valider-plan-paiement/handler';
 import { executerTransactionCommandHandler } from '../executer-transaction/handler';
 import { preparerTransactionsCommandHandler } from '../preparer-transactions/handler';
+import { annulerMutationCommandHandler } from '../annuler-mutation/handler';
 
 // Importation des logiques de projection
 import { validatedPeriodsProjectionReducer, initialValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
@@ -210,10 +211,6 @@ export function dispatchCommand(command: AppCommand) {
         case 'VALIDER_PLAN_PAIEMENT':
              validerPlanPaiementCommandHandler(currentState, command);
              break;
-        // PREPARER_TRANSACTIONS is now internal to the event bus
-        // case 'PREPARER_TRANSACTIONS':
-        //      preparerTransactionsCommandHandler(currentState, command);
-        //      break;
         case 'VALIDER_PLAN_CALCUL':
             validerPlanCalculCommandHandler(currentState, command);
             break;
@@ -240,6 +237,9 @@ export function dispatchCommand(command: AppCommand) {
             break;
         case 'EXECUTER_TRANSACTION':
             executerTransactionCommandHandler(currentState, command);
+            break;
+        case 'ANNULER_MUTATION':
+            annulerMutationCommandHandler(currentState, command);
             break;
         default:
              console.warn("Unknown command type in dispatchCommand:", (command as any).type);

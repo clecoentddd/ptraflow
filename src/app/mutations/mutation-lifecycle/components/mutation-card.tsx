@@ -11,10 +11,9 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Mutation, MutationStatus, MutationType } from "@/app/mutations/mutation-lifecycle/domain";
-import { Users, Gem, Check } from "lucide-react";
+import { Users, Gem, Check, Ban } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
-import { queryTodos } from "../../projection-todolist/projection";
 import { SuspendPaiementsButton, SuspendPaiementsTodoItem } from "@/app/mutations/suspend-paiements/components/suspend-paiements-ui";
 import { AnalyzeDroitsButton, AnalyzeDroitsTodoItem } from "@/app/mutations/analyze-droits/components/analyze-droits-ui";
 import { ValiderPlanPaiementTodoItem } from "@/app/mutations/valider-plan-paiement/components/valider-plan-paiement-ui";
@@ -24,13 +23,14 @@ import { ValiderModificationRessourcesButton, ValiderModificationRessourcesTodoI
 import { CalculerPlanButton, CalculerPlanTodoItem } from "../../calculer-plan/components/calculer-plan-ui";
 import { PreparerDecisionTodoItem } from "../../preparer-decision/components/preparer-decision-ui";
 import { ValiderDecisionButton, ValiderDecisionTodoItem } from "../../valider-decision/components/valider-decision-ui";
+import { AnnulerMutationButton } from "../../annuler-mutation/components/annuler-mutation-ui";
 
 
 const statusStyles: Record<MutationStatus, string> = {
   OUVERTE: "bg-blue-500 text-white",
   EN_COURS: "bg-accent text-accent-foreground",
   COMPLETEE: "bg-primary text-primary-foreground",
-  REJETEE: "bg-destructive text-destructive-foreground",
+  ANNULEE: "bg-destructive text-destructive-foreground",
 };
 
 const typeDetails: Record<MutationType, { title: string, icon: React.ElementType }> = {
@@ -41,6 +41,8 @@ const typeDetails: Record<MutationType, { title: string, icon: React.ElementType
 export function MutationCard({ mutation }: { mutation: Mutation }) {
   const details = typeDetails[mutation.type] || { title: "Mutation", icon: Users };
   const Icon = details.icon;
+
+  const canBeCancelled = mutation.status !== 'COMPLETEE' && mutation.status !== 'ANNULEE';
 
   return (
     <Card className="flex flex-col justify-between transition-shadow duration-300 hover:shadow-xl">
@@ -90,7 +92,21 @@ export function MutationCard({ mutation }: { mutation: Mutation }) {
          <ValiderModificationRessourcesButton mutationId={mutation.id} />
          <CalculerPlanButton mutationId={mutation.id} />
          <ValiderDecisionButton mutationId={mutation.id} />
-         {/* ValiderPlanPaiementButton is removed as it's automated */}
+         {canBeCancelled && (
+            <>
+                <div className="relative my-2">
+                    <div className="absolute inset-0 flex items-center">
+                        <span className="w-full border-t" />
+                    </div>
+                    <div className="relative flex justify-center text-xs uppercase">
+                        <span className="bg-card px-2 text-muted-foreground">
+                        Actions Dangereuses
+                        </span>
+                    </div>
+                </div>
+                <AnnulerMutationButton mutationId={mutation.id} />
+            </>
+         )}
       </CardFooter>
     </Card>
   );

@@ -43,6 +43,14 @@ function applyPlanCalcule(state: PlanCalculState, event: PlanCalculeEvent): Plan
     return { ...state, plansDeCalcul: newPlans };
 }
 
+function applyMutationAnnulee(state: PlanCalculState, event: AppEvent): PlanCalculState {
+    if (event.type !== 'MUTATION_ANNULEE') return state;
+    return {
+        ...state,
+        plansDeCalcul: state.plansDeCalcul.filter(p => p.mutationId !== event.mutationId)
+    };
+}
+
 
 // 3. Slice Reducer
 export function planCalculProjectionReducer<T extends PlanCalculState>(
@@ -54,6 +62,8 @@ export function planCalculProjectionReducer<T extends PlanCalculState>(
         switch (event.type) {
             case 'PLAN_CALCUL_EFFECTUE':
                 return applyPlanCalcule(state, event) as T;
+            case 'MUTATION_ANNULEE':
+                return applyMutationAnnulee(state, event) as T;
         }
     }
     return state;
