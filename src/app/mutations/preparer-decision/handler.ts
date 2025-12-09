@@ -21,14 +21,24 @@ export function preparerDecisionCommandHandler(
   const { mutationId, calculId } = command.payload;
   
   // --- 1. Gather all necessary data from projections ---
-  const journalEntry = queryJournal(state).find(j => j.mutationId === mutationId);
-  const planDeCalcul = queryPlansDeCalcul(state).find(p => p.calculId === calculId);
+  const journalEntries = queryJournal(state);
+  const journalEntry = journalEntries.find(j => j.mutationId === mutationId);
+  const plansDeCalcul = queryPlansDeCalcul(state);
+  const planDeCalcul = plansDeCalcul.find(p => p.calculId === calculId);
   const allPlansDePaiement = queryPlanDePaiement(state);
   const allTransactions = queryTransactions(state);
   const existingDecisions = queryDecisionsAPrendre(state);
 
   // --- 2. Validations to ensure we can proceed ---
   if (!journalEntry || !planDeCalcul) {
+    console.error("--- DEBUG: preparerDecisionCommandHandler ---");
+    console.log("Mutation ID:", mutationId);
+    console.log("Calcul ID:", calculId);
+    console.log("Journal trouvé:", journalEntry);
+    console.log("Plan de calcul trouvé:", planDeCalcul);
+    console.log("Toutes les entrées du journal:", JSON.stringify(journalEntries, null, 2));
+    console.log("Tous les plans de calcul:", JSON.stringify(plansDeCalcul, null, 2));
+    console.error("-------------------------------------------");
     toast.error("Données de journal ou de calcul manquantes pour préparer la décision.");
     return;
   }
