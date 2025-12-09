@@ -102,10 +102,10 @@ class EventBusManager {
                     }
                 });
             }
-            // An executed transaction also triggers a new payment plan validation
+            // An executed transaction also triggers a new calculation
             if (event.type === 'TRANSACTION_EFFECTUEE') {
-                 validerPlanPaiementCommandHandler(this.state, {
-                    type: 'VALIDER_PLAN_PAIEMENT',
+                 validerPlanCalculCommandHandler(this.state, {
+                    type: 'VALIDER_PLAN_CALCUL',
                     payload: {
                         mutationId: event.mutationId,
                     }
