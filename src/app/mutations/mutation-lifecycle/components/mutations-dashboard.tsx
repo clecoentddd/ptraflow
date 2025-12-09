@@ -45,11 +45,6 @@ function DashboardContent() {
             )}
           </div>
 
-          <div>
-              <h2 className="text-2xl font-bold mb-4 text-foreground">Journal des modifications</h2>
-              <JournalView />
-          </div>
-
            <div>
               <h2 className="text-2xl font-bold mb-4 text-foreground">Périodes de droits validées</h2>
               <ValidatedPeriodsView />
