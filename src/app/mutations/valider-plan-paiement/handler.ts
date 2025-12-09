@@ -6,12 +6,12 @@ import type { ValiderPlanPaiementCommand } from './command';
 import type { PlanDePaiementValideEvent } from './event';
 import type { DecisionValideeEvent } from '../valider-decision/event';
 import { toast } from 'react-hot-toast';
+import { publishEvent } from '../mutation-lifecycle/event-bus';
 
 // Command Handler
 export function validerPlanPaiementCommandHandler(
   state: AppState, 
-  command: ValiderPlanPaiementCommand,
-  dispatch: (event: AppEvent) => void
+  command: ValiderPlanPaiementCommand
 ): void {
   const { mutationId } = command.payload;
 
@@ -37,5 +37,5 @@ export function validerPlanPaiementCommandHandler(
     }
   };
 
-  dispatch(finalEvent);
+  publishEvent(finalEvent);
 }

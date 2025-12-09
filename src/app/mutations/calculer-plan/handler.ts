@@ -5,12 +5,12 @@ import type { ValiderPlanCalculCommand } from './command';
 import type { PlanCalculeEvent } from './event';
 import { toast } from 'react-hot-toast';
 import { queryMutations } from '../projection-mutations/projection';
+import { publishEvent } from '../mutation-lifecycle/event-bus';
 
 // Command Handler
 export function validerPlanCalculCommandHandler(
     state: AppState, 
-    command: ValiderPlanCalculCommand,
-    dispatch: (event: AppEvent) => void
+    command: ValiderPlanCalculCommand
 ): void {
   const { mutationId, ressourceVersionId, calculId, resultatDuCalcul } = command.payload;
   
@@ -33,5 +33,5 @@ export function validerPlanCalculCommandHandler(
     }
   };
 
-  dispatch(event);
+  publishEvent(event);
 }

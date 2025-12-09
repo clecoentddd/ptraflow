@@ -6,12 +6,12 @@ import type { SuspendPaiementsCommand } from './command';
 import type { PaiementsSuspendusEvent } from './event';
 import { queryMutations } from '../projection-mutations/projection';
 import { toast } from 'react-hot-toast';
+import { publishEvent } from '../mutation-lifecycle/event-bus';
 
 // Command Handler
 export function suspendPaiementsCommandHandler(
   state: AppState, 
-  command: SuspendPaiementsCommand, 
-  dispatch: (event: AppEvent) => void
+  command: SuspendPaiementsCommand
 ): void {
   const { mutationId } = command.payload;
 
@@ -37,5 +37,5 @@ export function suspendPaiementsCommandHandler(
     }
   };
 
-  dispatch(event);
+  publishEvent(event);
 }

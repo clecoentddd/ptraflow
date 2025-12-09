@@ -3,12 +3,12 @@
 import type { AppState, AppEvent } from '../mutation-lifecycle/domain';
 import type { AutoriserModificationDroitsCommand } from './command';
 import type { ModificationDroitsAutoriseeEvent } from './event';
+import { publishEvent } from '../mutation-lifecycle/event-bus';
 
 // Command Handler
 export function autoriserModificationDroitsCommandHandler(
     state: AppState, 
-    command: AutoriserModificationDroitsCommand,
-    dispatch: (event: AppEvent) => void
+    command: AutoriserModificationDroitsCommand
 ): void {
   const { mutationId } = command.payload;
   
@@ -22,5 +22,5 @@ export function autoriserModificationDroitsCommandHandler(
     }
   };
 
-  dispatch(event);
+  publishEvent(event);
 }

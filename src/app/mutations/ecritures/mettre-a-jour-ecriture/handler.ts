@@ -8,12 +8,12 @@ import type { RevenuAjouteEvent } from '../ajouter-revenu/event';
 import type { DepenseAjouteeEvent } from '../ajouter-depense/event';
 import type { EcritureSupprimeeEvent } from '../supprimer-ecriture/event';
 import type { EcriturePeriodeCorrigeeEvent } from './event';
+import { publishEvents } from '../../mutation-lifecycle/event-bus';
 
 // Command Handler for "Update"
 export function mettreAJourEcritureCommandHandler(
     state: AppState,
-    command: MettreAJourEcritureCommand,
-    dispatch: (events: AppEvent[]) => void,
+    command: MettreAJourEcritureCommand
 ): void {
     const {
         originalEcritureId,
@@ -110,5 +110,5 @@ export function mettreAJourEcritureCommandHandler(
         events.push(addEvent);
     }
     
-    dispatch(events);
+    publishEvents(events);
 }

@@ -4,7 +4,7 @@
 import React from 'react';
 import type { AppState, AppEvent } from '../mutations/mutation-lifecycle/domain';
 import { TestComponent } from '../mutations/bdd/test-harness';
-import { cqrsReducer } from '../mutations/mutation-lifecycle/cqrs';
+import { EventBus, rehydrateStateForTesting } from '../mutations/mutation-lifecycle/event-bus';
 import type { PlanDePaiementValideEvent } from '../paiements/valider-plan-paiement/event';
 
 export const BDDTestPreparationTransactions: React.FC = () => (
@@ -31,14 +31,14 @@ export const BDDTestPreparationTransactions: React.FC = () => (
             return { eventStream: [event] };
         }}
         when={(initialState) => {
-            // WHEN: nous rejouons simplement le flux d'événements. 
-            // Le cqrsReducer va maintenant automatiquement appeler le handler de préparation
-            // après avoir vu l'événement PLAN_DE_PAIEMENT_VALIDE.
-            return cqrsReducer(initialState, { type: 'REPLAY', eventStream: initialState.eventStream });
+            // WHEN: we rehydrate the state. The process manager in the event bus
+            // will be triggered automatically.
+            rehydrateStateForTesting(initialState.eventStream);
+            return EventBus.getState();
         }}
         then={(state) => {
-            // THEN: nous vérifions que deux nouveaux événements TRANSACTION_CREEE ont été créés
-            // en plus de l'événement initial.
+            // THEN: we check that two new TRANSACTION_CREEE events were created
+            // in addition to the initial event.
             const createdTransactionEvents = state.eventStream.filter(e => e.type === 'TRANSACTION_CREEE');
             const pass = state.eventStream.length === 3 && createdTransactionEvents.length === 2;
 

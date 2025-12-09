@@ -5,8 +5,6 @@ import { Button } from "@/components/ui/button";
 import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
 import { CircleDotDashed, Plus } from "lucide-react";
 import { queryMutations } from "../../projection-mutations/projection";
-import { createDroitsMutationCommandHandler } from "../handler";
-import { createRessourcesMutationCommandHandler } from "../../create-ressources-mutation/handler";
 
 export function AppHeader() {
   const { state, dispatchEvent } = useCqrs();
@@ -17,19 +15,11 @@ export function AppHeader() {
   const existingMutation = mutations.find(m => m.status === 'OUVERTE' || m.status === 'EN_COURS');
 
   const handleCreateDroitsMutation = () => {
-    // On passe le handler lui-même à l'action.
-    // Le hook `useCqrs` se chargera de l'appeler avec `state` et une fonction `dispatch`.
-    dispatchEvent({
-        type: 'CREATE_DROITS_MUTATION', // The type is still useful for routing/logging
-        handler: createDroitsMutationCommandHandler
-    } as any);
+    dispatchEvent({ type: 'CREATE_DROITS_MUTATION' });
   };
 
   const handleCreateRessourcesMutation = () => {
-    dispatchEvent({
-        type: 'CREATE_RESSOURCES_MUTATION',
-        handler: createRessourcesMutationCommandHandler
-    } as any);
+    dispatchEvent({ type: 'CREATE_RESSOURCES_MUTATION' });
   };
 
   return (

@@ -5,6 +5,7 @@ import type { AjouterRevenuCommand } from './command';
 import type { RevenuAjouteEvent } from './event';
 import { toast as realToast } from 'react-hot-toast';
 import { format } from 'date-fns';
+import { publishEvent } from '../../mutation-lifecycle/event-bus';
 
 type HandlerDependencies = {
   toast: { error: (message: string) => void };
@@ -14,7 +15,6 @@ type HandlerDependencies = {
 export function ajouterRevenuCommandHandler(
     state: AppState,
     command: AjouterRevenuCommand,
-    dispatch: (event: AppEvent) => void,
     dependencies: HandlerDependencies = { toast: realToast }
 ): void {
     const { mutationId, ressourceVersionId, ecritureId, code, libelle, montant, dateDebut, dateFin } = command.payload;
@@ -49,5 +49,5 @@ export function ajouterRevenuCommandHandler(
         }
     };
 
-    dispatch(event);
+    publishEvent(event);
 }

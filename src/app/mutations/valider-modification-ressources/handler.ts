@@ -3,12 +3,12 @@
 import type { AppState, AppEvent } from '../mutation-lifecycle/domain';
 import type { ValiderModificationRessourcesCommand } from './command';
 import type { ModificationRessourcesValideeEvent } from './event';
+import { publishEvent } from '../mutation-lifecycle/event-bus';
 
 // Command Handler
 export function validerModificationRessourcesCommandHandler(
     state: AppState, 
-    command: ValiderModificationRessourcesCommand,
-    dispatch: (event: AppEvent) => void
+    command: ValiderModificationRessourcesCommand
 ): void {
   const { mutationId, ressourceVersionId } = command.payload;
   
@@ -23,5 +23,5 @@ export function validerModificationRessourcesCommandHandler(
     }
   };
 
-  dispatch(event);
+  publishEvent(event);
 }

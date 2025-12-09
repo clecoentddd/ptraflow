@@ -4,8 +4,7 @@
 import React from 'react';
 import type { AppEvent } from '../mutations/mutation-lifecycle/domain';
 import { TestComponent, mockToast } from '../mutations/bdd/test-harness';
-import { createRessourcesMutationCommandHandler } from '../mutations/create-ressources-mutation/handler';
-import { cqrsReducer } from '../mutations/mutation-lifecycle/cqrs';
+import { dispatchCommand, EventBus, rehydrateStateForTesting } from '../mutations/mutation-lifecycle/event-bus';
 import type { PlanDePaiementValideEvent } from '../paiements/valider-plan-paiement/event';
 
 // Definition of Test for Resource Mutation Creation
@@ -18,13 +17,9 @@ export const BDDTestCreationRessources: React.FC = () => (
             return { eventStream: [] };
         }}
         when={(initialState) => {
-            let state = initialState;
-            const mockDispatch = (event: AppEvent) => {
-                state = cqrsReducer(state, { type: 'DISPATCH_EVENT', event });
-            }
-            // WHEN: we call the command handler directly with the command and our mock toast
-            createRessourcesMutationCommandHandler(initialState, mockDispatch, { toast: mockToast });
-            return state;
+            rehydrateStateForTesting(initialState.eventStream);
+            dispatchCommand({ type: 'CREATE_RESSOURCES_MUTATION' });
+            return EventBus.getState();
         }}
         then={(state, toasts) => {
             // THEN: we check that NO new event was created and a toast was shown.
@@ -58,12 +53,9 @@ export const BDDTestCreationRessourcesAvecPeriode: React.FC = () => (
             return { eventStream: [event] };
         }}
         when={(initialState) => {
-            let state = initialState;
-            const mockDispatch = (event: AppEvent) => {
-                state = cqrsReducer(state, { type: 'DISPATCH_EVENT', event });
-            }
-            createRessourcesMutationCommandHandler(initialState, mockDispatch, { toast: mockToast });
-            return state;
+            rehydrateStateForTesting(initialState.eventStream);
+            dispatchCommand({ type: 'CREATE_RESSOURCES_MUTATION' });
+            return EventBus.getState();
         }}
         then={(state, toasts) => {
             const eventCreated = state.eventStream.length === 2 && state.eventStream[0].type === 'RESSOURCES_MUTATION_CREATED';

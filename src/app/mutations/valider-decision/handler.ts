@@ -6,12 +6,12 @@ import type { DecisionValideeEvent, DecisionDetail } from './event';
 import { toast } from 'react-hot-toast';
 import { queryDecisionsAPrendre } from '../projection-decision-a-prendre/projection';
 import { queryMutations } from '../projection-mutations/projection';
+import { publishEvent } from '../mutation-lifecycle/event-bus';
 
 // Command Handler
 export function validerDecisionCommandHandler(
     state: AppState, 
-    command: ValiderDecisionCommand,
-    dispatch: (event: AppEvent) => void
+    command: ValiderDecisionCommand
 ): void {
   const { mutationId, decisionId } = command.payload;
   
@@ -69,5 +69,5 @@ export function validerDecisionCommandHandler(
     }
   };
 
-  dispatch(event);
+  publishEvent(event);
 }

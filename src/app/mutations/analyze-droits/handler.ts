@@ -5,6 +5,7 @@ import type { AnalyzeDroitsCommand } from './command';
 import type { DroitsAnalysesEvent } from './event';
 import { toast as realToast } from 'react-hot-toast';
 import { format } from 'date-fns';
+import { publishEvent } from '../mutation-lifecycle/event-bus';
 
 type HandlerDependencies = {
   toast: { error: (message: string) => void };
@@ -14,7 +15,6 @@ type HandlerDependencies = {
 export function analyzeDroitsCommandHandler(
     state: AppState, 
     command: AnalyzeDroitsCommand,
-    dispatch: (event: AppEvent) => void,
     dependencies: HandlerDependencies = { toast: realToast }
 ): void {
   const { mutationId, dateDebut, dateFin } = command.payload;
@@ -37,5 +37,5 @@ export function analyzeDroitsCommandHandler(
     }
   };
 
-  dispatch(event);
+  publishEvent(event);
 }

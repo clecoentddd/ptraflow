@@ -5,6 +5,7 @@ import type { AppState, AppEvent } from '../mutation-lifecycle/domain';
 import type { DroitsMutationCreatedEvent } from './event';
 import { toast as realToast } from 'react-hot-toast';
 import { queryMutations } from '../projection-mutations/projection';
+import { publishEvent } from '../mutation-lifecycle/event-bus';
 
 type HandlerDependencies = {
   toast: { error: (message: string) => void };
@@ -13,7 +14,6 @@ type HandlerDependencies = {
 // Command Handler
 export function createDroitsMutationCommandHandler(
   state: AppState,
-  dispatch: (event: AppEvent) => void,
   dependencies: HandlerDependencies = { toast: realToast }
 ): void {
   
@@ -36,5 +36,5 @@ export function createDroitsMutationCommandHandler(
   };
 
   // On "publie" l'événement
-  dispatch(event);
+  publishEvent(event);
 }

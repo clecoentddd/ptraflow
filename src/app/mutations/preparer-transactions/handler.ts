@@ -7,12 +7,12 @@ import type { PlanDePaiementValideEvent } from '../valider-plan-paiement/event';
 import type { TransactionCreeeEvent, TransactionRemplaceeEvent } from '../projection-transactions/events';
 import { queryTransactions } from '../projection-transactions/projection';
 import { toast } from 'react-hot-toast';
+import { publishEvents } from '../mutation-lifecycle/event-bus';
 
 // Command Handler / Processor
 export function preparerTransactionsCommandHandler(
   state: AppState, 
-  command: PreparerTransactionsCommand,
-  dispatch: (events: AppEvent[]) => void
+  command: PreparerTransactionsCommand
 ): void {
   const { planDePaiementId, mutationId } = command.payload;
   const now = new Date();
@@ -70,5 +70,5 @@ export function preparerTransactionsCommandHandler(
     }
   });
   
-  dispatch(generatedEvents);
+  publishEvents(generatedEvents);
 }

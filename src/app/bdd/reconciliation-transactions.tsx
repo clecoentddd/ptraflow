@@ -4,9 +4,8 @@
 import React from 'react';
 import type { AppState, AppEvent } from '../mutations/mutation-lifecycle/domain';
 import { TestComponent } from '../mutations/bdd/test-harness';
-import { cqrsReducer } from '../mutations/mutation-lifecycle/cqrs';
+import { EventBus, rehydrateStateForTesting } from '../mutations/mutation-lifecycle/event-bus';
 import { queryDecisionsAPrendre } from '../mutations/projection-decision-a-prendre/projection';
-import type { DecisionValideeEvent } from '../mutations/valider-decision/event';
 
 export const BDDTestReconciliationSimple: React.FC = () => (
     <TestComponent
@@ -44,8 +43,8 @@ export const BDDTestReconciliationSimple: React.FC = () => (
                      { month: '12-2025', aPayer: 100 }
                  ] } 
             };
-            // We replay all events including the new one to get the final state.
-            return cqrsReducer(initialState, { type: 'REPLAY', eventStream: [...initialState.eventStream, event] });
+            rehydrateStateForTesting([...initialState.eventStream, event]);
+            return EventBus.getState();
         }}
         then={(state) => {
             // THEN: The final decision projection should reflect the reconciled amounts
@@ -105,8 +104,8 @@ const TestReconciliationAvecPaiementsEffectues: React.FC = () => (
                     ]
                 }
             };
-            // Replay the state with this new event to trigger the decision projection
-            return cqrsReducer(initialState, { type: 'REPLAY', eventStream: [...initialState.eventStream, newCalculationEvent] });
+            rehydrateStateForTesting([...initialState.eventStream, newCalculationEvent]);
+            return EventBus.getState();
         }}
         then={(finalState) => {
             // THEN: The decision projection should show the reconciled amounts
@@ -150,25 +149,26 @@ const TestValidationDecisionAvecRemboursement: React.FC = () => (
                 ]} },
             ];
             // After these events, queryDecisionsAPrendre will show { aPayer: -50 } for Oct-2025.
-            const initialState = cqrsReducer({ eventStream: [] } as any, { type: 'REPLAY', eventStream: events });
-            return initialState;
+            rehydrateStateForTesting(events);
+            return EventBus.getState();
         }}
         when={(initialState) => {
             // WHEN: The user validates the decision for the second mutation.
             const decision = queryDecisionsAPrendre(initialState).find(d => d.mutationId === 'mut-remboursement-2');
             if (!decision) return initialState; // Should not happen in this test
 
-            return cqrsReducer(initialState, {
+            dispatchCommand({
                 type: 'VALIDER_DECISION',
                 payload: {
                     mutationId: 'mut-remboursement-2',
                     decisionId: decision.decisionId
                 }
             });
+            return EventBus.getState();
         }}
         then={(finalState) => {
             // THEN: The newly created DecisionValideeEvent should have its negative aPayer value preserved.
-            const aPayerEvent = finalState.eventStream.find(e => e.type === 'DECISION_VALIDEE' && e.mutationId === 'mut-remboursement-2') as DecisionValideeEvent | undefined;
+            const aPayerEvent = finalState.eventStream.find(e => e.type === 'DECISION_VALIDEE' && e.mutationId === 'mut-remboursement-2') as any | undefined;
 
             if (!aPayerEvent) {
                 return { pass: false, message: "Échec: L'événement DECISION_VALIDEE n'a pas été trouvé." };

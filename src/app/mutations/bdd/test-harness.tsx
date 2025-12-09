@@ -1,12 +1,12 @@
 
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { AppState, AppEvent } from '../mutation-lifecycle/domain';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CheckCircle, XCircle } from 'lucide-react';
-import { initialState, cqrsReducer } from '../mutation-lifecycle/cqrs';
+import { rehydrateStateForTesting } from '../mutation-lifecycle/event-bus';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { eachMonthOfInterval, format, parse } from 'date-fns';
 
@@ -18,12 +18,6 @@ export const mockToast = {
     mockToasts.push({ message, type: 'error' });
   },
 };
-
-const projectEvents = (eventStream: AppEvent[]): AppState => {
-    // Pass the event stream as part of the action payload
-    let projectedState = cqrsReducer(initialState, { type: 'REPLAY', eventStream });
-    return projectedState;
-}
 
 interface TestResult {
     pass: boolean;
@@ -210,37 +204,36 @@ export const TestComponent: React.FC<TestComponentProps> = ({ title, description
     const runTest = () => {
         mockToasts.length = 0; // Clear toasts for each run
 
-        // GIVEN: Set up the initial state by projecting past events
         const initialSetup = given();
         const sortedGivenEvents = [...initialSetup.eventStream].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
         setGivenEvents(sortedGivenEvents);
-        const projectedGivenState = projectEvents(sortedGivenEvents);
-        
-        // WHEN: The command handler or projection logic is called
-        const stateAfterWhen = when(projectedGivenState);
-        
+
+        // WHEN: The command handler or projection logic is called, which now uses the event bus
+        const stateAfterWhen = when({ ...rehydrateStateForTesting([]), eventStream: sortedGivenEvents });
         const sortedFinalEvents = [...stateAfterWhen.eventStream].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
         setFinalEvents(sortedFinalEvents);
-        
+
         // THEN: The result is checked
-        // The final projection is done inside the `then` to ensure it has the latest state.
-        const finalProjectedState = projectEvents(stateAfterWhen.eventStream);
-        
-        const testResult = then(finalProjectedState, mockToasts);
-        setResult({ ...testResult, finalState: finalProjectedState });
+        const testResult = then(stateAfterWhen, mockToasts);
+        setResult({ ...testResult, finalState: stateAfterWhen });
     };
+
+     // Auto-run test on mount
+    useEffect(() => {
+        runTest();
+    }, []);
 
     return (
         <Card className={result ? (result.pass ? 'border-green-500' : 'border-red-500') : ''}>
             <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                    {result && (result.pass ? <CheckCircle className="text-green-500" /> : <XCircle className="text-red-500" />)}
+                    {result ? (result.pass ? <CheckCircle className="text-green-500" /> : <XCircle className="text-red-500" />) : <div className="h-6 w-6" />}
                     {title}
                 </CardTitle>
                 <CardDescription>{description}</CardDescription>
             </CardHeader>
             <CardContent>
-                {result === null && <Button onClick={runTest}>Exécuter le test</Button>}
+                {result === null && <div>Running test...</div>}
                 {result && (
                     <div>
                         <p className={result.pass ? 'text-green-700' : 'text-red-700'}>{result.message}</p>
@@ -258,5 +251,3 @@ export const TestComponent: React.FC<TestComponentProps> = ({ title, description
         </Card>
     );
 };
-
-    

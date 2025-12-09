@@ -4,7 +4,7 @@
 import React from 'react';
 import type { AppState, AppEvent } from '../mutations/mutation-lifecycle/domain';
 import { TestComponent } from '../mutations/bdd/test-harness';
-import { cqrsReducer } from '../mutations/mutation-lifecycle/cqrs';
+import { dispatchCommand, EventBus, rehydrateStateForTesting } from '../mutations/mutation-lifecycle/event-bus';
 import { queryDecisionsAPrendre } from '../mutations/projection-decision-a-prendre/projection';
 import type { DecisionValideeEvent } from '../mutations/valider-decision/event';
 
@@ -44,7 +44,8 @@ const TestReconciliationRessourcesAvecPaiementsEffectues: React.FC = () => (
                     ]
                 }
             } as any;
-            return cqrsReducer(initialState, { type: 'REPLAY', eventStream: [...initialState.eventStream, newCalculationEvent] });
+            rehydrateStateForTesting([...initialState.eventStream, newCalculationEvent]);
+            return EventBus.getState();
         }}
         then={(finalState) => {
             const decisions = queryDecisionsAPrendre(finalState);
@@ -89,21 +90,21 @@ const TestValidationDecisionRessourcesAvecPeriodeIncorrecte: React.FC = () => (
                      { month: '12-2025', revenus: 1000, depenses: 0, resultat: 1000, calcul: 100 }
                 ]} as any },
             ];
-            // After these events, queryDecisionsAPrendre will show a decision for Nov, Dec.
-            const initialState = cqrsReducer({ eventStream: [] } as any, { type: 'REPLAY', eventStream: events });
-            return initialState;
+            rehydrateStateForTesting(events);
+            return EventBus.getState();
         }}
         when={(initialState) => {
             const decision = queryDecisionsAPrendre(initialState).find(d => d.mutationId === 'mut-remboursement-res-2');
             if (!decision) return initialState;
 
-            return cqrsReducer(initialState, {
+            dispatchCommand({
                 type: 'VALIDER_DECISION',
                 payload: {
                     mutationId: 'mut-remboursement-res-2',
                     decisionId: decision.decisionId
                 }
             });
+            return EventBus.getState();
         }}
         then={(finalState) => {
             const decisionValideeEvent = finalState.eventStream.find(e => e.type === 'DECISION_VALIDEE' && e.mutationId === 'mut-remboursement-res-2') as DecisionValideeEvent | undefined;

@@ -6,12 +6,12 @@ import type { TransactionEffectueeEvent } from '../projection-transactions/event
 import { toast } from 'react-hot-toast';
 import { queryTransactions } from '../projection-transactions/projection';
 import { parse, isBefore, endOfMonth } from 'date-fns';
+import { publishEvent } from '../mutation-lifecycle/event-bus';
 
 // Command Handler
 export function executerTransactionCommandHandler(
     state: AppState,
-    command: ExecuterTransactionCommand,
-    dispatch: (event: AppEvent) => void
+    command: ExecuterTransactionCommand
 ): void {
     const { transactionId, mois } = command.payload;
     const allTransactions = queryTransactions(state);
@@ -49,5 +49,5 @@ export function executerTransactionCommandHandler(
         }
     };
 
-    dispatch(event);
+    publishEvent(event);
 }

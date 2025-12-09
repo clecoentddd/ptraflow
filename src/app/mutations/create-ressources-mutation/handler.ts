@@ -6,6 +6,7 @@ import type { RessourcesMutationCreatedEvent } from './event';
 import { toast as realToast } from 'react-hot-toast';
 import { queryValidatedPeriods } from '../projection-periodes-de-droits/projection';
 import { queryMutations } from '../projection-mutations/projection';
+import { publishEvent } from '../mutation-lifecycle/event-bus';
 
 type HandlerDependencies = {
   toast: { error: (message: string) => void };
@@ -14,7 +15,6 @@ type HandlerDependencies = {
 // Command Handler
 export function createRessourcesMutationCommandHandler(
   state: AppState,
-  dispatch: (event: AppEvent) => void,
   dependencies: HandlerDependencies = { toast: realToast }
 ): void {
   
@@ -39,6 +39,5 @@ export function createRessourcesMutationCommandHandler(
     payload: { mutationType: 'RESSOURCES' },
   };
 
-  dispatch(event);
+  publishEvent(event);
 }
-

@@ -4,12 +4,12 @@ import type { AppState, AppEvent } from '../../mutation-lifecycle/domain';
 import type { SupprimerEcritureCommand } from './command';
 import type { EcritureSupprimeeEvent } from './event';
 import { toast } from 'react-hot-toast';
+import { publishEvent } from '../../mutation-lifecycle/event-bus';
 
 // Command Handler
 export function supprimerEcritureCommandHandler(
     state: AppState,
-    command: SupprimerEcritureCommand,
-    dispatch: (event: AppEvent) => void
+    command: SupprimerEcritureCommand
 ): void {
     const { mutationId, ressourceVersionId, ecritureId } = command.payload;
 
@@ -39,5 +39,5 @@ export function supprimerEcritureCommandHandler(
         }
     };
 
-    dispatch(event);
+    publishEvent(event);
 }
