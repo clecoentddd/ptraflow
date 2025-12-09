@@ -29,22 +29,15 @@ const TestReconciliationRessourcesAvecPaiementsEffectues: React.FC = () => (
             return { eventStream: events };
         }}
         when={(initialState) => {
+            rehydrateStateForTesting(initialState.eventStream);
             // WHEN: A new calculation is performed for Nov and Dec
-            const newCalculationEvent: AppEvent = {
-                id: "evt-mut-reco-res-2-calcul",
-                type: "PLAN_CALCUL_EFFECTUE",
-                mutationId: "mut-reco-res-2",
-                timestamp: "2025-11-01T09:02:00.000Z",
-                ressourceVersionId: 'v-reco-res-2',
+            // This now happens inside the command handler, which will trigger the decision preparation
+             dispatchCommand({
+                type: 'VALIDER_PLAN_CALCUL',
                 payload: {
-                    calculId: 'calcul-reco-res-2',
-                    detail: [
-                        { month: '11-2025', revenus: 8000, depenses: 0, resultat: 8000, calcul: 800 },
-                        { month: '12-2025', revenus: 8000, depenses: 0, resultat: 8000, calcul: 800 }
-                    ]
+                    mutationId: 'mut-reco-res-2',
                 }
-            } as any;
-            rehydrateStateForTesting([...initialState.eventStream, newCalculationEvent]);
+            });
             return EventBus.getState();
         }}
         then={(finalState) => {
@@ -91,6 +84,8 @@ const TestValidationDecisionRessourcesAvecPeriodeIncorrecte: React.FC = () => (
                 ]} as any },
             ];
             rehydrateStateForTesting(events);
+            // Manually trigger decision preparation after rehydrating state with the calculation
+            dispatchCommand({ type: 'PREPARER_DECISION', payload: { mutationId: 'mut-remboursement-res-2', calculId: 'calcul-remboursement-res-2' } });
             return EventBus.getState();
         }}
         when={(initialState) => {
@@ -140,5 +135,3 @@ export const BDDTestReconciliationRessourcesWrapper: React.FC = () => (
         <TestValidationDecisionRessourcesAvecPeriodeIncorrecte />
     </div>
 );
-
-    

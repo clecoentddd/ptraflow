@@ -38,7 +38,6 @@ type Subscriber = (state: AppState) => void;
 
 // Le Bus d'Événements centralise l'état et la logique de publication.
 class EventBusManager {
-    private eventStream: AppEvent[] = [];
     private state: AppState = this.getInitialState();
     private subscribers: Subscriber[] = [];
     
@@ -56,30 +55,38 @@ class EventBusManager {
         };
     }
 
-    // Reconstruit l'état complet à partir du flux d'événements.
-    private rebuildState() {
-        let newState = this.getInitialState();
-        
-        const sortedEventsForProjection = [...this.eventStream].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+    private rebuildState(events: AppEvent[]): AppState {
+        let state = this.getInitialState();
+        const sortedEvents = [...events].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
-        for (const event of sortedEventsForProjection) {
-            newState = mutationsProjectionReducer(newState, event);
-            newState = todolistProjectionReducer(newState, event);
-            newState = validatedPeriodsProjectionReducer(newState, event);
-            newState = ecrituresProjectionReducer(newState, event);
-            newState = planCalculProjectionReducer(newState, event);
-            newState = planDePaiementProjectionReducer(newState, event);
-            newState = transactionsProjectionReducer(newState, event);
-            newState = decisionAPrendreProjectionReducer(newState, event);
+        for (const event of sortedEvents) {
+            state = this.applyProjections(state, event);
         }
         
-        newState.eventStream = [...this.eventStream].reverse(); // Keep reverse chronological order for display
-        this.state = newState;
+        state.eventStream = [...events].reverse();
+        return state;
     }
+
+    // Applique un événement à l'état actuel pour le mettre à jour.
+    private applyProjections(state: AppState, event: AppEvent): AppState {
+        let newState = state;
+        newState = mutationsProjectionReducer(newState, event);
+        newState = todolistProjectionReducer(newState, event);
+        newState = validatedPeriodsProjectionReducer(newState, event);
+        newState = ecrituresProjectionReducer(newState, event);
+        newState = planCalculProjectionReducer(newState, event);
+        newState = planDePaiementProjectionReducer(newState, event);
+        newState = transactionsProjectionReducer(newState, event);
+        newState = decisionAPrendreProjectionReducer(newState, event);
+        return newState;
+    }
+
 
     // Exécute les logiques qui doivent réagir à de nouveaux événements (Sagas / Process Managers).
     private runProcessManagers(newEvents: AppEvent[]) {
-        for (const event of newEvents) {
+        const sortedNewEvents = [...newEvents].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+        for (const event of sortedNewEvents) {
             if (event.type === 'PLAN_DE_PAIEMENT_VALIDE') {
                 preparerTransactionsCommandHandler(
                     this.state,
@@ -106,8 +113,15 @@ class EventBusManager {
     
     // Ajoute un ou plusieurs événements au flux.
     public appendEvents(events: AppEvent[]) {
-        this.eventStream.push(...events);
-        this.rebuildState();
+        // 1. Add new events to the current state
+        let newState = this.state;
+        for(const event of events) {
+            newState.eventStream = [event, ...newState.eventStream];
+            newState = this.applyProjections(newState, event);
+        }
+        this.state = newState;
+        
+        // 2. Run any process managers that react to these new events
         this.runProcessManagers(events);
     }
     
@@ -131,9 +145,9 @@ class EventBusManager {
 
     // Réinitialise et réhydrate l'état pour les tests.
     public rehydrateForTesting(events: AppEvent[]) {
-        this.eventStream = [...events].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-        this.rebuildState();
-        this.runProcessManagers(this.eventStream);
+        this.state = this.rebuildState(events);
+        this.runProcessManagers(events); // Run processes on the rehydrated state
+        this.publish(); // Notify test components
     }
 }
 
