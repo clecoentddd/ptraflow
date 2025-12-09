@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { AppState, AppEvent } from '../mutation-lifecycle/domain';
@@ -34,7 +35,7 @@ export function executerTransactionCommandHandler(
     const transactionMonth = parse(mois, 'MM-yyyy', new Date());
     const currentMonth = new Date();
     if (!isBefore(transactionMonth, endOfMonth(currentMonth))) {
-        toast.error("La transaction ne peut pas être exécutée dans le futur.");
+        toast.error("La transaction ne peut pas être exécutée avant la fin du mois concerné.");
         return;
     }
     
