@@ -179,9 +179,9 @@ export function TransactionsView() {
                         <AlertDialogDescription>
                             Vous êtes sur le point d'exécuter la transaction suivante :
                             <div className="mt-4 space-y-2 text-foreground">
-                                <p><strong>Mois :</strong> <span className="font-mono">{selectedTransaction?.mois}</span></p>
-                                <p><strong>Montant :</strong> <span className="font-mono">{selectedTransaction?.montant.toFixed(2)} CHF</span></p>
-                                <p><strong>Date d'exécution :</strong> <span className="font-mono">{format(new Date(), 'dd MMMM yyyy', { locale: fr })}</span></p>
+                                <div><strong>Mois :</strong> <span className="font-mono">{selectedTransaction?.mois}</span></div>
+                                <div><strong>Montant :</strong> <span className="font-mono">{selectedTransaction?.montant.toFixed(2)} CHF</span></div>
+                                <div><strong>Date d'exécution :</strong> <span className="font-mono">{format(new Date(), 'dd MMMM yyyy', { locale: fr })}</span></div>
                             </div>
                             Êtes-vous sûr de vouloir continuer ?
                         </AlertDialogDescription>
