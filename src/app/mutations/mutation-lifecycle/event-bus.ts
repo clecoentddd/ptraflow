@@ -1,3 +1,4 @@
+
 "use client";
 
 import type { AppCommand, AppEvent, AppState } from './domain';
@@ -58,7 +59,6 @@ class EventBusManager {
     // Reconstruit l'état complet à partir du flux d'événements.
     private rebuildState() {
         let newState = this.getInitialState();
-        newState.eventStream = [...this.eventStream].reverse(); // Keep chronological order for display
         
         const sortedEventsForProjection = [...this.eventStream].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
 
@@ -74,7 +74,8 @@ class EventBusManager {
         
         newState = journalProjectionReducer(newState, { type: 'REPLAY_COMPLETE' });
         newState = decisionAPrendreProjectionReducer(newState, { type: 'REPLAY_COMPLETE' });
-
+        
+        newState.eventStream = [...this.eventStream].reverse(); // Keep reverse chronological order for display
         this.state = newState;
     }
 
@@ -100,7 +101,7 @@ class EventBusManager {
     
     // Ajoute un ou plusieurs événements au flux.
     public appendEvents(events: AppEvent[]) {
-        this.eventStream.unshift(...events); // Add to the beginning for reverse chronological order
+        this.eventStream.push(...events);
         this.rebuildState();
         this.runProcessManagers(events);
     }
@@ -125,7 +126,7 @@ class EventBusManager {
 
     // Réinitialise et réhydrate l'état pour les tests.
     public rehydrateForTesting(events: AppEvent[]) {
-        this.eventStream = [...events].reverse();
+        this.eventStream = [...events].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
         this.rebuildState();
         this.runProcessManagers(this.eventStream);
     }

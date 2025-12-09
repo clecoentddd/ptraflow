@@ -6,11 +6,6 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ArrowRight, ArrowRightCircle, Check, CheckCircle2, Circle } from "lucide-react";
 import { queryTodos } from "../../projection-todolist/projection";
-import { queryMutations } from "../../projection-mutations/projection";
-import { queryJournal } from "../../projection-journal/projection";
-import { calculatePlan } from "../../shared/plan-de-calcul.service";
-import type { DroitsAnalysesEvent } from "../../analyze-droits/event";
-import { toast } from "react-hot-toast";
 
 export function CalculerPlanTodoItem({ mutationId }: { mutationId: string }) {
     const { state } = useCqrs();
@@ -44,60 +39,12 @@ export function CalculerPlanButton({ mutationId }: { mutationId: string }) {
     const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Calculer le plan');
     
     const handleClick = () => {
-        // --- This is the "Automaton" or "Processor" logic, executed by the UI in this case ---
-        
-        const mutation = queryMutations(state).find(m => m.id === mutationId);
-        if (!mutation) {
-            toast.error("Mutation non trouvée.");
-            return;
-        }
-
-        // 1. Determine period
-        let dateDebut: string | undefined;
-        let dateFin: string | undefined;
-
-        if (mutation.type === 'DROITS') {
-            const droitsAnalysesEvent = mutation.history.find(e => e.type === 'DROITS_ANALYSES') as DroitsAnalysesEvent | undefined;
-            if (!droitsAnalysesEvent) {
-                toast.error("Période de droits non trouvée pour cette mutation.");
-                return;
-            }
-            dateDebut = droitsAnalysesEvent.payload.dateDebut;
-            dateFin = droitsAnalysesEvent.payload.dateFin;
-        } else { // RESSOURCES
-            const journalEntry = queryJournal(state).find(j => j.mutationId === mutationId);
-            if (!journalEntry?.ressourcesDateDebut || !journalEntry?.ressourcesDateFin) {
-                toast.error("Période de modification des ressources non trouvée.");
-                return;
-            }
-            dateDebut = journalEntry.ressourcesDateDebut;
-            dateFin = journalEntry.ressourcesDateFin;
-        }
-
-        if (!dateDebut || !dateFin) {
-            toast.error("Impossible de déterminer la période pour le calcul.");
-            return;
-        }
-        
-        const lastRessourceVersionIdEvent = [...mutation.history].reverse().find(e => 'ressourceVersionId' in e);
-        if (!lastRessourceVersionIdEvent || !('ressourceVersionId' in lastRessourceVersionIdEvent)) {
-             toast.error("Impossible de trouver un ressourceVersionId pour le calcul.");
-            return;
-        }
-        const ressourceVersionId = lastRessourceVersionIdEvent.ressourceVersionId;
-
-        // 2. Call the pure service
-        const resultatDuCalcul = calculatePlan(state.ecritures, dateDebut, dateFin);
-
-        // 3. Dispatch the command with the result for validation
+        // --- The button is now "dumb" ---
+        // It just dispatches a simple command.
+        // The handler will perform the calculation logic.
         dispatchEvent({ 
             type: 'VALIDER_PLAN_CALCUL', 
-            payload: {
-                mutationId,
-                ressourceVersionId,
-                calculId: crypto.randomUUID(),
-                resultatDuCalcul
-            }
+            payload: { mutationId }
         });
     };
 

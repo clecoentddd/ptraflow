@@ -39,12 +39,11 @@ export function AutoriserModificationRessourcesButton({ mutationId }: { mutation
     const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Autoriser la modification de ressources');
     
     const handleClick = () => {
+        // The button is now "dumb". It just dispatches a simple command.
+        // The handler will be responsible for creating the ressourceVersionId.
         dispatchEvent({ 
             type: 'AUTORISER_MODIFICATION_RESSOURCES', 
-            payload: { 
-                mutationId,
-                ressourceVersionId: crypto.randomUUID()
-            } 
+            payload: { mutationId } 
         });
     };
 

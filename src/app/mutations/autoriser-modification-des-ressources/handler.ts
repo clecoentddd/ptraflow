@@ -1,3 +1,4 @@
+
 "use client";
     
 import type { AppState, AppEvent } from '../mutation-lifecycle/domain';
@@ -10,8 +11,11 @@ export function autoriserModificationRessourcesCommandHandler(
     state: AppState, 
     command: AutoriserModificationRessourcesCommand
 ): void {
-  const { mutationId, ressourceVersionId } = command.payload;
+  const { mutationId } = command.payload;
   
+  // The handler is now responsible for generating the ID.
+  const ressourceVersionId = crypto.randomUUID();
+
   const event: ModificationRessourcesAutoriseeEvent = {
     id: crypto.randomUUID(),
     type: 'MODIFICATION_RESSOURCES_AUTORISEE',

@@ -40,22 +40,11 @@ export function ValiderModificationRessourcesButton({ mutationId }: { mutationId
     const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Valider la modification des ressources');
     
     const handleClick = () => {
-        // Find the corresponding authorization event to get the ressourceVersionId
-        const authEvent = state.eventStream.find(
-            e => e.mutationId === mutationId && e.type === 'MODIFICATION_RESSOURCES_AUTORISEE'
-        ) as ModificationRessourcesAutoriseeEvent | undefined;
-
-        if (!authEvent) {
-            console.error("Could not find MODIFICATION_RESSOURCES_AUTORISEE event to validate.");
-            return;
-        }
-
+        // The button is now "dumb". It just dispatches a simple command.
+        // The handler will be responsible for finding the correct ressourceVersionId.
         dispatchEvent({ 
             type: 'VALIDER_MODIFICATION_RESSOURCES', 
-            payload: { 
-                mutationId,
-                ressourceVersionId: authEvent.ressourceVersionId
-            } 
+            payload: { mutationId } 
         });
     };
 
