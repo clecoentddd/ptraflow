@@ -1,7 +1,9 @@
+
 "use client";
 
 import type { AppEvent, AppCommand, AppState } from '../mutation-lifecycle/domain';
 import type { DecisionValideeEvent } from '../valider-decision/event';
+import { queryDecisionHistory } from '../projection-decision-history/projection';
 
 // 1. State Slice and Initial State
 export interface ValidatedPeriod {
@@ -20,14 +22,24 @@ export const initialValidatedPeriodsState: ValidatedPeriodsState = {
 
 
 // 2. Projection Logic for this Slice
-function applyDecisionValidee(state: ValidatedPeriodsState, event: DecisionValideeEvent): ValidatedPeriodsState {
+function applyDecisionValidee(state: AppState, event: DecisionValideeEvent): ValidatedPeriodsState {
     
+    // "Claim Check" Pattern: Use the decisionId from the event to look up the full details.
+    const decisionDetails = queryDecisionHistory(state).find(d => d.payload.decisionId === event.payload.decisionId);
+
+    if (!decisionDetails) {
+        console.error(`[validatedPeriodsProjection] Could not find details for decisionId ${event.payload.decisionId}`);
+        return state;
+    }
+
+    const { mutationType, periodeDroits } = decisionDetails.payload;
+
     // Only DROITS mutations set a new validated period.
-    if (event.payload?.mutationType === 'DROITS' && event.payload?.periodeDroits) {
+    if (mutationType === 'DROITS' && periodeDroits) {
         const newValidatedPeriod: ValidatedPeriod = {
             mutationId: event.mutationId,
-            dateDebut: event.payload.periodeDroits.dateDebut,
-            dateFin: event.payload.periodeDroits.dateFin,
+            dateDebut: periodeDroits.dateDebut,
+            dateFin: periodeDroits.dateFin,
         };
         // Business rule: always overwrite with the latest validated period.
         return { ...state, validatedPeriods: [newValidatedPeriod] };
@@ -36,17 +48,19 @@ function applyDecisionValidee(state: ValidatedPeriodsState, event: DecisionValid
 }
 
 // 3. Slice Reducer
-export function validatedPeriodsProjectionReducer<T extends ValidatedPeriodsState & { eventStream: AppEvent[] }>(
-    state: T, 
+export function validatedPeriodsProjectionReducer(
+    state: AppState, 
     eventOrCommand: AppEvent | AppCommand
-): T {
+): AppState {
     if ('type' in eventOrCommand) {
         // This reducer only cares about events.
         if ('payload' in eventOrCommand) {
             const event = eventOrCommand;
             switch (event.type) {
                 case 'DECISION_VALIDEE':
-                    return applyDecisionValidee(state, event as DecisionValideeEvent) as T;
+                    // Pass the full AppState to the apply function
+                    const newValidatedPeriodsState = applyDecisionValidee(state, event as DecisionValideeEvent);
+                    return { ...state, ...newValidatedPeriodsState };
             }
         }
     }
