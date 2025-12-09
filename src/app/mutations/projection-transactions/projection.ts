@@ -56,7 +56,7 @@ function applyTransactionEffectuee(state: TransactionsState, event: TransactionE
     return {
         ...state,
         transactions: state.transactions.map(t => 
-            t.id === event.payload.transactionId 
+            t.id === event.transactionId // Use the top-level transactionId
             ? { ...t, statut: 'Exécuté' } 
             : t
         )
@@ -70,8 +70,8 @@ export function transactionsProjectionReducer<T extends TransactionsState>(
     state: T, 
     eventOrCommand: AppEvent | AppCommand
 ): T {
-    if ('type' in eventOrCommand && 'payload' in eventOrCommand) {
-        const event = eventOrCommand;
+    if ('type' in eventOrCommand) {
+        const event = eventOrCommand as AppEvent;
         switch (event.type) {
             case 'TRANSACTION_CREEE':
                 return applyTransactionCreee(state, event as TransactionCreeeEvent) as T;

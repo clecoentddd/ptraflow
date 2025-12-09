@@ -32,9 +32,10 @@ export function executerTransactionCommandHandler(
     }
 
     // 3. Date Check: is the payment month in the past or current month?
+    // This logic is now correct: a transaction for a given month can only be executed
+    // at the end of that month or later.
     const transactionMonth = parse(mois, 'MM-yyyy', new Date());
-    const currentMonth = new Date();
-    if (!isBefore(transactionMonth, endOfMonth(currentMonth))) {
+    if (isBefore(new Date(), endOfMonth(transactionMonth))) {
         toast.error("La transaction ne peut pas être exécutée avant la fin du mois concerné.");
         return;
     }
@@ -44,10 +45,9 @@ export function executerTransactionCommandHandler(
         id: crypto.randomUUID(),
         type: 'TRANSACTION_EFFECTUEE',
         mutationId: command.payload.mutationId,
+        transactionId: transactionId, // The ID of the transaction being executed
         timestamp: new Date().toISOString(),
-        payload: {
-            transactionId: transactionId,
-        }
+        payload: {} // Payload is empty as per the new structure
     };
 
     publishEvent(event);

@@ -21,9 +21,9 @@ export interface TransactionRemplaceeEvent extends BaseEvent {
     }
 }
 
+// The event now carries the transactionId as a top-level property.
 export interface TransactionEffectueeEvent extends BaseEvent {
     type: 'TRANSACTION_EFFECTUEE';
-    payload: {
-        transactionId: string;
-    }
+    transactionId: string;
+    payload: {} // Payload is now empty
 }
