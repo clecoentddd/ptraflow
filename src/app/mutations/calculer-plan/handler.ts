@@ -7,9 +7,9 @@ import type { PlanCalculeEvent } from './event';
 import { toast } from 'react-hot-toast';
 import { queryMutations } from '../projection-mutations/projection';
 import { publishEvent } from '../mutation-lifecycle/event-bus';
-import { queryJournal } from '../projection-journal/projection';
 import type { DroitsAnalysesEvent } from '../analyze-droits/event';
 import { calculatePlan } from '../shared/plan-de-calcul.service';
+import { format, min, max, parse } from 'date-fns';
 
 // Command Handler
 export function validerPlanCalculCommandHandler(
@@ -18,8 +18,6 @@ export function validerPlanCalculCommandHandler(
 ): void {
   const { mutationId } = command.payload;
   
-  // --- This logic was previously in the UI component, it's now in the handler ---
-
   const mutation = queryMutations(state).find(m => m.id === mutationId && m.status === 'EN_COURS');
   if (!mutation) {
       toast.error("La mutation n'est pas en cours ou n'existe pas.");
@@ -39,13 +37,20 @@ export function validerPlanCalculCommandHandler(
       dateDebut = droitsAnalysesEvent.payload.dateDebut;
       dateFin = droitsAnalysesEvent.payload.dateFin;
   } else { // RESSOURCES
-      const journalEntry = queryJournal(state).find(j => j.mutationId === mutationId);
-      if (!journalEntry?.ressourcesDateDebut || !journalEntry?.ressourcesDateFin) {
-          toast.error("Période de modification des ressources non trouvée.");
+      const ecrituresDeLaMutation = state.ecritures.filter(e => e.mutationId === mutationId);
+      if (ecrituresDeLaMutation.length === 0) {
+          toast.error("Aucune écriture de ressource trouvée pour cette mutation.");
           return;
       }
-      dateDebut = journalEntry.ressourcesDateDebut;
-      dateFin = journalEntry.ressourcesDateFin;
+       const allDates = ecrituresDeLaMutation.flatMap(e => [
+            parse(e.dateDebut, 'MM-yyyy', new Date()),
+            parse(e.dateFin, 'MM-yyyy', new Date())
+        ]).filter(d => !isNaN(d.getTime()));
+
+        if (allDates.length > 0) {
+            dateDebut = format(min(allDates), 'MM-yyyy');
+            dateFin = format(max(allDates), 'MM-yyyy');
+        }
   }
 
   if (!dateDebut || !dateFin) {
@@ -62,8 +67,6 @@ export function validerPlanCalculCommandHandler(
 
   // 2. Call the pure service
   const resultatDuCalcul = calculatePlan(state.ecritures, dateDebut, dateFin);
-
-  // --- End of moved logic ---
 
   const event: PlanCalculeEvent = {
     id: crypto.randomUUID(),

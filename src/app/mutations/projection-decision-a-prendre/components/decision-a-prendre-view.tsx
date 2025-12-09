@@ -13,13 +13,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { queryMutations } from "../../projection-mutations/projection";
-import { queryJournal } from "../../projection-journal/projection";
 
 export function DecisionAPrendreView() {
     const { state } = useCqrs();
     const decisions = queryDecisionsAPrendre(state);
-    const journal = queryJournal(state);
 
     if (decisions.length === 0) {
         return (
@@ -32,10 +29,7 @@ export function DecisionAPrendreView() {
     return (
         <div className="space-y-6">
             {decisions.map((decision) => {
-                const journalEntry = journal.find(j => j.mutationId === decision.mutationId);
-                if (!journalEntry) return null;
-
-                const mutationType = journalEntry.mutationType;
+                const mutationType = decision.mutationType;
 
                 return (
                     <Card key={decision.mutationId}>

@@ -1,17 +1,18 @@
 
 "use client";
     
-import type { AppState, AppEvent } from '../mutation-lifecycle/domain';
+import type { AppState, AppEvent, MutationType } from '../mutation-lifecycle/domain';
 import type { PreparerDecisionCommand } from './command';
 import type { DecisionPreparteeEvent } from './event';
 import { toast } from 'react-hot-toast';
-import { queryJournal } from '../projection-journal/projection';
 import { queryPlansDeCalcul } from '../projection-plan-calcul/projection';
 import { queryPlanDePaiement } from '../projection-plan-de-paiement/projection';
 import { queryTransactions } from '../projection-transactions/projection';
 import { queryDecisionsAPrendre } from '../projection-decision-a-prendre/projection';
-import { parse } from 'date-fns';
+import { parse, format, min, max } from 'date-fns';
 import { publishEvent } from '../mutation-lifecycle/event-bus';
+import { queryMutations } from '../projection-mutations/projection';
+import type { DroitsAnalysesEvent } from '../analyze-droits/event';
 
 // Command Handler (Process Manager)
 export function preparerDecisionCommandHandler(
@@ -21,25 +22,20 @@ export function preparerDecisionCommandHandler(
   const { mutationId, calculId } = command.payload;
   
   // --- 1. Gather all necessary data from projections ---
-  const journalEntries = queryJournal(state);
-  const journalEntry = journalEntries.find(j => j.mutationId === mutationId);
-  const plansDeCalcul = queryPlansDeCalcul(state);
-  const planDeCalcul = plansDeCalcul.find(p => p.calculId === calculId);
+  const mutation = queryMutations(state).find(m => m.id === mutationId);
+  const planDeCalcul = queryPlansDeCalcul(state).find(p => p.calculId === calculId);
   const allPlansDePaiement = queryPlanDePaiement(state);
   const allTransactions = queryTransactions(state);
   const existingDecisions = queryDecisionsAPrendre(state);
 
   // --- 2. Validations to ensure we can proceed ---
-  if (!journalEntry || !planDeCalcul) {
+  if (!mutation || !planDeCalcul) {
     console.error("--- DEBUG: preparerDecisionCommandHandler ---");
     console.log("Mutation ID:", mutationId);
     console.log("Calcul ID:", calculId);
-    console.log("Journal trouvé:", journalEntry);
+    console.log("Mutation trouvée:", mutation);
     console.log("Plan de calcul trouvé:", planDeCalcul);
-    console.log("Toutes les entrées du journal:", JSON.stringify(journalEntries, null, 2));
-    console.log("Tous les plans de calcul:", JSON.stringify(plansDeCalcul, null, 2));
-    console.error("-------------------------------------------");
-    toast.error("Données de journal ou de calcul manquantes pour préparer la décision.");
+    toast.error("Données de mutation ou de calcul manquantes pour préparer la décision.");
     return;
   }
   if (existingDecisions.some(d => d.calculId === calculId)) {
@@ -54,7 +50,36 @@ export function preparerDecisionCommandHandler(
   }
   const ressourceVersionId = lastRessourceVersionIdEvent.ressourceVersionId;
 
-  // --- 3. Business Logic: Reconciliation ---
+  // --- 3. Determine Periods ---
+  let periodeDroits: { dateDebut: string; dateFin: string } | undefined;
+  let periodeModifications: { dateDebut: string; dateFin: string } | undefined;
+
+  if (mutation.type === 'DROITS') {
+      const droitsAnalysesEvent = mutation.history.find(e => e.type === 'DROITS_ANALYSES') as DroitsAnalysesEvent | undefined;
+      if (droitsAnalysesEvent) {
+          periodeDroits = { 
+              dateDebut: droitsAnalysesEvent.payload.dateDebut,
+              dateFin: droitsAnalysesEvent.payload.dateFin
+          };
+      }
+  } else { // RESSOURCES
+      const ecrituresDeLaMutation = state.ecritures.filter(e => e.mutationId === mutationId);
+      if (ecrituresDeLaMutation.length > 0) {
+          const allDates = ecrituresDeLaMutation.flatMap(e => [
+              parse(e.dateDebut, 'MM-yyyy', new Date()),
+              parse(e.dateFin, 'MM-yyyy', new Date())
+          ]).filter(d => !isNaN(d.getTime()));
+
+          if (allDates.length > 0) {
+              periodeModifications = {
+                  dateDebut: format(min(allDates), 'MM-yyyy'),
+                  dateFin: format(max(allDates), 'MM-yyyy')
+              };
+          }
+      }
+  }
+
+  // --- 4. Business Logic: Reconciliation ---
   const latestPlanDePaiement = [...allPlansDePaiement].sort(
     (a,b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
   )[0];
@@ -67,7 +92,7 @@ export function preparerDecisionCommandHandler(
   });
 
   let moisAConsiderer: string[];
-  if (journalEntry.mutationType === 'RESSOURCES' && journalEntry.ressourcesDateDebut && journalEntry.ressourcesDateFin) {
+  if (mutation.type === 'RESSOURCES') {
       moisAConsiderer = planDeCalcul.detail.map(d => d.month);
   } else {
       const allMonths = new Set([...Object.keys(paiementsParMois), ...planDeCalcul.detail.map(d => d.month)]);
@@ -87,7 +112,7 @@ export function preparerDecisionCommandHandler(
       };
   });
 
-  // --- 4. Create the event ---
+  // --- 5. Create the event ---
   const event: DecisionPreparteeEvent = {
     id: crypto.randomUUID(),
     type: 'DECISION_PREPAREE',
@@ -98,13 +123,9 @@ export function preparerDecisionCommandHandler(
         calculId: planDeCalcul.calculId,
         ressourceVersionId: ressourceVersionId,
         planDePaiementId: latestPlanDePaiementId,
-        mutationType: journalEntry.mutationType,
-        periodeDroits: journalEntry.droitsDateDebut && journalEntry.droitsDateFin 
-            ? { dateDebut: journalEntry.droitsDateDebut, dateFin: journalEntry.droitsDateFin }
-            : undefined,
-        periodeModifications: journalEntry.ressourcesDateDebut && journalEntry.ressourcesDateFin
-            ? { dateDebut: journalEntry.ressourcesDateDebut, dateFin: journalEntry.ressourcesDateFin }
-            : undefined,
+        mutationType: mutation.type,
+        periodeDroits,
+        periodeModifications,
         detail: detailAvecPaiements
     }
   };

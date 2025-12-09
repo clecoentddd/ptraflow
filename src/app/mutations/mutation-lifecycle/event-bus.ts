@@ -28,7 +28,6 @@ import { validatedPeriodsProjectionReducer, initialValidatedPeriodsState } from 
 import { mutationsProjectionReducer, initialMutationsState } from '../projection-mutations/projection';
 import { todolistProjectionReducer, initialTodolistState } from '../projection-todolist/projection';
 import { ecrituresProjectionReducer, initialEcrituresState } from '../projection-ecritures/projection';
-import { journalProjectionReducer, initialJournalState } from '../projection-journal/projection';
 import { planCalculProjectionReducer, initialPlanCalculState } from '../projection-plan-calcul/projection';
 import { decisionAPrendreProjectionReducer, initialDecisionAPrendreState } from '../projection-decision-a-prendre/projection';
 import { planDePaiementProjectionReducer, initialPlanDePaiementState } from '../projection-plan-de-paiement/projection';
@@ -50,7 +49,6 @@ class EventBusManager {
           ...initialMutationsState,
           ...initialTodolistState,
           ...initialEcrituresState,
-          ...initialJournalState,
           ...initialPlanCalculState,
           ...initialPlanDePaiementState,
           ...initialDecisionAPrendreState,
@@ -69,7 +67,6 @@ class EventBusManager {
             newState = todolistProjectionReducer(newState, event);
             newState = validatedPeriodsProjectionReducer(newState, event);
             newState = ecrituresProjectionReducer(newState, event);
-            newState = journalProjectionReducer(newState, event);
             newState = planCalculProjectionReducer(newState, event);
             newState = planDePaiementProjectionReducer(newState, event);
             newState = transactionsProjectionReducer(newState, event);

@@ -11,7 +11,6 @@ import { ScrollArea }from "@/components/ui/scroll-area";
 import { ValidatedPeriodsView } from '@/app/mutations/projection-periodes-de-droits/components/validated-periods-view';
 import { queryMutations } from '@/app/mutations/projection-mutations/projection';
 import { AllEcrituresListView } from '@/app/mutations/ecritures/components/ecritures-list-ui';
-import { JournalView } from '@/app/mutations/projection-journal/components/journal-ui';
 import { PlanCalculView } from '@/app/mutations/projection-plan-calcul/components/plan-calcul-view';
 import { DecisionAPrendreView } from '@/app/mutations/projection-decision-a-prendre/components/decision-a-prendre-view';
 import { PlanDePaiementView } from '@/app/mutations/projection-plan-de-paiement/components/plan-de-paiement-view';
