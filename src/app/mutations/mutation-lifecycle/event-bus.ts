@@ -32,6 +32,7 @@ import { planCalculProjectionReducer, initialPlanCalculState } from '../projecti
 import { decisionAPrendreProjectionReducer, initialDecisionAPrendreState } from '../projection-decision-a-prendre/projection';
 import { planDePaiementProjectionReducer, initialPlanDePaiementState } from '../projection-plan-de-paiement/projection';
 import { transactionsProjectionReducer, initialTransactionsState } from '../projection-transactions/projection';
+import { decisionHistoryProjectionReducer, initialDecisionHistoryState } from '../projection-decision-history/projection';
 
 
 type Subscriber = (state: AppState) => void;
@@ -52,22 +53,10 @@ class EventBusManager {
           ...initialPlanDePaiementState,
           ...initialDecisionAPrendreState,
           ...initialTransactionsState,
+          ...initialDecisionHistoryState,
         };
     }
 
-    private rebuildState(events: AppEvent[]): AppState {
-        let state = this.getInitialState();
-        const sortedEvents = [...events].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
-
-        for (const event of sortedEvents) {
-            state = this.applyProjections(state, event);
-        }
-        
-        state.eventStream = [...events].reverse();
-        return state;
-    }
-
-    // Applique un événement à l'état actuel pour le mettre à jour.
     private applyProjections(state: AppState, event: AppEvent): AppState {
         let newState = state;
         newState = mutationsProjectionReducer(newState, event);
@@ -78,6 +67,7 @@ class EventBusManager {
         newState = planDePaiementProjectionReducer(newState, event);
         newState = transactionsProjectionReducer(newState, event);
         newState = decisionAPrendreProjectionReducer(newState, event);
+        newState = decisionHistoryProjectionReducer(newState, event);
         return newState;
     }
 
@@ -145,8 +135,17 @@ class EventBusManager {
 
     // Réinitialise et réhydrate l'état pour les tests.
     public rehydrateForTesting(events: AppEvent[]) {
-        this.state = this.rebuildState(events);
-        this.runProcessManagers(events); // Run processes on the rehydrated state
+        let state = this.getInitialState();
+        const sortedEvents = [...events].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+
+        for (const event of sortedEvents) {
+            state = this.applyProjections(state, event);
+        }
+        
+        state.eventStream = [...events].reverse();
+        this.state = state;
+
+        this.runProcessManagers(sortedEvents); // Run processes on the rehydrated state
         this.publish(); // Notify test components
     }
 }

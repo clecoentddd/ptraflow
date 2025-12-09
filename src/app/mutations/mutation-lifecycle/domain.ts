@@ -1,4 +1,5 @@
 
+
 import type { DroitsMutationCreatedEvent } from '../create-mutation/event';
 import type { PaiementsSuspendusEvent } from '../suspend-paiements/event';
 import type { DroitsAnalysesEvent } from '../analyze-droits/event';
@@ -44,6 +45,7 @@ import type { PlanCalculState } from '../projection-plan-calcul/projection';
 import type { PlanDePaiementState } from '../projection-plan-de-paiement/projection';
 import type { DecisionAPrendreState } from '../projection-decision-a-prendre/projection';
 import type { TransactionsState } from '../projection-transactions/projection';
+import type { DecisionHistoryState } from '../projection-decision-history/projection';
 
 
 // =================================
@@ -159,7 +161,8 @@ export interface AppState extends
     PlanCalculState,
     PlanDePaiementState,
     DecisionAPrendreState,
-    TransactionsState
+    TransactionsState,
+    DecisionHistoryState
 {
   eventStream: AppEvent[];
 }

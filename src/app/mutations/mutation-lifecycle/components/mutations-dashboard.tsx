@@ -15,6 +15,7 @@ import { PlanCalculView } from '@/app/mutations/projection-plan-calcul/component
 import { DecisionAPrendreView } from '@/app/mutations/projection-decision-a-prendre/components/decision-a-prendre-view';
 import { PlanDePaiementView } from '@/app/mutations/projection-plan-de-paiement/components/plan-de-paiement-view';
 import { TransactionsView } from '@/app/mutations/projection-transactions/components/transactions-view';
+import { DecisionHistoryView } from '../../projection-decision-history/components/decision-history-view';
 
 function DashboardContent() {
   const { state } = useCqrs();
@@ -72,6 +73,11 @@ function DashboardContent() {
           <div>
             <h2 className="text-2xl font-bold mb-4 text-foreground">Historique des Plans de Paiement</h2>
             <PlanDePaiementView />
+          </div>
+
+          <div>
+            <h2 className="text-2xl font-bold mb-4 text-foreground">Historique Des Décisions</h2>
+            <DecisionHistoryView />
           </div>
 
           <div>
