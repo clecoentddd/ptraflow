@@ -1,11 +1,15 @@
 "use client";
 
-import type { AppState } from '../mutation-lifecycle/domain';
+import type { AppState, AppEvent } from '../mutation-lifecycle/domain';
 import type { AutoriserModificationDroitsCommand } from './command';
 import type { ModificationDroitsAutoriseeEvent } from './event';
 
 // Command Handler
-export function autoriserModificationDroitsCommandHandler(state: AppState, command: AutoriserModificationDroitsCommand): AppState {
+export function autoriserModificationDroitsCommandHandler(
+    state: AppState, 
+    command: AutoriserModificationDroitsCommand,
+    dispatch: (event: AppEvent) => void
+): void {
   const { mutationId } = command.payload;
   
   const event: ModificationDroitsAutoriseeEvent = {
@@ -18,5 +22,5 @@ export function autoriserModificationDroitsCommandHandler(state: AppState, comma
     }
   };
 
-  return { ...state, eventStream: [event, ...state.eventStream] };
+  dispatch(event);
 }

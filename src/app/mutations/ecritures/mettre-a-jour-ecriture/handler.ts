@@ -1,4 +1,3 @@
-
 "use client";
 
 import type { AppState, AppEvent } from '../../mutation-lifecycle/domain';
@@ -13,8 +12,9 @@ import type { EcriturePeriodeCorrigeeEvent } from './event';
 // Command Handler for "Update"
 export function mettreAJourEcritureCommandHandler(
     state: AppState,
-    command: MettreAJourEcritureCommand
-): AppState {
+    command: MettreAJourEcritureCommand,
+    dispatch: (events: AppEvent[]) => void,
+): void {
     const {
         originalEcritureId,
         newEcritureId,
@@ -33,12 +33,12 @@ export function mettreAJourEcritureCommandHandler(
     const ecritureToUpdate = state.ecritures.find(e => e.id === originalEcritureId);
     if (!ecritureToUpdate) {
         toast.error("L'écriture à mettre à jour n'existe pas.");
-        return state;
+        return;
     }
 
     if (montant <= 0 || newDateDebut > newDateFin) {
         toast.error("Données de mise à jour invalides.");
-        return state;
+        return;
     }
     // --- End Validations ---
     
@@ -110,6 +110,5 @@ export function mettreAJourEcritureCommandHandler(
         events.push(addEvent);
     }
     
-    // The reducer will handle rebuilding the state from the new event stream
-    return { ...state, eventStream: [...events, ...state.eventStream] };
+    dispatch(events);
 }

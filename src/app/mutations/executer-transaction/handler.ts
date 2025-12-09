@@ -1,7 +1,6 @@
-
 "use client";
 
-import type { AppState } from '../mutation-lifecycle/domain';
+import type { AppState, AppEvent } from '../mutation-lifecycle/domain';
 import type { ExecuterTransactionCommand } from './command';
 import type { TransactionEffectueeEvent } from '../projection-transactions/events';
 import { toast } from 'react-hot-toast';
@@ -11,8 +10,9 @@ import { parse, isBefore, endOfMonth } from 'date-fns';
 // Command Handler
 export function executerTransactionCommandHandler(
     state: AppState,
-    command: ExecuterTransactionCommand
-): AppState {
+    command: ExecuterTransactionCommand,
+    dispatch: (event: AppEvent) => void
+): void {
     const { transactionId, mois } = command.payload;
     const allTransactions = queryTransactions(state);
 
@@ -21,13 +21,13 @@ export function executerTransactionCommandHandler(
     
     if (!transaction) {
         toast.error("Cette transaction n'existe pas.");
-        return state;
+        return;
     }
 
     // 2. Execution Check: has this transaction already been executed or replaced?
     if (transaction.statut !== 'A Exécuter') {
         toast.error(`Transaction déjà ${transaction.statut.toLowerCase()}.`);
-        return state;
+        return;
     }
 
     // 3. Date Check: is the payment month in the past or current month?
@@ -35,7 +35,7 @@ export function executerTransactionCommandHandler(
     const currentMonth = new Date();
     if (!isBefore(transactionMonth, endOfMonth(currentMonth))) {
         toast.error("La transaction ne peut pas être exécutée dans le futur.");
-        return state;
+        return;
     }
     
     // If all checks pass, create the event
@@ -49,5 +49,5 @@ export function executerTransactionCommandHandler(
         }
     };
 
-    return { ...state, eventStream: [event, ...state.eventStream] };
+    dispatch(event);
 }

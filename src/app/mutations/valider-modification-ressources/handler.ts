@@ -1,11 +1,15 @@
 "use client";
     
-import type { AppState } from '../mutation-lifecycle/domain';
+import type { AppState, AppEvent } from '../mutation-lifecycle/domain';
 import type { ValiderModificationRessourcesCommand } from './command';
 import type { ModificationRessourcesValideeEvent } from './event';
 
 // Command Handler
-export function validerModificationRessourcesCommandHandler(state: AppState, command: ValiderModificationRessourcesCommand): AppState {
+export function validerModificationRessourcesCommandHandler(
+    state: AppState, 
+    command: ValiderModificationRessourcesCommand,
+    dispatch: (event: AppEvent) => void
+): void {
   const { mutationId, ressourceVersionId } = command.payload;
   
   const event: ModificationRessourcesValideeEvent = {
@@ -19,5 +23,5 @@ export function validerModificationRessourcesCommandHandler(state: AppState, com
     }
   };
 
-  return { ...state, eventStream: [event, ...state.eventStream] };
+  dispatch(event);
 }

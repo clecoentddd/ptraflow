@@ -86,7 +86,6 @@ function rebuildStateFromEvents(eventStream: AppState['eventStream']): AppState 
 // ===========================================================================
 export function cqrsReducer(state: AppState, action: AppCommand): AppState {
     
-    let stateAfterCommand: AppState = state;
     let stateAfterEvents: AppState;
 
     // ----- Helper for Process Managers / Sagas -----
@@ -166,16 +165,13 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
                  suspendPaiementsCommandHandler(state, action, dispatch);
                  break;
             case 'AUTORISER_MODIFICATION_DROITS':
-                stateAfterCommand = autoriserModificationDroitsCommandHandler(state, action);
-                commandGeneratedEvents.push(...stateAfterCommand.eventStream.slice(0, stateAfterCommand.eventStream.length - state.eventStream.length));
+                autoriserModificationDroitsCommandHandler(state, action, dispatch);
                 break;
             case 'AUTORISER_MODIFICATION_RESSOURCES':
-                stateAfterCommand = autoriserModificationRessourcesCommandHandler(state, action);
-                 commandGeneratedEvents.push(...stateAfterCommand.eventStream.slice(0, stateAfterCommand.eventStream.length - state.eventStream.length));
+                autoriserModificationRessourcesCommandHandler(state, action, dispatch);
                 break;
             case 'ANALYZE_DROITS':
-                stateAfterCommand = analyzeDroitsCommandHandler(state, action);
-                 commandGeneratedEvents.push(...stateAfterCommand.eventStream.slice(0, stateAfterCommand.eventStream.length - state.eventStream.length));
+                analyzeDroitsCommandHandler(state, action, dispatch);
                 break;
             case 'VALIDER_PLAN_PAIEMENT':
                  validerPlanPaiementCommandHandler(state, action, dispatch);
@@ -184,36 +180,28 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
                  preparerTransactionsCommandHandler(state, action, dispatch);
                  break;
             case 'VALIDER_PLAN_CALCUL':
-                stateAfterCommand = validerPlanCalculCommandHandler(state, action);
-                 commandGeneratedEvents.push(...stateAfterCommand.eventStream.slice(0, stateAfterCommand.eventStream.length - state.eventStream.length));
+                validerPlanCalculCommandHandler(state, action, dispatch);
                 break;
             case 'AJOUTER_REVENU':
-                stateAfterCommand = ajouterRevenuCommandHandler(state, action);
-                 commandGeneratedEvents.push(...stateAfterCommand.eventStream.slice(0, stateAfterCommand.eventStream.length - state.eventStream.length));
+                ajouterRevenuCommandHandler(state, action, dispatch);
                 break;
             case 'AJOUTER_DEPENSE':
-                stateAfterCommand = ajouterDepenseCommandHandler(state, action);
-                 commandGeneratedEvents.push(...stateAfterCommand.eventStream.slice(0, stateAfterCommand.eventStream.length - state.eventStream.length));
+                ajouterDepenseCommandHandler(state, action, dispatch);
                 break;
             case 'VALIDER_MODIFICATION_RESSOURCES':
-                stateAfterCommand = validerModificationRessourcesCommandHandler(state, action);
-                 commandGeneratedEvents.push(...stateAfterCommand.eventStream.slice(0, stateAfterCommand.eventStream.length - state.eventStream.length));
+                validerModificationRessourcesCommandHandler(state, action, dispatch);
                 break;
             case 'SUPPRIMER_ECRITURE':
-                 stateAfterCommand = supprimerEcritureCommandHandler(state, action);
-                  commandGeneratedEvents.push(...stateAfterCommand.eventStream.slice(0, stateAfterCommand.eventStream.length - state.eventStream.length));
+                 supprimerEcritureCommandHandler(state, action, dispatch);
                  break;
             case 'METTRE_A_JOUR_ECRITURE':
-                 stateAfterCommand = mettreAJourEcritureCommandHandler(state, action);
-                  commandGeneratedEvents.push(...stateAfterCommand.eventStream.slice(0, stateAfterCommand.eventStream.length - state.eventStream.length));
+                 mettreAJourEcritureCommandHandler(state, action, dispatch);
                  break;
             case 'VALIDER_DECISION':
-                stateAfterCommand = validerDecisionCommandHandler(state, action);
-                 commandGeneratedEvents.push(...stateAfterCommand.eventStream.slice(0, stateAfterCommand.eventStream.length - state.eventStream.length));
+                validerDecisionCommandHandler(state, action, dispatch);
                 break;
             case 'EXECUTER_TRANSACTION':
-                stateAfterCommand = executerTransactionCommandHandler(state, action);
-                 commandGeneratedEvents.push(...stateAfterCommand.eventStream.slice(0, stateAfterCommand.eventStream.length - state.eventStream.length));
+                executerTransactionCommandHandler(state, action, dispatch);
                 break;
             default:
                  console.warn("Unknown command type in cqrsReducer:", (action as any).type);
@@ -224,7 +212,7 @@ export function cqrsReducer(state: AppState, action: AppCommand): AppState {
             stateAfterEvents = rebuildStateFromEvents([...commandGeneratedEvents, ...state.eventStream]);
             stateAfterEvents = runProcessManagers(stateAfterEvents, commandGeneratedEvents);
         } else {
-            return stateAfterCommand;
+            return state;
         }
     }
 

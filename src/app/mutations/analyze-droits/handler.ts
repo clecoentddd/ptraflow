@@ -1,7 +1,6 @@
-
 "use client";
 
-import type { AppState } from '../mutation-lifecycle/domain';
+import type { AppState, AppEvent } from '../mutation-lifecycle/domain';
 import type { AnalyzeDroitsCommand } from './command';
 import type { DroitsAnalysesEvent } from './event';
 import { toast as realToast } from 'react-hot-toast';
@@ -15,14 +14,15 @@ type HandlerDependencies = {
 export function analyzeDroitsCommandHandler(
     state: AppState, 
     command: AnalyzeDroitsCommand,
+    dispatch: (event: AppEvent) => void,
     dependencies: HandlerDependencies = { toast: realToast }
-): AppState {
+): void {
   const { mutationId, dateDebut, dateFin } = command.payload;
   
   // This is the business rule validation
   if (new Date(dateDebut) > new Date(dateFin)) {
     dependencies.toast.error('La date de début doit être antérieure ou égale à la date de fin.');
-    return state; // Return current state without creating an event
+    return; // Return current state without creating an event
   }
 
   const event: DroitsAnalysesEvent = {
@@ -37,5 +37,5 @@ export function analyzeDroitsCommandHandler(
     }
   };
 
-  return { ...state, eventStream: [event, ...state.eventStream] };
+  dispatch(event);
 }

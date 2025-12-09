@@ -1,7 +1,6 @@
-
 "use client";
     
-import type { AppState } from '../mutation-lifecycle/domain';
+import type { AppState, AppEvent } from '../mutation-lifecycle/domain';
 import type { ValiderDecisionCommand } from './command';
 import type { DecisionValideeEvent, DecisionDetail } from './event';
 import { toast } from 'react-hot-toast';
@@ -9,25 +8,29 @@ import { queryDecisionsAPrendre } from '../projection-decision-a-prendre/project
 import { queryMutations } from '../projection-mutations/projection';
 
 // Command Handler
-export function validerDecisionCommandHandler(state: AppState, command: ValiderDecisionCommand): AppState {
+export function validerDecisionCommandHandler(
+    state: AppState, 
+    command: ValiderDecisionCommand,
+    dispatch: (event: AppEvent) => void
+): void {
   const { mutationId, decisionId } = command.payload;
   
   const mutation = queryMutations(state).find(m => m.id === mutationId && m.status === 'EN_COURS');
   if (!mutation) {
       toast.error("La mutation n'est pas en cours ou n'existe pas.");
-      return state;
+      return;
   }
   
   const decision = queryDecisionsAPrendre(state).find(d => d.mutationId === mutationId);
   if (!decision || !decision.planDeCalcul) {
       toast.error("La décision à valider (avec un plan de calcul) n'a pas été trouvée.");
-      return state;
+      return;
   }
   
   const lastRessourceVersionIdEvent = [...mutation.history].reverse().find(e => 'ressourceVersionId' in e);
   if (!lastRessourceVersionIdEvent || !('ressourceVersionId' in lastRessourceVersionIdEvent)) {
       toast.error("Impossible de trouver la version de ressource (ressourceVersionId).");
-      return state;
+      return;
   }
 
   // --- Transform MonthlyResult into DecisionDetail ---
@@ -66,5 +69,5 @@ export function validerDecisionCommandHandler(state: AppState, command: ValiderD
     }
   };
 
-  return { ...state, eventStream: [event, ...state.eventStream] };
+  dispatch(event);
 }

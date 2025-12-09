@@ -1,7 +1,6 @@
-
 "use client";
 
-import type { AppState } from '../../mutation-lifecycle/domain';
+import type { AppState, AppEvent } from '../../mutation-lifecycle/domain';
 import type { SupprimerEcritureCommand } from './command';
 import type { EcritureSupprimeeEvent } from './event';
 import { toast } from 'react-hot-toast';
@@ -9,8 +8,9 @@ import { toast } from 'react-hot-toast';
 // Command Handler
 export function supprimerEcritureCommandHandler(
     state: AppState,
-    command: SupprimerEcritureCommand
-): AppState {
+    command: SupprimerEcritureCommand,
+    dispatch: (event: AppEvent) => void
+): void {
     const { mutationId, ressourceVersionId, ecritureId } = command.payload;
 
     // The business rule is that we can delete any 'ecriture' as long as we are in an authorized context.
@@ -18,14 +18,14 @@ export function supprimerEcritureCommandHandler(
     const isAuthorized = state.eventStream.some(e => e.type === 'MODIFICATION_RESSOURCES_AUTORISEE' && e.mutationId === mutationId);
     if(!isAuthorized) {
         toast.error("Action non autorisée. La suppression d'écriture n'est pas permise.");
-        return state;
+        return;
     }
 
     const ecritureExists = state.ecritures.some(e => e.id === ecritureId);
     if (!ecritureExists) {
         console.warn(`Tentative de suppression d'une écriture non trouvée: ${ecritureId}`);
         toast.error("L'écriture que vous essayez de supprimer n'existe pas ou plus.");
-        return state;
+        return;
     }
 
     const event: EcritureSupprimeeEvent = {
@@ -39,5 +39,5 @@ export function supprimerEcritureCommandHandler(
         }
     };
 
-    return { ...state, eventStream: [event, ...state.eventStream] };
+    dispatch(event);
 }

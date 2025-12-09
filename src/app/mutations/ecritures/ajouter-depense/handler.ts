@@ -1,6 +1,6 @@
 "use client";
 
-import type { AppState } from '../../mutation-lifecycle/domain';
+import type { AppState, AppEvent } from '../../mutation-lifecycle/domain';
 import type { AjouterDepenseCommand } from './command';
 import type { DepenseAjouteeEvent } from './event';
 import { toast as realToast } from 'react-hot-toast';
@@ -14,22 +14,23 @@ type HandlerDependencies = {
 export function ajouterDepenseCommandHandler(
     state: AppState,
     command: AjouterDepenseCommand,
+    dispatch: (event: AppEvent) => void,
     dependencies: HandlerDependencies = { toast: realToast }
-): AppState {
+): void {
     const { mutationId, ressourceVersionId, ecritureId, code, libelle, montant, dateDebut, dateFin } = command.payload;
 
     // Basic validation
     if (!code.startsWith('2')) {
         dependencies.toast.error("Le code d'une dépense doit commencer par '2'.");
-        return state;
+        return;
     }
     if (montant <= 0) {
         dependencies.toast.error("Le montant doit être positif.");
-        return state;
+        return;
     }
     if (new Date(dateDebut) > new Date(dateFin)) {
         dependencies.toast.error("La date de début ne peut pas être après la date de fin.");
-        return state;
+        return;
     }
 
     const event: DepenseAjouteeEvent = {
@@ -48,5 +49,5 @@ export function ajouterDepenseCommandHandler(
         }
     };
 
-    return { ...state, eventStream: [event, ...state.eventStream] };
+    dispatch(event);
 }

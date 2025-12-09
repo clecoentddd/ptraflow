@@ -1,12 +1,15 @@
-
 "use client";
     
-import type { AppState } from '../mutation-lifecycle/domain';
+import type { AppState, AppEvent } from '../mutation-lifecycle/domain';
 import type { AutoriserModificationRessourcesCommand } from './command';
 import type { ModificationRessourcesAutoriseeEvent } from './event';
 
 // Command Handler
-export function autoriserModificationRessourcesCommandHandler(state: AppState, command: AutoriserModificationRessourcesCommand): AppState {
+export function autoriserModificationRessourcesCommandHandler(
+    state: AppState, 
+    command: AutoriserModificationRessourcesCommand,
+    dispatch: (event: AppEvent) => void
+): void {
   const { mutationId, ressourceVersionId } = command.payload;
   
   const event: ModificationRessourcesAutoriseeEvent = {
@@ -20,5 +23,5 @@ export function autoriserModificationRessourcesCommandHandler(state: AppState, c
     }
   };
 
-  return { ...state, eventStream: [event, ...state.eventStream] };
+  dispatch(event);
 }
