@@ -16,10 +16,12 @@ import { DecisionAPrendreView } from '@/app/mutations/projection-decision-a-pren
 import { PlanDePaiementView } from '@/app/mutations/projection-plan-de-paiement/components/plan-de-paiement-view';
 import { TransactionsView } from '@/app/mutations/projection-transactions/components/transactions-view';
 import { DecisionHistoryView } from '../../projection-decision-history/components/decision-history-view';
+import { HistoriqueMutationsView } from './historique-mutations-view';
 
 function DashboardContent() {
   const { state } = useCqrs();
-  const mutations = queryMutations(state);
+  const allMutations = queryMutations(state);
+  const activeMutations = allMutations.filter(m => m.status === 'EN_COURS' || m.status === 'OUVERTE');
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -28,17 +30,17 @@ function DashboardContent() {
         
         <div className="grid gap-8">
           <div>
-            <h2 className="text-2xl font-bold mb-4 text-foreground">Mutations</h2>
-            {mutations.length === 0 ? (
+            <h2 className="text-2xl font-bold mb-4 text-foreground">Mutations Actives</h2>
+            {activeMutations.length === 0 ? (
               <Card className="flex items-center justify-center h-64 border-dashed">
                   <div className="text-center">
-                      <p className="text-muted-foreground">Aucune mutation.</p>
+                      <p className="text-muted-foreground">Aucune mutation active.</p>
                       <p className="text-sm text-muted-foreground">Cliquez sur "Créer une mutation" pour commencer.</p>
                   </div>
               </Card>
             ) : (
               <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-                {mutations.map((mutation) => (
+                {activeMutations.map((mutation) => (
                     <MutationCard key={mutation.id} mutation={mutation} />
                 ))}
               </div>
@@ -70,6 +72,11 @@ function DashboardContent() {
             <TransactionsView />
           </div>
           
+           <div>
+            <h2 className="text-2xl font-bold mb-4 text-foreground">Historique des Mutations</h2>
+            <HistoriqueMutationsView />
+          </div>
+
           <div>
             <h2 className="text-2xl font-bold mb-4 text-foreground">Historique des Plans de Paiement</h2>
             <PlanDePaiementView />
