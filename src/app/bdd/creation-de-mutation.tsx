@@ -4,7 +4,7 @@
 import React from 'react';
 import type { AppEvent } from '../mutations/mutation-lifecycle/domain';
 import { createDroitsMutationCommandHandler } from '../mutations/create-mutation/handler';
-import { TestComponent, mockToast } from '../mutations/bdd/test-harness';
+import { TestComponent, mockToast } from './test-harness';
 import { cqrsReducer } from '../mutations/mutation-lifecycle/cqrs';
 
 // Import event types for correct test data creation

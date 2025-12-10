@@ -21,7 +21,7 @@ export function EventStreamView() {
                  </div>
             ) : (
                 <Accordion type="multiple" className="w-full space-y-2">
-                    {state.eventStream.map((event) => {
+                    {[...state.eventStream].reverse().map((event) => {
                         return (
                             <AccordionItem value={event.id} key={event.id} className="border bg-card rounded-md px-3">
                                <AccordionTrigger className="py-2 text-sm font-medium hover:no-underline">

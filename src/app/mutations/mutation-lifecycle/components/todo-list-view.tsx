@@ -1,7 +1,8 @@
 
 "use client";
 
-import { useCqrs, type TodoStatus, type Todo } from "@/app/mutations/mutation-lifecycle/cqrs";
+import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
+import type { TodoStatus, Todo } from "@/app/mutations/domain";
 import {
   Accordion,
   AccordionContent,
@@ -13,26 +14,16 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { queryTodos } from "../../projection-todolist/projection";
 import { queryMutations } from "../../projection-mutations/projection";
-import { Gem, Users } from "lucide-react";
+import { Gem, Users, CheckCircle2, Circle, Clock, AlertCircle } from "lucide-react";
 import type { Mutation, MutationType } from "../domain";
+import { taskOrder } from "../constants";
+import Link from "next/link";
 
 const statusStyles: Record<TodoStatus, string> = {
     'à faire': 'bg-yellow-500 text-black animate-pulse',
     'fait': 'bg-green-500 text-white',
     'en attente': 'bg-gray-400 text-white',
     'annulée': 'bg-destructive/80 text-destructive-foreground',
-};
-
-const taskOrder: Record<string, number> = {
-    "Suspendre les paiements": 1,
-    "Autoriser la modification de droits": 2,
-    "Analyser les droits": 3,
-    "Autoriser la modification de ressources": 4,
-    "Valider la modification des ressources": 5,
-    "Calculer le plan": 6,
-    "Préparer la décision": 7,
-    "Valider la décision": 8,
-    "Valider le plan de paiement": 9,
 };
 
 const statusOrder: Record<TodoStatus, number> = {
@@ -47,9 +38,113 @@ const typeDetails: Record<MutationType, { title: string, icon: React.ElementType
     RESSOURCES: { title: "Mutation de ressources", icon: Gem }
 };
 
+const taskToRoute: Record<string, string> = {
+    "Suspendre les paiements": "/",
+    "Autoriser la modification de droits": "/droits",
+    "Analyser les droits": "/droits",
+    "Autoriser la modification de ressources": "/ecritures",
+    "Valider la modification des ressources": "/ecritures",
+    "Calculer le plan": "/calcul",
+    "Préparer la décision": "/decision",
+    "Valider la décision": "/decision",
+    "Valider le plan de paiement": "/paiement",
+    "Préparer les transactions": "/paiement",
+    "Exécuter les transactions": "/paiement"
+};
+
 interface GroupedTodo {
     mutation: Mutation;
     todos: Todo[];
+}
+
+export function MutationStepsNav() {
+    const { state } = useCqrs();
+    const allMutations = queryMutations(state);
+    const allTodos = queryTodos(state);
+
+    // Find the first active mutation
+    const activeMutation = allMutations.find(m => m.status === 'EN_COURS' || m.status === 'OUVERTE');
+
+    if (!activeMutation) {
+        return null; 
+    }
+
+    const mutationTodos = allTodos
+        .filter(todo => todo.mutationId === activeMutation.id)
+        .sort((a, b) => {
+            const orderA = taskOrder[a.description] ?? 99;
+            const orderB = taskOrder[b.description] ?? 99;
+            return orderA - orderB;
+        });
+
+    return (
+        <div className="w-full bg-muted/30 border-b p-4">
+            <div className="container mx-auto">
+                <div className="flex flex-col gap-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="font-semibold text-lg">
+                                {activeMutation.type === 'DROITS' ? 'Mutation de droits' : 'Mutation de ressources'}
+                            </h3>
+                            <div className="text-xs text-muted-foreground flex gap-2">
+                                <span>{activeMutation.id}</span>
+                                <span className="px-1.5 py-0.5 rounded-full bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-100 capitalize">
+                                    {activeMutation.status.toLowerCase()}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="relative">
+                        {/* Connecting Line */}
+                        <div className="absolute top-1/2 left-0 w-full h-0.5 bg-gray-200 -translate-y-1/2 z-0 hidden md:block" />
+
+                        <div className="flex justify-between items-start overflow-x-auto pb-2 md:pb-0 gap-4 md:gap-0">
+                            {mutationTodos.map((todo, index) => {
+                                let Icon = Circle;
+                                let colorClass = "text-gray-400 bg-background border-gray-200";
+                                let textColorClass = "text-muted-foreground";
+
+                                if (todo.status === 'fait') {
+                                    Icon = CheckCircle2;
+                                    colorClass = "text-green-600 bg-green-50 border-green-600 z-10";
+                                    textColorClass = "text-green-700 font-medium";
+                                } else if (todo.status === 'à faire') {
+                                    Icon = AlertCircle;
+                                    colorClass = "text-yellow-600 bg-yellow-50 border-yellow-600 animate-pulse z-10";
+                                    textColorClass = "text-yellow-700 font-bold";
+                                } else if (todo.status === 'en attente') {
+                                    Icon = Clock;
+                                    colorClass = "text-gray-300 bg-background border-gray-200 z-10";
+                                }
+
+                                const route = taskToRoute[todo.description] || "#";
+                                const isClickable = route !== "#";
+
+                                return (
+                                    <Link 
+                                        key={todo.id} 
+                                        href={route}
+                                        className={cn(
+                                            "flex flex-col items-center gap-2 min-w-[100px] z-10 relative group",
+                                            isClickable ? "cursor-pointer hover:opacity-80" : "cursor-default"
+                                        )}
+                                    >
+                                        <div className={cn("rounded-full p-1 border-2 transition-colors", colorClass)}>
+                                            <Icon className="w-5 h-5" />
+                                        </div>
+                                        <span className={cn("text-[10px] text-center max-w-[120px] leading-tight", textColorClass)}>
+                                            {todo.description}
+                                        </span>
+                                    </Link>
+                                );
+                            })}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
 }
 
 export function TodoListView() {

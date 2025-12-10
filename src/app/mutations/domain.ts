@@ -120,7 +120,7 @@ export interface Mutation {
   history: AppEvent[];
 }
 
-export type TodoStatus = 'à faire' | 'fait' | 'en attente';
+export type TodoStatus = 'à faire' | 'fait' | 'en attente' | 'annulée';
 
 export interface Todo {
     id: string;

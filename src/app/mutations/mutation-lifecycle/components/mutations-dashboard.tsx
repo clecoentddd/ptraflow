@@ -6,22 +6,25 @@ import { AppHeader } from '@/app/mutations/create-mutation/components/app-header
 import { MutationCard } from '@/app/mutations/mutation-lifecycle/components/mutation-card';
 import { EventStreamView } from '@/app/mutations/mutation-lifecycle/components/event-stream-view';
 import { TodoListView } from '@/app/mutations/mutation-lifecycle/components/todo-list-view';
+import { Button } from "@/components/ui/button";
 import { Card } from '@/components/ui/card';
-import { ScrollArea }from "@/components/ui/scroll-area";
-import { ValidatedPeriodsView } from '@/app/mutations/projection-periodes-de-droits/components/validated-periods-view';
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Plus } from "lucide-react";
 import { queryMutations } from '@/app/mutations/projection-mutations/projection';
-import { AllEcrituresListView } from '@/app/mutations/ecritures/components/ecritures-list-ui';
-import { PlanCalculView } from '@/app/mutations/projection-plan-calcul/components/plan-calcul-view';
-import { DecisionAPrendreView } from '@/app/mutations/projection-decision-a-prendre/components/decision-a-prendre-view';
-import { PlanDePaiementView } from '@/app/mutations/projection-plan-de-paiement/components/plan-de-paiement-view';
-import { TransactionsView } from '@/app/mutations/projection-transactions/components/transactions-view';
-import { DecisionHistoryView } from '../../projection-decision-history/components/decision-history-view';
 import { HistoriqueMutationsView } from './historique-mutations-view';
 
 function DashboardContent() {
-  const { state } = useCqrs();
+  const { state, dispatchEvent } = useCqrs();
   const allMutations = queryMutations(state);
   const activeMutations = allMutations.filter(m => m.status === 'EN_COURS' || m.status === 'OUVERTE');
+
+  const handleCreateDroitsMutation = () => {
+    dispatchEvent({ type: 'CREATE_DROITS_MUTATION' });
+  };
+
+  const handleCreateRessourcesMutation = () => {
+    dispatchEvent({ type: 'CREATE_RESSOURCES_MUTATION' });
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-background">
@@ -32,10 +35,19 @@ function DashboardContent() {
           <div>
             <h2 className="text-2xl font-bold mb-4 text-foreground">Mutations Actives</h2>
             {activeMutations.length === 0 ? (
-              <Card className="flex items-center justify-center h-64 border-dashed">
+              <Card className="flex flex-col items-center justify-center h-64 border-dashed gap-4">
                   <div className="text-center">
-                      <p className="text-muted-foreground">Aucune mutation active.</p>
-                      <p className="text-sm text-muted-foreground">Cliquez sur "Créer une mutation" pour commencer.</p>
+                      <p className="text-muted-foreground mb-4">Aucune mutation active.</p>
+                      <div className="flex gap-4">
+                        <Button onClick={handleCreateDroitsMutation}>
+                          <Plus className="mr-2 h-4 w-4" />
+                          Créer mutation de droits
+                        </Button>
+                        <Button onClick={handleCreateRessourcesMutation} variant="secondary">
+                          <Plus className="mr-2 h-4 w-4" />
+                          Créer mutation de ressources
+                        </Button>
+                      </div>
                   </div>
               </Card>
             ) : (
@@ -46,45 +58,10 @@ function DashboardContent() {
               </div>
             )}
           </div>
-
-           <div>
-              <h2 className="text-2xl font-bold mb-4 text-foreground">Périodes de droits validées</h2>
-              <ValidatedPeriodsView />
-          </div>
-          
-          <div>
-            <h2 className="text-2xl font-bold mb-4 text-foreground">Écritures</h2>
-            <AllEcrituresListView />
-          </div>
-
-          <div>
-            <h2 className="text-2xl font-bold mb-4 text-foreground">Plan de calcul</h2>
-            <PlanCalculView />
-          </div>
-          
-          <div>
-            <h2 className="text-2xl font-bold mb-4 text-foreground">Décision à prendre</h2>
-            <DecisionAPrendreView />
-          </div>
-          
-          <div>
-            <h2 className="text-2xl font-bold mb-4 text-foreground">Transactions</h2>
-            <TransactionsView />
-          </div>
           
            <div>
             <h2 className="text-2xl font-bold mb-4 text-foreground">Historique des Mutations</h2>
             <HistoriqueMutationsView />
-          </div>
-
-          <div>
-            <h2 className="text-2xl font-bold mb-4 text-foreground">Historique des Plans de Paiement</h2>
-            <PlanDePaiementView />
-          </div>
-
-          <div>
-            <h2 className="text-2xl font-bold mb-4 text-foreground">Historique Des Décisions</h2>
-            <DecisionHistoryView />
           </div>
 
           <div>

@@ -3,6 +3,8 @@
 
 import type { AppEvent, AppCommand, AppState } from '../mutation-lifecycle/domain';
 import type { DecisionValideeEvent } from '../valider-decision/event';
+import type { DroitsAnalysesEvent } from '../analyze-droits/event';
+import type { DecisionPreparteeEvent } from '../preparer-decision/event';
 import { queryDecisionHistory } from '../projection-decision-history/projection';
 
 // 1. State Slice and Initial State
@@ -12,12 +14,20 @@ export interface ValidatedPeriod {
   dateFin: string;
 }
 
+export interface AnalyzedPeriod {
+  mutationId: string;
+  dateDebut: string;
+  dateFin: string;
+}
+
 export interface ValidatedPeriodsState {
   validatedPeriods: ValidatedPeriod[];
+  analyzedPeriods: AnalyzedPeriod[];
 }
 
 export const initialValidatedPeriodsState: ValidatedPeriodsState = {
   validatedPeriods: [],
+  analyzedPeriods: [],
 };
 
 
@@ -25,14 +35,14 @@ export const initialValidatedPeriodsState: ValidatedPeriodsState = {
 function applyDecisionValidee(state: AppState, event: DecisionValideeEvent): ValidatedPeriodsState {
     
     // "Claim Check" Pattern: Use the decisionId from the event to look up the full details.
-    const decisionDetails = queryDecisionHistory(state).find(d => d.payload.decisionId === event.payload.decisionId);
+    const decisionDetails = queryDecisionHistory(state).find(d => (d as DecisionPreparteeEvent).payload.decisionId === event.payload.decisionId);
 
     if (!decisionDetails) {
         console.error(`[validatedPeriodsProjection] Could not find details for decisionId ${event.payload.decisionId}`);
         return state;
     }
 
-    const { mutationType, periodeDroits } = decisionDetails.payload;
+    const { mutationType, periodeDroits } = (decisionDetails as DecisionPreparteeEvent).payload;
 
     // Only DROITS mutations set a new validated period.
     if (mutationType === 'DROITS' && periodeDroits) {
@@ -45,6 +55,22 @@ function applyDecisionValidee(state: AppState, event: DecisionValideeEvent): Val
         return { ...state, validatedPeriods: [...state.validatedPeriods, newValidatedPeriod] };
     }
     return state;
+}
+
+function applyDroitsAnalyses(state: AppState, event: DroitsAnalysesEvent): ValidatedPeriodsState {
+    const newAnalyzedPeriod: AnalyzedPeriod = {
+        mutationId: event.mutationId,
+        dateDebut: event.payload.dateDebut,
+        dateFin: event.payload.dateFin,
+    };
+    
+    // Replace existing analyzed period for this mutation if any
+    const otherPeriods = state.analyzedPeriods.filter(p => p.mutationId !== event.mutationId);
+    
+    return { 
+        ...state, 
+        analyzedPeriods: [...otherPeriods, newAnalyzedPeriod] 
+    };
 }
 
 // 3. Slice Reducer
@@ -61,6 +87,9 @@ export function validatedPeriodsProjectionReducer(
                     // Pass the full AppState to the apply function
                     const newValidatedPeriodsState = applyDecisionValidee(state, event as DecisionValideeEvent);
                     return { ...state, ...newValidatedPeriodsState };
+                case 'DROITS_ANALYSES':
+                    const newAnalyzedState = applyDroitsAnalyses(state, event as DroitsAnalysesEvent);
+                    return { ...state, ...newAnalyzedState };
             }
         }
     }
@@ -76,4 +105,8 @@ export function queryValidatedPeriods(state: AppState): ValidatedPeriod[] {
         if (!aEvent || !bEvent) return 0;
         return new Date(bEvent.timestamp).getTime() - new Date(aEvent.timestamp).getTime();
     });
+}
+
+export function queryAnalyzedPeriods(state: AppState): AnalyzedPeriod[] {
+    return state.analyzedPeriods;
 }

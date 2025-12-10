@@ -3,7 +3,7 @@
 
 import React from 'react';
 import type { AppEvent } from '../mutations/mutation-lifecycle/domain';
-import { TestComponent, mockToast } from '../mutations/bdd/test-harness';
+import { TestComponent, mockToast } from './test-harness';
 import { dispatchCommand, EventBus, rehydrateStateForTesting } from '../mutations/mutation-lifecycle/event-bus';
 import type { PlanDePaiementValideEvent } from '../paiements/valider-plan-paiement/event';
 

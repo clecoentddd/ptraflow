@@ -11,18 +11,17 @@ import {
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { Mutation, MutationStatus, MutationType } from "@/app/mutations/mutation-lifecycle/domain";
-import { Users, Gem, Check, Ban } from "lucide-react";
+import { Users, Gem } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
 import { SuspendPaiementsButton, SuspendPaiementsTodoItem } from "@/app/mutations/suspend-paiements/components/suspend-paiements-ui";
-import { AnalyzeDroitsButton, AnalyzeDroitsTodoItem } from "@/app/mutations/analyze-droits/components/analyze-droits-ui";
+import { AnalyzeDroitsTodoItem } from "@/app/mutations/analyze-droits/components/analyze-droits-ui";
 import { ValiderPlanPaiementTodoItem } from "@/app/mutations/valider-plan-paiement/components/valider-plan-paiement-ui";
-import { AutoriserModificationDroitsButton, AutoriserModificationDroitsTodoItem } from "../../autoriser-modification-des-droits/components/autoriser-modification-des-droits-ui";
-import { AutoriserModificationRessourcesButton, AutoriserModificationRessourcesTodoItem } from "../../autoriser-modification-des-ressources/components/autoriser-modification-ressources-ui";
-import { ValiderModificationRessourcesButton, ValiderModificationRessourcesTodoItem } from "../../valider-modification-ressources/components/valider-modification-ressources-ui";
-import { CalculerPlanButton, CalculerPlanTodoItem } from "../../calculer-plan/components/calculer-plan-ui";
+import { AutoriserModificationDroitsTodoItem } from "../../autoriser-modification-des-droits/components/autoriser-modification-des-droits-ui";
+import { AutoriserModificationRessourcesTodoItem } from "../../autoriser-modification-des-ressources/components/autoriser-modification-ressources-ui";
+import { ValiderModificationRessourcesTodoItem } from "../../valider-modification-ressources/components/valider-modification-ressources-ui";
+import { CalculerPlanTodoItem } from "../../calculer-plan/components/calculer-plan-ui";
 import { PreparerDecisionTodoItem } from "../../preparer-decision/components/preparer-decision-ui";
-import { ValiderDecisionButton, ValiderDecisionTodoItem } from "../../valider-decision/components/valider-decision-ui";
+import { ValiderDecisionTodoItem } from "../../valider-decision/components/valider-decision-ui";
 import { AnnulerMutationButton } from "../../annuler-mutation/components/annuler-mutation-ui";
 
 
@@ -82,16 +81,6 @@ export function MutationCard({ mutation }: { mutation: Mutation }) {
       </CardContent>
       <CardFooter className="flex flex-col items-stretch gap-2">
          <SuspendPaiementsButton mutationId={mutation.id} />
-         {mutation.type === 'DROITS' && (
-            <>
-                <AutoriserModificationDroitsButton mutationId={mutation.id} />
-                <AnalyzeDroitsButton mutationId={mutation.id} />
-            </>
-         )}
-         <AutoriserModificationRessourcesButton mutationId={mutation.id} />
-         <ValiderModificationRessourcesButton mutationId={mutation.id} />
-         <CalculerPlanButton mutationId={mutation.id} />
-         <ValiderDecisionButton mutationId={mutation.id} />
          {canBeCancelled && (
             <>
                 <div className="relative my-2">
@@ -99,9 +88,7 @@ export function MutationCard({ mutation }: { mutation: Mutation }) {
                         <span className="w-full border-t" />
                     </div>
                     <div className="relative flex justify-center text-xs uppercase">
-                        <span className="bg-card px-2 text-muted-foreground">
-                        Annulation Possible Tant que la décision n'est pas validée
-                        </span>
+                        <span className="bg-background px-2 text-muted-foreground">Zone de danger</span>
                     </div>
                 </div>
                 <AnnulerMutationButton mutationId={mutation.id} />

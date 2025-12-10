@@ -238,6 +238,15 @@ export function dispatchCommand(command: AppCommand) {
         case 'EXECUTER_TRANSACTION':
             executerTransactionCommandHandler(currentState, command);
             break;
+        case 'PREPARER_TRANSACTIONS':
+            const planEvent = currentState.eventStream.find(e => e.id === command.payload.planDePaiementId && e.type === 'PLAN_DE_PAIEMENT_VALIDE');
+            if (planEvent) {
+                 // We cast here because we verified the type in the find predicate
+                 preparerTransactionsCommandHandler(currentState, planEvent as any);
+            } else {
+                console.error(`[EventBus] Could not find PlanDePaiementValideEvent with id ${command.payload.planDePaiementId}`);
+            }
+            break;
         case 'ANNULER_MUTATION':
             annulerMutationCommandHandler(currentState, command);
             break;

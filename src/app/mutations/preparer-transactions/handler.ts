@@ -30,32 +30,33 @@ export function preparerTransactionsCommandHandler(
   // 2. For each payment in the plan, create replacement and creation events
   planEvent.payload.detailCalcul.forEach((paiement, index) => {
     // Find if a transaction for this month already exists and is not yet executed/replaced
-    const transactionToReplace = existingTransactions.find(
+    // We use filter to handle potential duplicates (though unlikely) and ensure we replace all pending ones.
+    const transactionsToReplace = existingTransactions.filter(
         t => t.mois === paiement.month && t.statut === 'A Exécuter'
     );
 
     const newTransactionId = crypto.randomUUID();
 
-    if (transactionToReplace) {
+    transactionsToReplace.forEach((transactionToReplace, i) => {
         const replaceEvent: TransactionRemplaceeEvent = {
             id: crypto.randomUUID(),
             type: 'TRANSACTION_REMPLACEE',
             mutationId,
-            timestamp: new Date(now.getTime() + index * 2).toISOString(), // Ensure order
+            timestamp: new Date(now.getTime() + index * 10 + i).toISOString(), // Ensure order
             payload: {
                 transactionId: transactionToReplace.id,
                 remplaceeParTransactionId: newTransactionId,
             }
         };
         generatedEvents.push(replaceEvent);
-    }
+    });
     
     if (paiement.aPayer !== 0) { // Business Rule: Don't create zero-amount transactions
         const createEvent: TransactionCreeeEvent = {
             id: crypto.randomUUID(),
             type: 'TRANSACTION_CREEE',
             mutationId,
-            timestamp: new Date(now.getTime() + index * 2 + 1).toISOString(), // Ensure order
+            timestamp: new Date(now.getTime() + index * 10 + 5).toISOString(), // Ensure order
             payload: {
                 transactionId: newTransactionId,
                 planDePaiementId,
