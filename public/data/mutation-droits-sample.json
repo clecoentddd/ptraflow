@@ -1,0 +1,206 @@
+[
+  {
+    "id": "evt-1",
+    "mutationId": "mut-1",
+    "timestamp": "2025-10-01T10:00:00.000Z",
+    "type": "DROITS_MUTATION_CREATED",
+    "payload": {
+      "mutationType": "DROITS"
+    }
+  },
+  {
+    "id": "evt-2",
+    "mutationId": "mut-1",
+    "timestamp": "2025-10-01T10:01:00.000Z",
+    "type": "PAIEMENTS_SUSPENDUS",
+    "payload": {
+      "userEmail": "user@example.com"
+    }
+  },
+  {
+    "id": "evt-3",
+    "mutationId": "mut-1",
+    "timestamp": "2025-10-01T10:02:00.000Z",
+    "type": "MODIFICATION_DROITS_AUTORISEE",
+    "payload": {
+      "userEmail": "user@example.com"
+    }
+  },
+  {
+    "id": "evt-4",
+    "mutationId": "mut-1",
+    "timestamp": "2025-10-01T10:03:00.000Z",
+    "type": "DROITS_ANALYSES",
+    "payload": {
+      "userEmail": "user@example.com",
+      "dateDebut": "10-2025",
+      "dateFin": "12-2025"
+    }
+  },
+  {
+    "id": "evt-5",
+    "mutationId": "mut-1",
+    "timestamp": "2025-10-01T10:04:00.000Z",
+    "type": "MODIFICATION_RESSOURCES_AUTORISEE",
+    "ressourceVersionId": "res-ver-1",
+    "payload": {
+      "userEmail": "user@example.com"
+    }
+  },
+  {
+    "id": "evt-6",
+    "mutationId": "mut-1",
+    "timestamp": "2025-10-01T10:05:00.000Z",
+    "type": "REVENU_AJOUTE",
+    "ressourceVersionId": "res-ver-1",
+    "payload": {
+      "ecritureId": "ecr-1",
+      "code": "SALAIRE",
+      "libelle": "Salaire Mensuel",
+      "montant": 5000,
+      "dateDebut": "10-2025",
+      "dateFin": "12-2025"
+    }
+  },
+  {
+    "id": "evt-7",
+    "mutationId": "mut-1",
+    "timestamp": "2025-10-01T10:06:00.000Z",
+    "type": "DEPENSE_AJOUTEE",
+    "ressourceVersionId": "res-ver-1",
+    "payload": {
+      "ecritureId": "ecr-2",
+      "code": "LOYER",
+      "libelle": "Loyer Appartement",
+      "montant": 1500,
+      "dateDebut": "10-2025",
+      "dateFin": "12-2025"
+    }
+  },
+  {
+    "id": "evt-8",
+    "mutationId": "mut-1",
+    "timestamp": "2025-10-01T10:07:00.000Z",
+    "type": "REVENU_AJOUTE",
+    "ressourceVersionId": "res-ver-1",
+    "payload": {
+      "ecritureId": "ecr-3",
+      "code": "ALLOC",
+      "libelle": "Allocations Familiales",
+      "montant": 200,
+      "dateDebut": "10-2025",
+      "dateFin": "12-2025"
+    }
+  },
+  {
+    "id": "evt-9",
+    "mutationId": "mut-1",
+    "timestamp": "2025-10-01T10:08:00.000Z",
+    "type": "MODIFICATION_RESSOURCES_VALIDEE",
+    "ressourceVersionId": "res-ver-1",
+    "payload": {
+      "userEmail": "user@example.com"
+    }
+  },
+  {
+    "id": "evt-10",
+    "mutationId": "mut-1",
+    "timestamp": "2025-10-01T10:09:00.000Z",
+    "type": "PLAN_CALCUL_EFFECTUE",
+    "ressourceVersionId": "res-ver-1",
+    "payload": {
+      "calculId": "calc-1",
+      "detail": [
+        { "month": "10-2025", "revenus": 5200, "depenses": 1500, "resultat": 3700, "calcul": 370 },
+        { "month": "11-2025", "revenus": 5200, "depenses": 1500, "resultat": 3700, "calcul": 370 },
+        { "month": "12-2025", "revenus": 5200, "depenses": 1500, "resultat": 3700, "calcul": 370 }
+      ]
+    }
+  },
+  {
+    "id": "evt-11",
+    "mutationId": "mut-1",
+    "timestamp": "2025-10-01T10:10:00.000Z",
+    "type": "DECISION_PREPAREE",
+    "payload": {
+      "decisionId": "dec-1",
+      "calculId": "calc-1",
+      "ressourceVersionId": "res-ver-1",
+      "planDePaiementId": null,
+      "mutationType": "DROITS",
+      "periodeDroits": { "dateDebut": "10-2025", "dateFin": "12-2025" },
+      "detail": [
+        { "month": "10-2025", "revenus": 5200, "depenses": 1500, "resultat": 3700, "calcul": 370, "paiementsEffectues": 0, "aPayer": 370 },
+        { "month": "11-2025", "revenus": 5200, "depenses": 1500, "resultat": 3700, "calcul": 370, "paiementsEffectues": 0, "aPayer": 370 },
+        { "month": "12-2025", "revenus": 5200, "depenses": 1500, "resultat": 3700, "calcul": 370, "paiementsEffectues": 0, "aPayer": 370 }
+      ]
+    }
+  },
+  {
+    "id": "evt-12",
+    "mutationId": "mut-1",
+    "timestamp": "2025-10-01T10:11:00.000Z",
+    "type": "DECISION_VALIDEE",
+    "payload": {
+      "decisionId": "dec-1"
+    }
+  },
+  {
+    "id": "plan-paiement-1",
+    "mutationId": "mut-1",
+    "timestamp": "2025-10-01T10:12:00.000Z",
+    "type": "PLAN_DE_PAIEMENT_VALIDE",
+    "payload": {
+      "decisionId": "dec-1",
+      "detailCalcul": [
+        { "month": "10-2025", "aPayer": 370 },
+        { "month": "11-2025", "aPayer": 370 },
+        { "month": "12-2025", "aPayer": 370 }
+      ]
+    }
+  },
+  {
+    "id": "evt-14a",
+    "mutationId": "mut-1",
+    "timestamp": "2025-10-01T10:13:00.000Z",
+    "type": "TRANSACTION_CREEE",
+    "payload": {
+      "transactionId": "trans-1",
+      "planDePaiementId": "plan-paiement-1",
+      "mois": "10-2025",
+      "montant": 370
+    }
+  },
+  {
+    "id": "evt-14b",
+    "mutationId": "mut-1",
+    "timestamp": "2025-10-01T10:13:01.000Z",
+    "type": "TRANSACTION_CREEE",
+    "payload": {
+      "transactionId": "trans-2",
+      "planDePaiementId": "plan-paiement-1",
+      "mois": "11-2025",
+      "montant": 370
+    }
+  },
+  {
+    "id": "evt-14c",
+    "mutationId": "mut-1",
+    "timestamp": "2025-10-01T10:13:02.000Z",
+    "type": "TRANSACTION_CREEE",
+    "payload": {
+      "transactionId": "trans-3",
+      "planDePaiementId": "plan-paiement-1",
+      "mois": "12-2025",
+      "montant": 370
+    }
+  },
+  {
+    "id": "evt-15",
+    "mutationId": "mut-1",
+    "timestamp": "2025-10-01T10:14:00.000Z",
+    "type": "TRANSACTION_EFFECTUEE",
+    "transactionId": "trans-1",
+    "payload": {}
+  }
+]

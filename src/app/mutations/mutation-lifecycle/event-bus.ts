@@ -155,8 +155,25 @@ class EventBusManager {
         state = this.applyProjections(state, sortedEvents);
         this.state = state;
 
-        this.runProcessManagers(sortedEvents); // Run processes on the rehydrated state
+        // this.runProcessManagers(sortedEvents); // DO NOT RUN PROCESS MANAGERS ON REHYDRATION
         this.publish(); // Notify test components
+    }
+
+    // Charge un historique d'événements sans déclencher les effets de bord (Process Managers)
+    public loadHistory(events: AppEvent[]) {
+        const sortedEvents = [...events].sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
+        
+        // 1. Add new events to the stream
+        this.state = {
+            ...this.state,
+            eventStream: [...this.state.eventStream, ...sortedEvents],
+        }
+
+        // 2. Apply projections for new events
+        this.state = this.applyProjections(this.state, sortedEvents);
+        
+        // 3. DO NOT Run process managers
+        this.publish();
     }
 }
 
@@ -174,6 +191,10 @@ export function publishEvent(event: AppEvent) {
 export function publishEvents(events: AppEvent[]) {
     EventBus.appendEvents(events);
     EventBus.publish();
+}
+
+export function loadHistory(events: AppEvent[]) {
+    EventBus.loadHistory(events);
 }
 
 export function subscribeToEventBus(callback: Subscriber) {

@@ -2,6 +2,8 @@ import type {NextConfig} from 'next';
 
 const nextConfig: NextConfig = {
   output: 'export',
+  trailingSlash: true,
+  basePath: '/apps/ptraflow',
   /* config options here */
   typescript: {
     ignoreBuildErrors: true,

@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Plus } from "lucide-react";
 import { queryMutations } from '@/app/mutations/projection-mutations/projection';
 import { HistoriqueMutationsView } from './historique-mutations-view';
+import { LoadDemoDataButton } from './load-demo-data-button';
 
 function DashboardContent() {
   const { state, dispatchEvent } = useCqrs();
@@ -47,6 +48,7 @@ function DashboardContent() {
                           <Plus className="mr-2 h-4 w-4" />
                           Créer mutation de ressources
                         </Button>
+                        <LoadDemoDataButton />
                       </div>
                   </div>
               </Card>

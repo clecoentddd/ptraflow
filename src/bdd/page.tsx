@@ -5,7 +5,7 @@ import React from 'react';
 import { BDDTest1, BDDTest2 } from './creation-de-mutation';
 import { BDDTestProjectionPeriodes } from './projection-periodes-validees';
 import { BDDTestCreationRessources, BDDTestCreationRessourcesAvecPeriode } from './creation-ressources-mutation';
-import { BDDTestsMiseAJourEcritures } from '../mutations/bdd/mise-a-jour-ecritures';
+import { BDDTestsMiseAJourEcritures } from './mise-a-jour-ecritures';
 import { BDDTestPreparationTransactions } from './preparation-transactions';
 import { BDDTestReconciliationWrapper } from './reconciliation-transactions';
 import { BDDTestReconciliationRessourcesWrapper } from './reconciliation-ressources';

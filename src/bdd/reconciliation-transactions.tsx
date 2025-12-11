@@ -3,7 +3,7 @@
 
 import React from 'react';
 import type { AppState, AppEvent } from '../mutations/mutation-lifecycle/domain';
-import { TestComponent } from '../mutations/bdd/test-harness';
+import { TestComponent } from './test-harness';
 import { EventBus, rehydrateStateForTesting } from '../mutations/mutation-lifecycle/event-bus';
 import { queryDecisionsAPrendre } from '../mutations/projection-decision-a-prendre/projection';
 
