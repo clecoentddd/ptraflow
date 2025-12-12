@@ -6,6 +6,8 @@ import type { MonthlyResult } from '../shared/plan-de-calcul.service';
 import { queryTransactions } from '../projection-transactions/projection';
 import { parse, format, eachMonthOfInterval, min, max } from 'date-fns';
 import type { DecisionPreparteeEvent } from '../preparer-decision/event';
+import type { DecisionDroitsPrepareeEvent } from '../preparer-decision-droits/event';
+import type { DecisionRessourcesPrepareeEvent } from '../preparer-decision-ressources/event';
 
 // 1. State Slice and Initial State
 export interface DecisionData {
@@ -30,7 +32,7 @@ export const initialDecisionAPrendreState: DecisionAPrendreState = {
 
 
 // 2. Projection Logic
-function applyDecisionPrepartee(state: DecisionAPrendreState, event: DecisionPreparteeEvent): DecisionAPrendreState {
+function applyDecisionPrepartee(state: DecisionAPrendreState, event: DecisionPreparteeEvent | DecisionDroitsPrepareeEvent | DecisionRessourcesPrepareeEvent): DecisionAPrendreState {
     const newDecision: DecisionData = {
         mutationId: event.mutationId,
         ...event.payload
@@ -70,7 +72,9 @@ export function decisionAPrendreProjectionReducer(state: AppState, commandOrEven
         const event = commandOrEvent as AppEvent;
         switch(event.type) {
             case 'DECISION_PREPAREE':
-                return { ...state, ...applyDecisionPrepartee(state, event) };
+            case 'DECISION_DROITS_PREPAREE':
+            case 'DECISION_RESSOURCES_PREPAREE':
+                return { ...state, ...applyDecisionPrepartee(state, event as any) };
             case 'DECISION_VALIDEE':
                 return { ...state, ...applyDecisionValidee(state, event) };
             case 'MUTATION_ANNULEE':

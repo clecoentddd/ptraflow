@@ -3,26 +3,39 @@
 import { useCqrs } from "@/app/mutations/mutation-lifecycle/cqrs";
 import { Button } from "@/components/ui/button";
 import { queryTodos } from "../../projection-todolist/projection";
+import { queryMutations } from "../../projection-mutations/projection";
 import type { PlanCalculeEvent } from "@/app/mutations/calculer-plan/event";
 
 export function PreparerDecisionButton({ mutationId }: { mutationId: string }) {
     const { state, dispatchEvent } = useCqrs();
     const todos = queryTodos(state);
     const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Préparer la décision');
+    const mutation = queryMutations(state).find(m => m.id === mutationId);
     
     const calculEvent = state.eventStream.find(e => 
         e.type === 'PLAN_CALCUL_EFFECTUE' && e.mutationId === mutationId
     ) as PlanCalculeEvent | undefined;
 
     const handleClick = () => {
-        if (!calculEvent) return;
-        dispatchEvent({ 
-            type: 'PREPARER_DECISION', 
-            payload: { 
-                mutationId,
-                calculId: calculEvent.payload.calculId
-            }
-        });
+        if (!calculEvent || !mutation) return;
+        
+        if (mutation.type === 'DROITS') {
+            dispatchEvent({ 
+                type: 'PREPARER_DECISION_DROITS', 
+                payload: { 
+                    mutationId,
+                    calculId: calculEvent.payload.calculId
+                }
+            });
+        } else {
+            dispatchEvent({ 
+                type: 'PREPARER_DECISION_RESSOURCES', 
+                payload: { 
+                    mutationId,
+                    calculId: calculEvent.payload.calculId
+                }
+            });
+        }
     };
 
     if (!todo) return null;

@@ -121,7 +121,7 @@
     "id": "evt-11",
     "mutationId": "mut-1",
     "timestamp": "2025-10-01T10:10:00.000Z",
-    "type": "DECISION_PREPAREE",
+    "type": "DECISION_DROITS_PREPAREE",
     "payload": {
       "decisionId": "dec-1",
       "calculId": "calc-1",

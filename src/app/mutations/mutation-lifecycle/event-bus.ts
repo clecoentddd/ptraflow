@@ -18,6 +18,8 @@ import { supprimerEcritureCommandHandler } from '../ecritures/supprimer-ecriture
 import { mettreAJourEcritureCommandHandler } from '../ecritures/mettre-a-jour-ecriture/handler';
 import { validerPlanCalculCommandHandler } from '../calculer-plan/handler';
 import { preparerDecisionCommandHandler } from '../preparer-decision/handler';
+import { preparerDecisionDroitsCommandHandler } from '../preparer-decision-droits/handler';
+import { preparerDecisionRessourcesCommandHandler } from '../preparer-decision-ressources/handler';
 import { validerDecisionCommandHandler } from '../valider-decision/handler';
 import { validerPlanPaiementCommandHandler } from '../valider-plan-paiement/handler';
 import { executerTransactionCommandHandler } from '../executer-transaction/handler';
@@ -26,7 +28,7 @@ import { annulerMutationCommandHandler } from '../annuler-mutation/handler';
 
 // Importation des logiques de projection
 import { validatedPeriodsProjectionReducer, initialValidatedPeriodsState } from '../projection-periodes-de-droits/projection';
-import { mutationsProjectionReducer, initialMutationsState } from '../projection-mutations/projection';
+import { mutationsProjectionReducer, initialMutationsState, queryMutations } from '../projection-mutations/projection';
 import { todolistProjectionReducer, initialTodolistState } from '../projection-todolist/projection';
 import { ecrituresProjectionReducer, initialEcrituresState } from '../projection-ecritures/projection';
 import { planCalculProjectionReducer, initialPlanCalculState } from '../projection-plan-calcul/projection';
@@ -34,6 +36,10 @@ import { decisionAPrendreProjectionReducer, initialDecisionAPrendreState } from 
 import { planDePaiementProjectionReducer, initialPlanDePaiementState } from '../projection-plan-de-paiement/projection';
 import { transactionsProjectionReducer, initialTransactionsState } from '../projection-transactions/projection';
 import { decisionHistoryProjectionReducer, initialDecisionHistoryState } from '../projection-decision-history/projection';
+
+// Importation des Process Managers
+import { preparerDecisionDroitsProcessManager } from '../preparer-decision-droits/process-manager';
+import { preparerDecisionRessourcesProcessManager } from '../preparer-decision-ressources/process-manager';
 
 
 type Subscriber = (state: AppState) => void;
@@ -86,13 +92,8 @@ class EventBusManager {
             }
              // A calculation triggers decision preparation
              if (event.type === 'PLAN_CALCUL_EFFECTUE') {
-                preparerDecisionCommandHandler(this.state, {
-                    type: 'PREPARER_DECISION',
-                    payload: {
-                        mutationId: event.mutationId,
-                        calculId: event.payload.calculId
-                    }
-                });
+                preparerDecisionDroitsProcessManager(this.state, event);
+                preparerDecisionRessourcesProcessManager(this.state, event);
             }
              // A validated decision triggers payment plan validation
             if (event.type === 'DECISION_VALIDEE') {
@@ -237,6 +238,12 @@ export function dispatchCommand(command: AppCommand) {
             break;
         case 'PREPARER_DECISION':
             preparerDecisionCommandHandler(currentState, command);
+            break;
+        case 'PREPARER_DECISION_DROITS':
+            preparerDecisionDroitsCommandHandler(currentState, command);
+            break;
+        case 'PREPARER_DECISION_RESSOURCES':
+            preparerDecisionRessourcesCommandHandler(currentState, command);
             break;
         case 'AJOUTER_REVENU':
             ajouterRevenuCommandHandler(currentState, command);

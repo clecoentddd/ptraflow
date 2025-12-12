@@ -12,6 +12,8 @@ import type { EcritureSupprimeeEvent } from '../ecritures/supprimer-ecriture/eve
 import type { PlanCalculeEvent } from '../calculer-plan/event';
 import type { EcriturePeriodeCorrigeeEvent } from '../ecritures/mettre-a-jour-ecriture/event';
 import type { DecisionPreparteeEvent } from '../preparer-decision/event';
+import type { DecisionDroitsPrepareeEvent } from '../preparer-decision-droits/event';
+import type { DecisionRessourcesPrepareeEvent } from '../preparer-decision-ressources/event';
 import type { DecisionValideeEvent } from '../valider-decision/event';
 import type { PlanDePaiementValideEvent } from '../valider-plan-paiement/event';
 import type { TransactionCreeeEvent, TransactionEffectueeEvent, TransactionRemplaceeEvent } from '../projection-transactions/events';
@@ -31,6 +33,8 @@ import type { SupprimerEcritureCommand } from '../ecritures/supprimer-ecriture/c
 import type { MettreAJourEcritureCommand } from '../ecritures/mettre-a-jour-ecriture/command';
 import type { ValiderPlanCalculCommand } from '../calculer-plan/command';
 import type { PreparerDecisionCommand } from '../preparer-decision/command';
+import type { PreparerDecisionDroitsCommand } from '../preparer-decision-droits/command';
+import type { PreparerDecisionRessourcesCommand } from '../preparer-decision-ressources/command';
 import type { ValiderDecisionCommand } from '../valider-decision/command';
 import type { ValiderPlanPaiementCommand } from '../valider-plan-paiement/command';
 import type { ExecuterTransactionCommand } from '../executer-transaction/command';
@@ -77,6 +81,8 @@ export type AppEvent =
     | EcriturePeriodeCorrigeeEvent
     | PlanCalculeEvent
     | DecisionPreparteeEvent
+    | DecisionDroitsPrepareeEvent
+    | DecisionRessourcesPrepareeEvent
     | DecisionValideeEvent
     | TransactionCreeeEvent
     | TransactionRemplaceeEvent
@@ -104,6 +110,8 @@ export type AppCommand =
     | MettreAJourEcritureCommand
     | ValiderPlanCalculCommand
     | PreparerDecisionCommand
+    | PreparerDecisionDroitsCommand
+    | PreparerDecisionRessourcesCommand
     | ValiderDecisionCommand
     | ExecuterTransactionCommand
     | PreparerTransactionsCommand

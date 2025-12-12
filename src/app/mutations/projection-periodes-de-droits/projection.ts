@@ -5,6 +5,7 @@ import type { AppEvent, AppCommand, AppState } from '../mutation-lifecycle/domai
 import type { DecisionValideeEvent } from '../valider-decision/event';
 import type { DroitsAnalysesEvent } from '../analyze-droits/event';
 import type { DecisionPreparteeEvent } from '../preparer-decision/event';
+import type { DecisionDroitsPrepareeEvent } from '../preparer-decision-droits/event';
 import { queryDecisionHistory } from '../projection-decision-history/projection';
 
 // 1. State Slice and Initial State
@@ -35,25 +36,28 @@ export const initialValidatedPeriodsState: ValidatedPeriodsState = {
 function applyDecisionValidee(state: AppState, event: DecisionValideeEvent): ValidatedPeriodsState {
     
     // "Claim Check" Pattern: Use the decisionId from the event to look up the full details.
-    const decisionDetails = queryDecisionHistory(state).find(d => (d as DecisionPreparteeEvent).payload.decisionId === event.payload.decisionId);
+    const decisionDetails = queryDecisionHistory(state).find(d => d.payload.decisionId === event.payload.decisionId);
 
     if (!decisionDetails) {
         console.error(`[validatedPeriodsProjection] Could not find details for decisionId ${event.payload.decisionId}`);
         return state;
     }
 
-    const { mutationType, periodeDroits } = (decisionDetails as DecisionPreparteeEvent).payload;
-
-    // Only DROITS mutations set a new validated period.
-    if (mutationType === 'DROITS' && periodeDroits) {
-        const newValidatedPeriod: ValidatedPeriod = {
-            mutationId: event.mutationId,
-            dateDebut: periodeDroits.dateDebut,
-            dateFin: periodeDroits.dateFin,
-        };
-        // Business rule: add the new period to the history, don't overwrite.
-        return { ...state, validatedPeriods: [...state.validatedPeriods, newValidatedPeriod] };
+    // We check if it is a DROITS decision
+    if (decisionDetails.type === 'DECISION_DROITS_PREPAREE' || decisionDetails.type === 'DECISION_PREPAREE') {
+        const payload = (decisionDetails as DecisionDroitsPrepareeEvent | DecisionPreparteeEvent).payload;
+        
+        if (payload.mutationType === 'DROITS' && payload.periodeDroits) {
+             const newValidatedPeriod: ValidatedPeriod = {
+                mutationId: event.mutationId,
+                dateDebut: payload.periodeDroits.dateDebut,
+                dateFin: payload.periodeDroits.dateFin,
+            };
+            // Business rule: add the new period to the history, don't overwrite.
+            return { ...state, validatedPeriods: [...state.validatedPeriods, newValidatedPeriod] };
+        }
     }
+
     return state;
 }
 
