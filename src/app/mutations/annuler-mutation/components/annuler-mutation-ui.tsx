@@ -13,9 +13,10 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import { Ban } from "lucide-react";
 
-export function AnnulerMutationButton({ mutationId }: { mutationId: string }) {
+export function AnnulerMutationButton({ mutationId, className }: { mutationId: string; className?: string }) {
     const { dispatchEvent } = useCqrs();
     
     const handleAnnuler = () => {
@@ -28,7 +29,7 @@ export function AnnulerMutationButton({ mutationId }: { mutationId: string }) {
     return (
         <AlertDialog>
             <AlertDialogTrigger asChild>
-                <Button variant="destructive" className="w-full">
+                <Button variant="destructive" className={cn("w-full", className)}>
                     <Ban className="mr-2 h-4 w-4" />
                     Annuler la mutation
                 </Button>

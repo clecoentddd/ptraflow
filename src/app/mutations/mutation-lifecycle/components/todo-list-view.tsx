@@ -14,7 +14,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { queryTodos } from "../../projection-todolist/projection";
 import { queryMutations } from "../../projection-mutations/projection";
-import { Gem, Users, CheckCircle2, Circle, Clock, AlertCircle } from "lucide-react";
+import { Gem, Users, Check, Play } from "lucide-react";
 import type { Mutation, MutationType } from "../domain";
 import { taskOrder } from "../constants";
 import Link from "next/link";
@@ -77,6 +77,19 @@ export function MutationStepsNav() {
             return orderA - orderB;
         });
 
+    // Figure out which step should be highlighted as the actionable point for the user.
+    const firstTodoIndex = mutationTodos.findIndex(todo => todo.status === 'à faire');
+    const waitingTodoIndex = mutationTodos.findIndex(todo => todo.status === 'en attente');
+    const firstNonDoneIndex = mutationTodos.findIndex(todo => todo.status !== 'fait');
+    const hasPendingStep = firstNonDoneIndex !== -1;
+    const activeStepIndex = hasPendingStep
+        ? (firstTodoIndex !== -1
+            ? firstTodoIndex
+            : waitingTodoIndex !== -1
+                ? waitingTodoIndex
+                : firstNonDoneIndex)
+        : -1;
+
     return (
         <div className="w-full bg-muted/30 border-b p-4">
             <div className="container mx-auto">
@@ -101,41 +114,49 @@ export function MutationStepsNav() {
 
                         <div className="flex justify-between items-start overflow-x-auto pb-2 md:pb-0 gap-4 md:gap-0">
                             {mutationTodos.map((todo, index) => {
-                                let Icon = Circle;
-                                let colorClass = "text-gray-400 bg-background border-gray-200";
-                                let textColorClass = "text-muted-foreground";
-
-                                if (todo.status === 'fait') {
-                                    Icon = CheckCircle2;
-                                    colorClass = "text-green-600 bg-green-50 border-green-600 z-10";
-                                    textColorClass = "text-green-700 font-medium";
-                                } else if (todo.status === 'à faire') {
-                                    Icon = AlertCircle;
-                                    colorClass = "text-yellow-600 bg-yellow-50 border-yellow-600 animate-pulse z-10";
-                                    textColorClass = "text-yellow-700 font-bold";
-                                } else if (todo.status === 'en attente') {
-                                    Icon = Clock;
-                                    colorClass = "text-gray-300 bg-background border-gray-200 z-10";
-                                }
-
                                 const route = taskToRoute[todo.description] || "#";
                                 const isClickable = route !== "#";
+                                const isActiveStep = hasPendingStep && index === activeStepIndex;
+                                const isCompletedStep = !hasPendingStep || (todo.status === 'fait' && index <= activeStepIndex) || index < activeStepIndex;
+                                const isUpcomingStep = !isCompletedStep && !isActiveStep;
+
+                                let Icon = Check;
+                                let wrapperColors = "text-muted-foreground bg-muted border border-dashed border-muted-foreground/40";
+                                let labelColors = "text-muted-foreground";
+
+                                if (isActiveStep) {
+                                    Icon = Play;
+                                    wrapperColors = "text-amber-900 bg-amber-300 border border-amber-400 shadow-md shadow-amber-200 animate-pulse";
+                                    labelColors = "text-amber-700 font-semibold";
+                                } else if (isCompletedStep) {
+                                    Icon = Check;
+                                    wrapperColors = "text-white bg-emerald-500 border border-emerald-500 shadow-sm";
+                                    labelColors = "text-emerald-600 font-medium";
+                                }
 
                                 return (
                                     <Link 
                                         key={todo.id} 
                                         href={route}
                                         className={cn(
-                                            "flex flex-col items-center gap-2 min-w-[100px] z-10 relative group",
-                                            isClickable ? "cursor-pointer hover:opacity-80" : "cursor-default"
+                                            "flex flex-col items-center gap-2 min-w-[110px] z-10 relative group transition-transform",
+                                            isClickable ? "cursor-pointer hover:-translate-y-1 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500" : "cursor-default"
                                         )}
+                                        aria-current={isActiveStep ? "step" : undefined}
+                                        aria-label={`${todo.description} - ${todo.status}`}
+                                        title={`${todo.description} (${todo.status})`}
                                     >
-                                        <div className={cn("rounded-full p-1 border-2 transition-colors", colorClass)}>
-                                            <Icon className="w-5 h-5" />
+                                        <div className={cn("rounded-full p-2 transition-all", wrapperColors)}>
+                                            <Icon className="w-4 h-4" />
                                         </div>
-                                        <span className={cn("text-[10px] text-center max-w-[120px] leading-tight", textColorClass)}>
+                                        <span className={cn("text-[10px] text-center max-w-[120px] leading-tight", labelColors)}>
                                             {todo.description}
                                         </span>
+                                        {isUpcomingStep && (
+                                            <span className="text-[10px] text-muted-foreground/80">
+                                                À venir
+                                            </span>
+                                        )}
                                     </Link>
                                 );
                             })}

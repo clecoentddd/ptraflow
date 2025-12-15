@@ -67,11 +67,6 @@ function DashboardContent() {
           </div>
 
           <div>
-              <h2 className="text-2xl font-bold mb-4 text-foreground">Liste de tâches</h2>
-              <TodoListView />
-          </div>
-
-          <div>
             <h2 className="text-2xl font-bold mb-4 text-foreground">Flux d'événements</h2>
             <ScrollArea className="h-[30rem] w-full rounded-md border">
               <EventStreamView />

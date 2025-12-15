@@ -33,9 +33,8 @@ export function SuspendPaiementsTodoItem({ mutationId }: { mutationId: string })
     )
 }
 
-export function SuspendPaiementsButton({ mutationId }: { mutationId: string }) {
-    const { dispatchEvent } = useCqrs();
-    const { state } = useCqrs();
+export function SuspendPaiementsButton({ mutationId, className }: { mutationId: string; className?: string }) {
+    const { state, dispatchEvent } = useCqrs();
     const todos = queryTodos(state);
     const todo = todos.find(t => t.mutationId === mutationId && t.description === 'Suspendre les paiements');
     
@@ -60,7 +59,7 @@ export function SuspendPaiementsButton({ mutationId }: { mutationId: string }) {
             onClick={handleClick} 
             disabled={!isTodo} 
             variant={getVariant()}
-            className="w-full"
+            className={cn("w-full", className)}
         >
             {isDone ? <Check className="mr-2 h-4 w-4" /> : <ArrowRight className="mr-2 h-4 w-4" />}
             Suspendre les paiements
